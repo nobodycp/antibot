@@ -1,6 +1,7 @@
 .DS_Store
 db.sqlite3
 env/
+
 # ملفات Python غير ضرورية
 __pycache__/
 *.pyc
@@ -8,7 +9,8 @@ __pycache__/
 # تجاهل البيئة الافتراضية
 env/
 venv/
-
+.venv
+.venv/
 # تجاهل قاعدة البيانات
 *.sqlite3
 
