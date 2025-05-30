@@ -3,15 +3,15 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import AllowedCountry
-
+from django.db.models import Q
 from .models import (
     Visitor, IPLog,
     BlockedIP, BlockedHostname, BlockedISP, BlockedOS, BlockedBrowser, RejectedVisitor
 )
-
 import user_agents
 import socket
 import requests
+
 
 
 
@@ -114,7 +114,9 @@ class LogVisitorAPIView(APIView):
             )
             return Response({'status': 'access_denied','reason': f'Country \"{country}\" is not allowed'}, status=403)
 
-        if BlockedHostname.objects.filter(hostname__iexact=hostname).exists():
+        if BlockedHostname.objects.filter(
+                Q(hostname__icontains=hostname) | Q(hostname__in=hostname.split('.'))
+        ).exists():
             RejectedVisitor.objects.create(
                 ip_address=ip,
                 hostname=hostname,
