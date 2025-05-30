@@ -1,34 +1,30 @@
 #!/bin/bash
 
-echo "📦 بدء رفع التعديلات إلى GitHub..."
+echo "📦 Starting push to GitHub..."
 
-# إيقاف مؤقت لو فيه مشاكل
-set -e
+set -e  # Stop script on error
 
-# اسم مجلد المشروع (اختياري فقط للعرض)
-project_name="antibot"
-
-# 1. تأكد من تواجد Git
+# Check if git is installed
 if ! command -v git &> /dev/null; then
-    echo "❌ Git غير مثبت."
+    echo "❌ Git is not installed."
     exit 1
 fi
 
-# 2. إضافة التعديلات
+# Add all changes
 git add .
 
-# 3. كتابة رسالة تلقائية أو مخصصة
+# Prompt for commit message
 default_msg="🔁 Sync local changes to GitHub ($(date '+%Y-%m-%d %H:%M:%S'))"
-echo "💬 أدخل رسالة الالتزام (أو اضغط Enter لاستخدام الرسالة التلقائية):"
+echo "💬 Enter commit message (leave blank for default):"
 read commit_msg
 
+# Use default message if none provided
 if [ -z "$commit_msg" ]; then
     commit_msg=$default_msg
 fi
 
+# Commit and push
 git commit -m "$commit_msg"
-
-# 4. رفع التعديلات
 git push origin main
 
-echo "✅ تم رفع التعديلات إلى GitHub بنجاح 🎉"
+echo "✅ Changes pushed to GitHub successfully."
