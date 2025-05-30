@@ -49,20 +49,7 @@ class LogVisitorAPIView(APIView):
             isp = ''
             country = ''
 
-        # التحقق من الدولة
-        if country.strip().lower() not in allowed_countries_lower:
-            RejectedVisitor.objects.create(
-                ip_address=ip,
-                hostname=hostname,
-                isp=isp,
-                os=os,
-                browser=browser,
-                country=country,
-                reason=f"Blocked Country "
-            )
-            return Response({'status': 'access_denied','reason': f'Country \"{country}\" is not allowed'}, status=403)
-
-        # التحقق من الحظر
+        # IP
         if BlockedIP.objects.filter(ip_address=ip).exists():
             RejectedVisitor.objects.create(
                 ip_address=ip,
@@ -75,7 +62,8 @@ class LogVisitorAPIView(APIView):
             )
             return Response({'status': 'access_denied', 'reason': 'Blocked IP'}, status=403)
 
-        if BlockedHostname.objects.filter(hostname__iexact=hostname).exists():
+        # ISP
+        if BlockedISP.objects.filter(isp__icontains=isp).exists():
             RejectedVisitor.objects.create(
                 ip_address=ip,
                 hostname=hostname,
@@ -83,10 +71,11 @@ class LogVisitorAPIView(APIView):
                 os=os,
                 browser=browser,
                 country=country,
-                reason=f"Blocked Hostname"
+                reason=f"Blocked ISP"
             )
-            return Response({'status': 'access_denied', 'reason': 'Blocked Hostname'}, status=403)
+            return Response({'status': 'access_denied', 'reason': 'Blocked ISP'}, status=403)
 
+        # OS
         if BlockedOS.objects.filter(os__iexact=os.strip()).exists():
             RejectedVisitor.objects.create(
                 ip_address=ip,
@@ -99,6 +88,7 @@ class LogVisitorAPIView(APIView):
             )
             return Response({'status': 'access_denied', 'reason': 'Blocked OS'}, status=403)
 
+        # Browser
         if BlockedBrowser.objects.filter(browser__iexact=browser.strip()).exists():
             RejectedVisitor.objects.create(
                 ip_address=ip,
@@ -109,11 +99,10 @@ class LogVisitorAPIView(APIView):
                 country=country,
                 reason=f"Blocked Browser"
             )
-            #print(f"🧪 المتصفح: [{browser}], النظام: [{os}]")
-
             return Response({'status': 'access_denied', 'reason': 'Blocked Browser'}, status=403)
 
-        if BlockedISP.objects.filter(isp__icontains=isp).exists():
+        # country
+        if country.strip().lower() not in allowed_countries_lower:
             RejectedVisitor.objects.create(
                 ip_address=ip,
                 hostname=hostname,
@@ -121,9 +110,21 @@ class LogVisitorAPIView(APIView):
                 os=os,
                 browser=browser,
                 country=country,
-                reason=f"Blocked ISP"
+                reason=f"Blocked Country "
             )
-            return Response({'status': 'access_denied', 'reason': 'Blocked ISP'}, status=403)
+            return Response({'status': 'access_denied','reason': f'Country \"{country}\" is not allowed'}, status=403)
+
+        if BlockedHostname.objects.filter(hostname__iexact=hostname).exists():
+            RejectedVisitor.objects.create(
+                ip_address=ip,
+                hostname=hostname,
+                isp=isp,
+                os=os,
+                browser=browser,
+                country=country,
+                reason=f"Blocked Hostname"
+            )
+            return Response({'status': 'access_denied', 'reason': 'Blocked Hostname'}, status=403)
 
         # حفظ الزائر
         Visitor.objects.create(
