@@ -114,7 +114,7 @@ class LogVisitorAPIView(APIView):
             )
             return Response({'status': 'access_denied','reason': f'Country \"{country}\" is not allowed'}, status=403)
 
-        if BlockedHostname.objects.filter(
+        if hostname and BlockedHostname.objects.filter(
                 Q(hostname__icontains=hostname) | Q(hostname__in=hostname.split('.'))
         ).exists():
             RejectedVisitor.objects.create(
@@ -124,7 +124,7 @@ class LogVisitorAPIView(APIView):
                 os=os,
                 browser=browser,
                 country=country,
-                reason=f"Blocked Hostname"
+                reason="Blocked Hostname"
             )
             return Response({'status': 'access_denied', 'reason': 'Blocked Hostname'}, status=403)
 
