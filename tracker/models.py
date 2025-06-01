@@ -10,11 +10,11 @@ class Visitor(models.Model):
     user_agent = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     country = models.CharField(max_length=100, blank=True, null=True)  # ✅ الحقل الجديد
+
     class Meta:
         verbose_name_plural = "Logs"
     def __str__(self):
         return f'{self.ip_address} - {self.timestamp}'
-
 
 class RejectedVisitor(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -36,7 +36,6 @@ class BlockedIP(models.Model):
         verbose_name_plural = "1 - IP"
     def __str__(self):
         return self.ip_address
-
 
 class BlockedHostname(models.Model):
     hostname = models.CharField(max_length=255, unique=True)
@@ -73,15 +72,14 @@ class BlockedBrowser(models.Model):
 class IPLog(models.Model):
     ip_address = models.GenericIPAddressField(unique=True)
     count = models.PositiveIntegerField(default=1)
-    class Meta:
-        verbose_name_plural = "Bot IP"
-    def __str__(self):
-        return f'{self.ip_address} ({self.count} visits)'
+    last_seen = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"{self.ip_address} ({self.count})"
 
 class AllowedCountry(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=2, unique=True)
     class Meta:
-        verbose_name_plural = "6 - Country"
+        verbose_name_plural = "7 - Allowed Country Codes"
     def __str__(self):
-        return self.name
+        return self.code.upper()

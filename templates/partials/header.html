@@ -1,0 +1,14 @@
+<header class="bg-zinc-800 px-6 py-4 flex justify-between items-center border-b border-zinc-700">
+  <div class="flex items-center gap-2">
+    <button @click="sidebar = !sidebar" class="bg-zinc-700 p-2 rounded hover:bg-zinc-600">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+    <button class="text-sm bg-zinc-700 px-3 py-1 rounded text-zinc-300">Quick Shortener</button>
+  </div>
+  <div class="flex items-center gap-4">
+    <a href="/accounts/logout/" class="text-sm text-zinc-300 hover:underline">Logout</a>
+    <div class="w-8 h-8 bg-green-500 rounded-full"></div>
+  </div>
+</header>

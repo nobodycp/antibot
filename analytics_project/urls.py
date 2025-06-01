@@ -4,8 +4,10 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # path('admin/', admin.site.urls),
     path('', include('tracker.urls')),
+
+    path('accounts/', include('django.contrib.auth.urls')),  # ⬅️ هذا السطر
 ]
 
 # Serve media files in development mode

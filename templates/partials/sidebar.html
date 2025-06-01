@@ -1,0 +1,104 @@
+      <template x-if="sidebar">
+        <aside class="w-64 bg-zinc-800 flex flex-col p-3 space-y-2 text-sm">
+          <div class="text-xl font-bold mb-3">Antibot</div>
+          <nav class="flex flex-col gap-1 text-sm">
+            <a href="/dashboard/" class="{% if request.path == '/dashboard/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700"">
+              <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6" />
+              </svg>
+              Dashboard
+            </a>
+            <a href="#" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700 text-sm">
+              <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 17a4 4 0 100-8 4 4 0 000 8z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1112.21 3H21v9.79z" />
+              </svg>
+              Statistics
+            </a>
+
+            <hr class="border-t border-zinc-700 my-2" />
+
+            <!-- Block Rules -->
+<div x-data="{ open: '{% if '/dashboard/blocked-ips/' in request.path or '/dashboard/blocked-isp/' in request.path or '/dashboard/blocked-browser/' in request.path or '/dashboard/blocked-os/' in request.path or '/dashboard/allowed-country/' in request.path or '/dashboard/blocked-hostname/' in request.path %}true{% else %}false{% endif %}' == 'true' }" class="mt-1">
+  <button @click="open = !open" class="flex items-center justify-between w-full px-3 py-2 rounded hover:bg-zinc-700">
+    <span class="flex items-center gap-2">
+      <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m2 0a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+      Block Rules
+    </span>
+    <svg :class="{'rotate-90': open}" class="w-4 h-4 transform transition-transform text-zinc-400 group-hover:text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+  </button>
+  <div x-show="open" class="flex flex-col pl-3 mt-1 space-y-1 text-xs">
+    <a href="/dashboard/blocked-ips/" class="{% if request.path == '/dashboard/blocked-ips/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700"><svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01" /></svg>IP</a>
+    <a href="/dashboard/blocked-isp/" class="{% if request.path == '/dashboard/blocked-isp/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700"><svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>ISP</a>
+    <a href="/dashboard/blocked-browser/" class="{% if request.path == '/dashboard/blocked-browser/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700"><svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>Browser</a>
+    <a href="/dashboard/blocked-os/" class="{% if request.path == '/dashboard/blocked-os/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700"><svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 21h8M12 17v4m-5-4h10a1 1 0 001-1V5a1 1 0 00-1-1H7a1 1 0 00-1 1v11a1 1 0 001 1z" /></svg>OS</a>
+    <a href="/dashboard/blocked-hostname/" class="{% if request.path == '/dashboard/blocked-hostname/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700"><svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M3 12h18M3 17h18" /></svg>Hostname</a>
+    <a href="/dashboard/allowed-country/" class="{% if request.path == '/dashboard/allowed-country/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700"><svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>Country</a>
+  </div>
+</div>
+
+            <!-- Logs -->
+<div x-data="{ open: '{% if '/dashboard/allowed-logs/' in request.path or '/dashboard/denied-logs/' in request.path or '/dashboard/dinger-ip/' in request.path %}true{% else %}false{% endif %}' == 'true' }">
+  <button @click="open = !open" class="flex items-center justify-between w-full px-3 py-2 rounded hover:bg-zinc-700">
+    <span class="flex items-center gap-2">
+      <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h18" />
+      </svg>
+      Logs
+    </span>
+    <svg :class="{'rotate-90': open}" class="w-4 h-4 transform transition-transform text-zinc-400 group-hover:text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+  </button>
+  <div x-show="open" class="flex flex-col pl-3 mt-1 space-y-1 text-xs">
+    <a href="/dashboard/allowed-logs/" class="{% if request.path == '/dashboard/allowed-logs/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
+      <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+      Allowed
+    </a>
+    <a href="/dashboard/denied-logs/" class="{% if request.path == '/dashboard/denied-logs/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
+      <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+      Denied
+    </a>
+        <a href="/dashboard/dinger-ip/" class="{% if request.path == '/dashboard/dinger-ip/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
+      <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+      Dingers IP
+    </a>
+  </div>
+</div>
+
+            <!-- Upload -->
+<div x-data="{ open: '{% if '/dashboard/upload-files/' in request.path %}true{% else %}false{% endif %}' == 'true' }" class="mt-1">
+  <button @click="open = !open" class="flex items-center justify-between w-full px-3 py-2 rounded hover:bg-zinc-700">
+    <span class="flex items-center gap-2">
+      <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v16h16V4H4zm4 4h8v8H8V8z" />
+      </svg>
+      Upload
+    </span>
+    <svg :class="{'rotate-90': open}" class="w-4 h-4 transform transition-transform text-zinc-400 group-hover:text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+  </button>
+  <div x-show="open" class="flex flex-col pl-3 mt-1 space-y-1 text-xs">
+    <a href="/dashboard/upload-files/" class="{% if request.path == '/dashboard/upload-files/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
+      <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      Files
+    </a>
+  </div>
+</div>
+
+          </nav>
+        </aside>
+      </template>
