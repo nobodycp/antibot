@@ -79,6 +79,7 @@ class IPLog(models.Model):
 
 class AllowedCountry(models.Model):
     code = models.CharField(max_length=2, unique=True)
+    name = models.CharField(max_length=100, null=True, blank=True)
     class Meta:
         verbose_name_plural = "7 - Allowed Country Codes"
     def __str__(self):
