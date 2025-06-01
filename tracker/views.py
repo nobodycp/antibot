@@ -181,7 +181,7 @@ def allowed_country_view(request):
         if code:
             code = code.strip().upper()
             if not AllowedCountry.objects.filter(code=code).exists():
-                AllowedCountry.objects.create(code=code)
+                AllowedCountry.objects.create(code=code, name=code)  # ← استخدم نفس الكود كاسم مؤقت
                 messages.success(request, f"Added country code {code}")
             else:
                 messages.warning(request, f"Country code {code} is already allowed.")
