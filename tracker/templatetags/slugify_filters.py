@@ -16,17 +16,25 @@ ICON_OVERRIDES = {
     "safari": "safari",
     "opera": "opera",
     "edge": "edge",
+    "yandex": "yandex",  # ← مضافة حديثاً
+
 }
+
 
 @register.filter
 def icon_name(value):
     """
-    يستخرج اسم الأيقونة المناسب من أول كلمة في قيمة المتصفح أو النظام.
+    يحلل user agent أو أي وصف، ويرجع اسم أيقونة مناسب.
     """
     if not value:
         return "unknown"
-    name = value.lower().split(" ")[0]  # التقاط أول كلمة فقط
-    return ICON_OVERRIDES.get(name, slugify(name))  # استخدام override أو slugify تلقائي
+
+    value = value.lower()
+    for keyword in ICON_OVERRIDES:
+        if keyword in value:
+            return ICON_OVERRIDES[keyword]
+
+    return slugify(value.split(" ")[0])  # fallback
 
 @register.filter
 def slugify_filter(value):
