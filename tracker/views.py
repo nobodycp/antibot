@@ -12,8 +12,9 @@ import requests
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import render, redirect
-from django.db.models import Count, Max
 from django.views.decorators.http import require_POST
+from django.core.paginator import Paginator
+
 
 def home_redirect(request):
     return redirect('dashboard')
@@ -22,7 +23,6 @@ def home_redirect(request):
 def dashboard_view(request):
     return render(request, 'dashboard.html')
 
-@login_required
 @login_required
 def blocked_ips_view(request):
     if request.method == 'POST':
@@ -51,18 +51,30 @@ def blocked_ips_view(request):
         else:
             messages.error(request, "Invalid action.")
 
-        # HTMX: رجّع الجزء فقط
         if request.headers.get("HX-Request"):
-            blocked_ips = BlockedIP.objects.all().order_by('-id')
+            # بعد العملية نرجّع أول صفحة محدثة
+            all_ips = BlockedIP.objects.all().order_by('-id')
+            paginator = Paginator(all_ips, 50)
+            page_obj = paginator.get_page(1)
+
             return render(request, "partials/blocked_ips_partial.html", {
-                "blocked_ips": BlockedIP.objects.all().order_by('-id'),
+                "blocked_ips": page_obj.object_list,
+                "page_obj": page_obj,
                 "messages": messages.get_messages(request)
             })
+
         return redirect("blocked_ips")
 
-    blocked_ips = BlockedIP.objects.all().order_by('-id')
-    return render(request, "blocked_ips.html", {"blocked_ips": blocked_ips})
-@login_required
+    # GET العادي
+    all_ips = BlockedIP.objects.all().order_by('-id')
+    paginator = Paginator(all_ips, 50)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "blocked_ips.html", {
+        "blocked_ips": page_obj.object_list,
+        "page_obj": page_obj
+    })
 def blocked_ips_table(request):
     blocked_ips = BlockedIP.objects.all().order_by('-id')
     return render(request, 'partials/blocked_ips_table.html', {'blocked_ips': blocked_ips})
