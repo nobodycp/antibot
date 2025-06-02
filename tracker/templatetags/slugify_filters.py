@@ -11,14 +11,15 @@ ICON_OVERRIDES = {
     "android": "android",
     "ios": "ios",
     "linux": "linux",
+    "chrome os": "chrome-os",   # ← أضفناها الآن
     "chrome": "chrome",
     "firefox": "firefox",
     "safari": "safari",
     "opera": "opera",
     "edge": "edge",
     "yandex": "yandex",
-    "samsung": "samsung-internet",  # ← أضفناها
-    "samsung internet": "samsung-internet"  # ← كجملة كاملة كمان
+    "samsung": "samsung-internet",
+    "samsung internet": "samsung-internet",
 }
 
 @register.filter
