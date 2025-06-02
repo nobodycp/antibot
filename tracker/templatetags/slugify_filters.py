@@ -17,23 +17,30 @@ ICON_OVERRIDES = {
     "opera": "opera",
     "edge": "edge",
     "yandex": "yandex",
+    "samsung": "samsung-internet",  # ← أضفناها
+    "samsung internet": "samsung-internet"  # ← كجملة كاملة كمان
 }
 
 @register.filter
 def icon_name(value):
     """
-    يرجع اسم الأيقونة المطابق إذا وُجدت كلمة كاملة مثل 'chrome' داخل السلسلة.
+    يرجع اسم الأيقونة المناسبة من user-agent أو يعيد 'unknown' إذا ما تم التطابق.
     """
     if not value:
         return "unknown"
 
-    value = value.lower()
+    value = value.lower().strip()
 
-    for keyword in ICON_OVERRIDES:
+    # لو كان 'other' مباشرة
+    if value == "other":
+        return "unknown"
+
+    # تطابق مع الكلمات والعبارات المسجلة
+    for keyword in sorted(ICON_OVERRIDES, key=len, reverse=True):
         if re.search(rf'\b{re.escape(keyword)}\b', value):
             return ICON_OVERRIDES[keyword]
 
-    return slugify(value.split(" ")[0])  # fallback: أول كلمة
+    return "unknown"  # fallback صريح
 
 
 @register.filter
