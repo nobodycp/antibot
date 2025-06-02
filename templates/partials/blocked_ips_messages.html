@@ -1,0 +1,13 @@
+{% if messages %}
+  <div id="htmx-messages" class="space-y-2 mb-4">
+    {% for message in messages %}
+      <div class="px-3 py-1.5 rounded-md text-xs {{ message.tags }}
+                  {% if message.tags == 'success' %}bg-green-600 text-white
+                  {% elif message.tags == 'warning' %}bg-yellow-600 text-white
+                  {% elif message.tags == 'error' %}bg-red-600 text-white
+                  {% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}

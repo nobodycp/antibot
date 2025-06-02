@@ -21,37 +21,58 @@ def home_redirect(request):
 @login_required
 def dashboard_view(request):
     return render(request, 'dashboard.html')
+
+@login_required
 @login_required
 def blocked_ips_view(request):
     if request.method == 'POST':
         ip = request.POST.get('ip_address')
         delete_id = request.POST.get('delete_id')
+        delete_all = request.POST.get('delete_all')
 
-        # إضافة IP
         if ip:
+            ip = ip.strip()
             if not BlockedIP.objects.filter(ip_address=ip).exists():
                 BlockedIP.objects.create(ip_address=ip)
-                messages.success(request, f"Blocked IP: {ip}")
+                messages.success(request, f"✅ IP {ip} added successfully.")
             else:
-                messages.warning(request, f"{ip} is already blocked.")
-
-        # حذف IP
+                messages.warning(request, f"⚠️ IP {ip} already exists.")
         elif delete_id:
             try:
-                ip_obj = BlockedIP.objects.get(id=delete_id)
-                ip_obj.delete()
-                messages.success(request, f"Deleted IP: {ip_obj.ip_address}")
+                obj = BlockedIP.objects.get(id=delete_id)
+                messages.error(request, f"🗑️ IP {obj.ip_address} deleted.")
+                obj.delete()
             except BlockedIP.DoesNotExist:
-                messages.error(request, "IP not found.")
-
+                messages.error(request, "❌ IP not found.")
+        elif delete_all:
+            count = BlockedIP.objects.count()
+            BlockedIP.objects.all().delete()
+            messages.error(request, f"🧹 Deleted {count} IP(s).")
         else:
             messages.error(request, "Invalid action.")
 
-        return redirect('blocked_ips')
+        # HTMX: رجّع الجزء فقط
+        if request.headers.get("HX-Request"):
+            blocked_ips = BlockedIP.objects.all().order_by('-id')
+            return render(request, "partials/blocked_ips_partial.html", {
+                "blocked_ips": BlockedIP.objects.all().order_by('-id'),
+                "messages": messages.get_messages(request)
+            })
+        return redirect("blocked_ips")
 
     blocked_ips = BlockedIP.objects.all().order_by('-id')
-    return render(request, 'blocked_ips.html', {'blocked_ips': blocked_ips})
-
+    return render(request, "blocked_ips.html", {"blocked_ips": blocked_ips})
+@login_required
+def blocked_ips_table(request):
+    blocked_ips = BlockedIP.objects.all().order_by('-id')
+    return render(request, 'partials/blocked_ips_table.html', {'blocked_ips': blocked_ips})
+@login_required
+def blocked_ips_partial(request):
+    blocked_ips = BlockedIP.objects.all().order_by('-id')
+    return render(request, 'partials/blocked_ips_partial.html', {
+        'blocked_ips': blocked_ips,
+        'messages': messages.get_messages(request)
+    })
 @login_required
 def blocked_isp_view(request):
     if request.method == 'POST':
@@ -136,41 +157,6 @@ def blocked_browser_view(request):
 
     blocked_browser_list = BlockedBrowser.objects.all().order_by('-id')
     return render(request, 'blocked_browser.html', {'blocked_browser_list': blocked_browser_list})
-
-
-# def get_country_code_flexible(country_name):
-#     corrections = {
-#         "isreal": "israel",
-#         "palastine": "palestine",
-#         "usa": "united states",
-#         "u.s.a": "united states",
-#         "uae": "united arab emirates",
-#         "korea south": "south korea",
-#         "korea north": "north korea",
-#         # أضف المزيد حسب الحاجة
-#     }
-#
-#     normalized = corrections.get(country_name.strip().lower(), country_name.strip().lower())
-#
-#     # محاولة مطابقة دقيقة
-#     for country in pycountry.countries:
-#         if (
-#             country.name.lower() == normalized or
-#             getattr(country, 'official_name', '').lower() == normalized or
-#             getattr(country, 'common_name', '').lower() == normalized
-#         ):
-#             return country.alpha_2.lower()
-#
-#     # محاولة مطابقة جزئية
-#     for country in pycountry.countries:
-#         if (
-#             normalized in country.name.lower() or
-#             normalized in getattr(country, 'official_name', '').lower() or
-#             normalized in getattr(country, 'common_name', '').lower()
-#         ):
-#             return country.alpha_2.lower()
-#
-#     return None
 
 @login_required
 def allowed_country_view(request):

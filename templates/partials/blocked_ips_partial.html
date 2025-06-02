@@ -1,0 +1,14 @@
+<div id="blocked-ips-wrapper">
+  {% include "partials/blocked_ips_messages.html" %}
+  <div class="rounded overflow-hidden border border-zinc-700">
+    <table class="w-full bg-zinc-800 text-xs">
+      <thead class="bg-zinc-700 text-left text-zinc-300 uppercase tracking-wide">
+        <tr>
+          <th class="px-3 py-2">IP Address</th>
+          <th class="px-3 py-2 text-right">Delete</th>
+        </tr>
+      </thead>
+      {% include "partials/blocked_ips_table.html" %}
+    </table>
+  </div>
+</div>
