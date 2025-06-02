@@ -15,7 +15,6 @@
   <!-- Pagination -->
   <div class="mt-4 flex gap-2 text-xs">
     {% if page_obj.has_previous %}
-      <a href="{% url 'blocked_ips_partial' %}?page=1" hx-get="{% url 'blocked_ips_partial' %}?page=1" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML" class="text-blue-400 hover:underline">« First</a>
       <a href="{% url 'blocked_ips_partial' %}?page={{ page_obj.previous_page_number }}" hx-get="{% url 'blocked_ips_partial' %}?page={{ page_obj.previous_page_number }}" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML" class="text-blue-400 hover:underline">← Prev</a>
     {% endif %}
 
@@ -23,7 +22,6 @@
 
     {% if page_obj.has_next %}
       <a href="{% url 'blocked_ips_partial' %}?page={{ page_obj.next_page_number }}" hx-get="{% url 'blocked_ips_partial' %}?page={{ page_obj.next_page_number }}" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML" class="text-blue-400 hover:underline">Next →</a>
-      <a href="{% url 'blocked_ips_partial' %}?page={{ page_obj.paginator.num_pages }}" hx-get="{% url 'blocked_ips_partial' %}?page={{ page_obj.paginator.num_pages }}" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML" class="text-blue-400 hover:underline">Last »</a>
     {% endif %}
   </div>
 </div>

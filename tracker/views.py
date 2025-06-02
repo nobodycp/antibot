@@ -54,7 +54,7 @@ def blocked_ips_view(request):
         if request.headers.get("HX-Request"):
             # بعد العملية نرجّع أول صفحة محدثة
             all_ips = BlockedIP.objects.all().order_by('-id')
-            paginator = Paginator(all_ips, 50)
+            paginator = Paginator(all_ips, 20)
             page_obj = paginator.get_page(1)
 
             return render(request, "partials/blocked_ips_partial.html", {
@@ -67,7 +67,7 @@ def blocked_ips_view(request):
 
     # GET العادي
     all_ips = BlockedIP.objects.all().order_by('-id')
-    paginator = Paginator(all_ips, 50)
+    paginator = Paginator(all_ips, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
@@ -75,13 +75,15 @@ def blocked_ips_view(request):
         "blocked_ips": page_obj.object_list,
         "page_obj": page_obj
     })
+
+@login_required
 def blocked_ips_table(request):
     blocked_ips = BlockedIP.objects.all().order_by('-id')
     return render(request, 'partials/blocked_ips_table.html', {'blocked_ips': blocked_ips})
 @login_required
 def blocked_ips_partial(request):
     all_ips = BlockedIP.objects.all().order_by('-id')
-    paginator = Paginator(all_ips, 50)  # عرض 50 IP في كل صفحة
+    paginator = Paginator(all_ips, 20)  # عرض 50 IP في كل صفحة
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
@@ -494,9 +496,6 @@ class LogVisitorAPIView(APIView):
             ip_log.save()
 
         return Response({'status': 'access_granted'}, status=201)
-
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 
 @login_required
 @require_POST
