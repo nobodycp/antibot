@@ -6,7 +6,13 @@
 <div class="w-full px-6 text-sm">
   <h1 class="text-base font-semibold mb-4 text-white border-b border-zinc-700 pb-1 flex items-center justify-between">
     <span>🚫 Blocked IPs Management</span>
-    <span class="text-xs font-normal text-zinc-400">Total: {{ blocked_ips|length }}</span>
+    <span class="text-xs font-normal text-zinc-400">
+      {% if page_obj %}
+        Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+      {% else %}
+        Total: {{ blocked_ips|length }}
+      {% endif %}
+    </span>
   </h1>
 
   <!-- Controls Row -->
@@ -51,62 +57,7 @@
   </div>
 
   <!-- Wrapper for messages + table -->
-<div id="blocked-ips-wrapper">
-  {% if messages %}
-  <div id="htmx-messages" class="space-y-2 mb-4">
-    {% for message in messages %}
-  {% if message.tags == 'success' and 'deleted' in message.message|lower %}
-    <div class="px-3 py-1.5 rounded-md text-xs bg-red-600 text-white">
-      {{ message }}
-    </div>
-  {% elif message.tags == 'success' %}
-    <div class="px-3 py-1.5 rounded-md text-xs bg-green-600 text-white">
-      {{ message }}
-    </div>
-  {% elif message.tags == 'warning' %}
-    <div class="px-3 py-1.5 rounded-md text-xs bg-yellow-500 text-white">
-      {{ message }}
-    </div>
-  {% elif message.tags == 'error' %}
-    <div class="px-3 py-1.5 rounded-md text-xs bg-red-600 text-white">
-      {{ message }}
-    </div>
-  {% else %}
-    <div class="px-3 py-1.5 rounded-md text-xs bg-zinc-700 text-white">
-      {{ message }}
-    </div>
-  {% endif %}
-{% endfor %}
-  </div>
-{% endif %}
-  <div class="rounded overflow-hidden border border-zinc-700">
-    <table class="w-full bg-zinc-800 text-xs">
-      <thead class="bg-zinc-700 text-left text-zinc-300 uppercase tracking-wide">
-        <tr>
-          <th class="px-3 py-2">IP Address</th>
-          <th class="px-3 py-2 text-right">Delete</th>
-        </tr>
-      </thead>
-      {% include "partials/blocked_ips_table.html" %}
-
-    </table>
-  </div>
-
-  <!-- Pagination -->
-  <div class="mt-4 flex gap-2 text-xs">
-    {% if page_obj.has_previous %}
-      <a href="?page={{ page_obj.previous_page_number }}" hx-get="?page={{ page_obj.previous_page_number }}" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML" class="text-blue-400 hover:underline">← Prev</a>
-    {% endif %}
-
-    <span class="text-zinc-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}" hx-get="?page={{ page_obj.next_page_number }}" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML" class="text-blue-400 hover:underline">Next →</a>
-    {% endif %}
-  </div>
-</div>
-
-
+{% include 'partials/blocked_ips_partial.html' %}
 
 <!-- HTMX message handling -->
 <script>

@@ -80,10 +80,14 @@ def blocked_ips_table(request):
     return render(request, 'partials/blocked_ips_table.html', {'blocked_ips': blocked_ips})
 @login_required
 def blocked_ips_partial(request):
-    blocked_ips = BlockedIP.objects.all().order_by('-id')
-    return render(request, 'partials/blocked_ips_partial.html', {
-        'blocked_ips': blocked_ips,
-        'messages': messages.get_messages(request)
+    all_ips = BlockedIP.objects.all().order_by('-id')
+    paginator = Paginator(all_ips, 50)  # عرض 50 IP في كل صفحة
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/blocked_ips_partial.html", {
+        "blocked_ips": page_obj.object_list,
+        "page_obj": page_obj
     })
 @login_required
 def blocked_isp_view(request):
