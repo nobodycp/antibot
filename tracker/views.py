@@ -22,7 +22,7 @@ def home_redirect(request):
 @login_required
 def dashboard_view(request):
     return render(request, 'dashboard.html')
-
+################################### start block ip in blouk rouls
 @login_required
 def blocked_ips_view(request):
     if request.method == 'POST':
@@ -75,11 +75,16 @@ def blocked_ips_view(request):
         "blocked_ips": page_obj.object_list,
         "page_obj": page_obj
     })
-
 @login_required
 def blocked_ips_table(request):
-    blocked_ips = BlockedIP.objects.all().order_by('-id')
-    return render(request, 'partials/blocked_ips_table.html', {'blocked_ips': blocked_ips})
+    all_ips = BlockedIP.objects.all().order_by('-id')
+    paginator = Paginator(all_ips, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'partials/blocked_ips_table.html', {
+        'blocked_ips': page_obj.object_list
+    })
 @login_required
 def blocked_ips_partial(request):
     all_ips = BlockedIP.objects.all().order_by('-id')
@@ -91,36 +96,81 @@ def blocked_ips_partial(request):
         "blocked_ips": page_obj.object_list,
         "page_obj": page_obj
     })
+################################### end block ip in blouk rouls
 @login_required
 def blocked_isp_view(request):
     if request.method == 'POST':
         name = request.POST.get('isp_name')
         delete_id = request.POST.get('delete_id')
+        delete_all = request.POST.get('delete_all')
 
-        # إضافة ISP
         if name:
+            name = name.strip()
             if not BlockedISP.objects.filter(isp__iexact=name).exists():
                 BlockedISP.objects.create(isp=name)
-                messages.success(request, f"Blocked ISP: {name}")
+                messages.success(request, f"ISP {name} added successfully.")
             else:
-                messages.warning(request, f"{name} is already blocked.")
-
-        # حذف ISP
+                messages.warning(request, f"ISP {name} already exists.")
         elif delete_id:
             try:
-                isp = BlockedISP.objects.get(id=delete_id)
-                isp.delete()
-                messages.success(request, f"Deleted ISP: {isp.isp}")
+                obj = BlockedISP.objects.get(id=delete_id)
+                messages.error(request, f"ISP {obj.isp} deleted.")
+                obj.delete()
             except BlockedISP.DoesNotExist:
                 messages.error(request, "ISP not found.")
-
+        elif delete_all:
+            count = BlockedISP.objects.count()
+            BlockedISP.objects.all().delete()
+            messages.error(request, f"🧹 Deleted {count} ISP(s).")
         else:
             messages.error(request, "Invalid action.")
 
-        return redirect('blocked_isp')
+        if request.headers.get("HX-Request"):
+            all_isps = BlockedISP.objects.all().order_by('-id')
+            paginator = Paginator(all_isps, 20)
+            page_number = request.GET.get("page")
+            page_obj = paginator.get_page(page_number)
 
-    blocked_isps = BlockedISP.objects.all().order_by('-id')
-    return render(request, 'blocked_isp.html', {'blocked_isps': blocked_isps})
+            return render(request, "partials/blocked_isp_partial.html", {
+                "blocked_isps": page_obj.object_list,
+                "page_obj": page_obj,
+                "messages": messages.get_messages(request)
+            })
+
+        return redirect("blocked_isp")
+
+    all_isps = BlockedISP.objects.all().order_by('-id')
+    paginator = Paginator(all_isps, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "blocked_isp.html", {
+        "blocked_isps": page_obj.object_list,
+        "page_obj": page_obj
+    })
+@login_required
+def blocked_isp_partial(request):
+    all_isps = BlockedISP.objects.all().order_by('-id')
+    paginator = Paginator(all_isps, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/blocked_isp_partial.html", {
+        "blocked_isps": page_obj.object_list,
+        "page_obj": page_obj,
+        "messages": messages.get_messages(request)
+    })
+@login_required
+def blocked_isp_table(request):
+    all_isps = BlockedISP.objects.all().order_by('-id')
+    paginator = Paginator(all_isps, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/blocked_isp_table.html", {
+        "blocked_isps": page_obj.object_list
+    })
+################################### end block ip in blouk rouls
 
 @login_required
 def blocked_os_view(request):
