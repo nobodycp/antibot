@@ -4,7 +4,7 @@
     <td class="px-3 py-1.5 text-zinc-200 font-mono text-xs">{{ ip.ip_address }}</td>
     <td class="px-3 py-1.5 text-right">
       <form method="post" class="inline"
-            hx-post="{% url 'blocked_ips' %}"
+            hx-post="{% url 'dashboard:blocked_ips' %}"
             hx-target="#blocked-ips-wrapper"
             hx-swap="outerHTML">
         {% csrf_token %}

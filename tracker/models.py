@@ -1,6 +1,49 @@
 from django.db import models
 
 
+class BlockedIP(models.Model):
+    ip_address = models.GenericIPAddressField(unique=True)
+    class Meta:
+        verbose_name_plural = "1 - IP"
+    def __str__(self):
+        return self.ip_address
+
+class BlockedISP(models.Model):
+    isp = models.CharField(max_length=255, unique=True)
+    class Meta:
+        verbose_name_plural = "2 - ISP"
+    def __str__(self):
+        return self.isp
+
+class BlockedBrowser(models.Model):
+    browser = models.CharField(max_length=100, unique=True)
+    class Meta:
+        verbose_name_plural = "4 - Browser"
+    def __str__(self):
+        return self.browser
+
+class BlockedOS(models.Model):
+    os = models.CharField(max_length=100, unique=True)
+    class Meta:
+        verbose_name_plural = "3 - OS"
+    def __str__(self):
+        return self.os
+
+class BlockedHostname(models.Model):
+    hostname = models.CharField(max_length=255, unique=True)
+    class Meta:
+        verbose_name_plural = "5 - Hostname"
+    def __str__(self):
+        return self.hostname
+
+class AllowedCountry(models.Model):
+    code = models.CharField(max_length=2, unique=True)
+    name = models.CharField(max_length=100, null=True, blank=True)
+    class Meta:
+        verbose_name_plural = "7 - Allowed Country Codes"
+    def __str__(self):
+        return self.code.upper()
+
 class Visitor(models.Model):
     ip_address = models.GenericIPAddressField()
     hostname = models.CharField(max_length=255, blank=True, null=True)
@@ -30,45 +73,6 @@ class RejectedVisitor(models.Model):
     def __str__(self):
         return f"{self.ip_address} - {self.reason}"
 
-class BlockedIP(models.Model):
-    ip_address = models.GenericIPAddressField(unique=True)
-    class Meta:
-        verbose_name_plural = "1 - IP"
-    def __str__(self):
-        return self.ip_address
-
-class BlockedHostname(models.Model):
-    hostname = models.CharField(max_length=255, unique=True)
-    class Meta:
-        verbose_name_plural = "5 - Hostname"
-    def __str__(self):
-        return self.hostname
-
-
-class BlockedISP(models.Model):
-    isp = models.CharField(max_length=255, unique=True)
-    class Meta:
-        verbose_name_plural = "2 - ISP"
-    def __str__(self):
-        return self.isp
-
-
-class BlockedOS(models.Model):
-    os = models.CharField(max_length=100, unique=True)
-    class Meta:
-        verbose_name_plural = "3 - OS"
-    def __str__(self):
-        return self.os
-
-
-class BlockedBrowser(models.Model):
-    browser = models.CharField(max_length=100, unique=True)
-    class Meta:
-        verbose_name_plural = "4 - Browser"
-    def __str__(self):
-        return self.browser
-
-
 class IPLog(models.Model):
     ip_address = models.GenericIPAddressField(unique=True)
     count = models.PositiveIntegerField(default=1)
@@ -77,10 +81,3 @@ class IPLog(models.Model):
     def __str__(self):
         return f"{self.ip_address} ({self.count})"
 
-class AllowedCountry(models.Model):
-    code = models.CharField(max_length=2, unique=True)
-    name = models.CharField(max_length=100, null=True, blank=True)
-    class Meta:
-        verbose_name_plural = "7 - Allowed Country Codes"
-    def __str__(self):
-        return self.code.upper()

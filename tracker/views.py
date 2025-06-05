@@ -63,7 +63,7 @@ def blocked_ips_view(request):
                 "messages": messages.get_messages(request)
             })
 
-        return redirect("blocked_ips")
+        return redirect('dashboard:blocked_ips')
 
     # GET العادي
     all_ips = BlockedIP.objects.all().order_by('-id')
@@ -82,9 +82,7 @@ def blocked_ips_table(request):
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'partials/blocked_ips_table.html', {
-        'blocked_ips': page_obj.object_list
-    })
+    return render(request, 'partials/blocked_ips_table.html', {'blocked_ips': page_obj.object_list})
 @login_required
 def blocked_ips_partial(request):
     all_ips = BlockedIP.objects.all().order_by('-id')
@@ -137,7 +135,7 @@ def blocked_isp_view(request):
                 "messages": messages.get_messages(request)
             })
 
-        return redirect("blocked_isp")
+        return redirect("dashboard:blocked_isp")
 
     all_isps = BlockedISP.objects.all().order_by('-id')
     paginator = Paginator(all_isps, 20)
@@ -172,6 +170,80 @@ def blocked_isp_table(request):
     })
 ################################### end block ip in blouk rouls
 
+
+
+@login_required
+def blocked_browser_view(request):
+    if request.method == 'POST':
+        name = request.POST.get('browser_name')
+        delete_id = request.POST.get('delete_id')
+        delete_all = request.POST.get('delete_all')
+
+        if name:
+            if not BlockedBrowser.objects.filter(browser__iexact=name).exists():
+                BlockedBrowser.objects.create(browser=name)
+                messages.success(request, f"✅ Browser {name} added successfully.")
+            else:
+                messages.warning(request, f"⚠️ Browser {name} already exists.")
+        elif delete_id:
+            try:
+                browser_obj = BlockedBrowser.objects.get(id=delete_id)
+                browser_obj.delete()
+                messages.error(request, f"🗑️ Browser {browser_obj.browser} deleted.")
+            except BlockedBrowser.DoesNotExist:
+                messages.error(request, "❌ Browser not found.")
+        elif delete_all:
+            count = BlockedBrowser.objects.count()
+            BlockedBrowser.objects.all().delete()
+            messages.error(request, f"🧹 Deleted {count} browser(s).")
+        else:
+            messages.error(request, "Invalid action.")
+
+        if request.headers.get("HX-Request"):
+            all_browsers = BlockedBrowser.objects.all().order_by('-id')
+            paginator = Paginator(all_browsers, 20)
+            page_number = request.GET.get("page")
+            page_obj = paginator.get_page(page_number)
+            return render(request, "partials/blocked_browser_partial.html", {
+                "blocked_browsers": page_obj.object_list,
+                "page_obj": page_obj,
+                "messages": messages.get_messages(request)
+            })
+
+        return redirect('dashboard:blocked_browser')
+
+    all_browsers = BlockedBrowser.objects.all().order_by('-id')
+    paginator = Paginator(all_browsers, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'blocked_browser.html', {
+        'blocked_browsers': page_obj.object_list,
+        'page_obj': page_obj
+    })
+
+@login_required
+def blocked_browser_partial(request):
+    all_browsers = BlockedBrowser.objects.all().order_by('-id')
+    paginator = Paginator(all_browsers, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    return render(request, "partials/blocked_browser_partial.html", {
+        "blocked_browsers": page_obj.object_list,
+        "page_obj": page_obj,
+        "messages": messages.get_messages(request)
+    })
+
+@login_required
+def blocked_browser_table(request):
+    all_browsers = BlockedBrowser.objects.all().order_by('-id')
+    paginator = Paginator(all_browsers, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    return render(request, "partials/blocked_browser_table.html", {
+        "blocked_browsers": page_obj.object_list
+    })
+#######
 @login_required
 def blocked_os_view(request):
     if request.method == 'POST':
@@ -198,33 +270,6 @@ def blocked_os_view(request):
 
     blocked_os_list = BlockedOS.objects.all().order_by('-id')
     return render(request, 'blocked_os.html', {'blocked_os_list': blocked_os_list})
-
-@login_required
-def blocked_browser_view(request):
-    if request.method == 'POST':
-        name = request.POST.get('browser_name')
-        delete_id = request.POST.get('delete_id')
-
-        if name:
-            if not BlockedBrowser.objects.filter(browser__iexact=name).exists():
-                BlockedBrowser.objects.create(browser=name)
-                messages.success(request, f"Blocked Browser: {name}")
-            else:
-                messages.warning(request, f"{name} is already blocked.")
-        elif delete_id:
-            try:
-                browser_obj = BlockedBrowser.objects.get(id=delete_id)
-                browser_obj.delete()
-                messages.success(request, f"Deleted Browser: {browser_obj.browser}")
-            except BlockedBrowser.DoesNotExist:
-                messages.error(request, "Browser not found.")
-        else:
-            messages.error(request, "Invalid action.")
-
-        return redirect('blocked_browser')
-
-    blocked_browser_list = BlockedBrowser.objects.all().order_by('-id')
-    return render(request, 'blocked_browser.html', {'blocked_browser_list': blocked_browser_list})
 
 @login_required
 def allowed_country_view(request):

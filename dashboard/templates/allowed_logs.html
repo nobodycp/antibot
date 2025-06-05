@@ -25,7 +25,7 @@
       </div>
     </form>
     <div class="relative group">
-      <a href="#" hx-get="{% url 'allowed_logs_table' %}" hx-target="#logs-table" hx-swap="innerHTML" hx-trigger="click" class="text-blue-400 hover:text-blue-600">
+      <a href="#" hx-get="{% url 'dashboard:allowed_logs_table' %}" hx-target="#logs-table" hx-swap="innerHTML" hx-trigger="click" class="text-blue-400 hover:text-blue-600">
         <svg title="Refresh" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <title>Refresh</title>
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M4 20l16-16" />
@@ -58,7 +58,7 @@
 
 <!-- HTMX will load the table here -->
 <div id="logs-table"
-     hx-get="{% url 'allowed_logs_table' %}"
+     hx-get="{% url 'dashboard:allowed_logs_table' %}"
      hx-trigger="load, every 30s"
      hx-target="#logs-table"
      hx-swap="innerHTML">

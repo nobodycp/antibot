@@ -1,5 +1,5 @@
 <div id="blocked-ips-wrapper">
-  {% include "partials/blocked_ips_messages.html" %}
+  {% include "partials/messages.html" %}
   <div class="rounded overflow-hidden border border-zinc-700">
     <table class="w-full bg-zinc-800 text-xs">
       <thead class="bg-zinc-700 text-left text-zinc-300 uppercase tracking-wide">
@@ -15,13 +15,13 @@
   <!-- Pagination -->
   <div class="mt-4 flex gap-2 text-xs">
     {% if page_obj.has_previous %}
-      <a href="{% url 'blocked_ips_partial' %}?page={{ page_obj.previous_page_number }}" hx-get="{% url 'blocked_ips_partial' %}?page={{ page_obj.previous_page_number }}" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML" class="text-blue-400 hover:underline">← Prev</a>
+      <a href="{% url 'dashboard:blocked_ips_partial' %}?page={{ page_obj.previous_page_number }}" hx-get="{% url 'dashboard:blocked_ips_partial' %}?page={{ page_obj.previous_page_number }}" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML" class="text-blue-400 hover:underline">← Prev</a>
     {% endif %}
 
     <span class="text-zinc-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
 
     {% if page_obj.has_next %}
-      <a href="{% url 'blocked_ips_partial' %}?page={{ page_obj.next_page_number }}" hx-get="{% url 'blocked_ips_partial' %}?page={{ page_obj.next_page_number }}" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML" class="text-blue-400 hover:underline">Next →</a>
+      <a href="{% url 'dashboard:blocked_ips_partial' %}?page={{ page_obj.next_page_number }}" hx-get="{% url 'dashboard:blocked_ips_partial' %}?page={{ page_obj.next_page_number }}" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML" class="text-blue-400 hover:underline">Next →</a>
     {% endif %}
   </div>
 </div>

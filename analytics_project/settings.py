@@ -39,8 +39,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'dashboard',
     'tracker.apps.TrackerConfig',
     'uploader',
+    'core',
+
 ]
 
 MIDDLEWARE = [
@@ -58,7 +61,7 @@ ROOT_URLCONF = 'analytics_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [os.path.join(BASE_DIR, 'dashboard', 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
