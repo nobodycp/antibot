@@ -8,8 +8,8 @@ from tracker.views import (
     allowed_country_view, blocked_hostname_view, dinger_ip_view,
     delete_log,blocked_browser_view, blocked_browser_partial, blocked_browser_table
 )
-
 from uploader.views import uploader_files_view
+
 
 app_name = 'dashboard'
 

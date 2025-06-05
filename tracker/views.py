@@ -324,7 +324,7 @@ def blocked_hostname_view(request):
 
     blocked_hostnames = BlockedHostname.objects.all().order_by('-id')
     return render(request, 'blocked_hostname.html', {'hostnames': blocked_hostnames})
-
+#######################
 @login_required
 def allowed_logs_view(request):
     if request.method == 'POST':
@@ -359,7 +359,6 @@ def allowed_logs_view(request):
         )
 
     return render(request, 'allowed_logs.html', {'logs': logs})
-
 @login_required
 def allowed_logs_table(request):
     logs = Visitor.objects.all().order_by('-timestamp')
@@ -374,14 +373,14 @@ def allowed_logs_table(request):
             Q(country__icontains=search)
         )
     return render(request, 'partials/allowed_logs_table.html', {'logs': logs})
-
+##########################
 @login_required
 def denied_logs_view(request):
     if request.method == 'POST':
         if 'delete_all' in request.POST:
             RejectedVisitor.objects.all().delete()
             messages.success(request, "All denied logs have been deleted.")
-            return redirect('denied_logs')
+            return redirect('dashboard:denied_logs')
 
         delete_id = request.POST.get('delete_id')
         if delete_id:
@@ -392,7 +391,7 @@ def denied_logs_view(request):
                 messages.success(request, f"Deleted all logs for IP: {ip}")
             except RejectedVisitor.DoesNotExist:
                 messages.error(request, "Log not found.")
-            return redirect('denied_logs')
+            return redirect('dashboard:denied_logs')
 
     # فلترة بالسيرش
     search = request.GET.get('search', '')
