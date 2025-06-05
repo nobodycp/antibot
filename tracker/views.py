@@ -344,7 +344,7 @@ def allowed_logs_view(request):
         else:
             messages.error(request, "Invalid input.")
 
-        return redirect('allowed_logs')
+        return redirect('dashboard:allowed_logs')
 
     logs = Visitor.objects.all().order_by('-id')
     search = request.GET.get('search', '')
