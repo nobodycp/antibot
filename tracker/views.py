@@ -14,6 +14,7 @@ from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
+from django.http import HttpResponse
 
 
 def home_redirect(request):
@@ -312,58 +313,148 @@ def blocked_os_partial(request):
     })
 ##################################
 @login_required
+def blocked_hostname_view(request):
+    if request.method == 'POST':
+        name = request.POST.get('hostname_name')
+        delete_id = request.POST.get('delete_id')
+        delete_all = request.POST.get('delete_all')
+
+        if name:
+            name = name.strip()
+            if not BlockedHostname.objects.filter(hostname__iexact=name).exists():
+                BlockedHostname.objects.create(hostname=name)
+                messages.success(request, f"✅ Blocked Hostname: {name}")
+            else:
+                messages.warning(request, f"⚠️ {name} already exists.")
+        elif delete_id:
+            try:
+                obj = BlockedHostname.objects.get(id=delete_id)
+                messages.error(request, f"🗑️ Hostname {obj.hostname} deleted.")
+                obj.delete()
+            except BlockedHostname.DoesNotExist:
+                messages.error(request, "❌ Hostname not found.")
+        elif delete_all:
+            count = BlockedHostname.objects.count()
+            BlockedHostname.objects.all().delete()
+            messages.error(request, f"🧹 Deleted {count} hostname(s).")
+        else:
+            messages.error(request, "Invalid action.")
+
+        if request.headers.get("HX-Request"):
+            all_items = BlockedHostname.objects.all().order_by('-id')
+            paginator = Paginator(all_items, 20)
+            page_obj = paginator.get_page(1)
+
+            return render(request, "partials/blocked_hostname_partial.html", {
+                "blocked_hostnames": page_obj.object_list,
+                "page_obj": page_obj,
+                "messages": messages.get_messages(request)
+            })
+
+        return redirect('dashboard:blocked_hostname')
+
+    all_items = BlockedHostname.objects.all().order_by('-id')
+    paginator = Paginator(all_items, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "blocked_hostname.html", {
+        "blocked_hostnames": page_obj.object_list,
+        "page_obj": page_obj
+    })
+@login_required
+def blocked_hostname_table(request):
+    all_items = BlockedHostname.objects.all().order_by('-id')
+    paginator = Paginator(all_items, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/blocked_hostname_table.html", {
+        "blocked_hostnames": page_obj.object_list
+    })
+@login_required
+def blocked_hostname_partial(request):
+    all_items = BlockedHostname.objects.all().order_by('-id')
+    paginator = Paginator(all_items, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/blocked_hostname_partial.html", {
+        "blocked_hostnames": page_obj.object_list,
+        "page_obj": page_obj
+    })
+#######################
+@login_required
 def allowed_country_view(request):
     if request.method == 'POST':
         code = request.POST.get('country')
         delete_id = request.POST.get('delete_id')
+        delete_all = request.POST.get('delete_all')
 
         if code:
             code = code.strip().upper()
             if not AllowedCountry.objects.filter(code=code).exists():
                 AllowedCountry.objects.create(code=code)
-                messages.success(request, f"Added country code {code}")
+                messages.success(request, f"✅ Country code {code} added.")
             else:
-                messages.warning(request, f"Country code {code} is already allowed.")
+                messages.warning(request, f"⚠️ {code} already exists.")
         elif delete_id:
             try:
                 obj = AllowedCountry.objects.get(id=delete_id)
+                messages.error(request, f"🗑️ {obj.code} deleted.")
                 obj.delete()
-                messages.success(request, f"Deleted country code {obj.code}")
             except AllowedCountry.DoesNotExist:
-                messages.error(request, "Entry not found.")
-
-        return redirect('allowed_country')
-
-    allowed_countries = AllowedCountry.objects.all().order_by('code')
-    return render(request, 'allowed_country.html', {'allowed_countries': allowed_countries})
-
-@login_required
-def blocked_hostname_view(request):
-    if request.method == 'POST':
-        name = request.POST.get('hostname')
-        delete_id = request.POST.get('delete_id')
-
-        if name:
-            name = name.strip().lower()
-            if not BlockedHostname.objects.filter(hostname__iexact=name).exists():
-                BlockedHostname.objects.create(hostname=name)
-                messages.success(request, f"Blocked Hostname: {name}")
-            else:
-                messages.warning(request, f"{name} is already blocked.")
-        elif delete_id:
-            try:
-                host = BlockedHostname.objects.get(id=delete_id)
-                host.delete()
-                messages.success(request, f"Deleted Hostname: {host.hostname}")
-            except BlockedHostname.DoesNotExist:
-                messages.error(request, "Hostname not found.")
+                messages.error(request, "❌ Entry not found.")
+        elif delete_all:
+            count = AllowedCountry.objects.count()
+            AllowedCountry.objects.all().delete()
+            messages.error(request, f"🧹 Deleted {count} country codes.")
         else:
-            messages.error(request, "Invalid input.")
+            messages.error(request, "Invalid action.")
 
-        return redirect('blocked_hostname')
+        if request.headers.get("HX-Request"):
+            queryset = AllowedCountry.objects.all().order_by("code")
+            paginator = Paginator(queryset, 20)
+            page_obj = paginator.get_page(1)
 
-    blocked_hostnames = BlockedHostname.objects.all().order_by('-id')
-    return render(request, 'blocked_hostname.html', {'hostnames': blocked_hostnames})
+            return render(request, "partials/allowed_country_partial.html", {
+                "allowed_countries": page_obj.object_list,
+                "page_obj": page_obj,
+                "messages": messages.get_messages(request)
+            })
+
+        return redirect('dashboard:allowed_country')
+
+    queryset = AllowedCountry.objects.all().order_by("code")
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "allowed_country.html", {
+        "allowed_countries": page_obj.object_list,
+        "page_obj": page_obj
+    })
+@login_required
+def allowed_country_table(request):
+    queryset = AllowedCountry.objects.all().order_by("code")
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/allowed_country_table.html", {
+        "allowed_countries": page_obj.object_list
+    })
+@login_required
+def allowed_country_partial(request):
+    queryset = AllowedCountry.objects.all().order_by("code")
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/allowed_country_partial.html", {
+        "allowed_countries": page_obj.object_list,
+        "page_obj": page_obj
+    })
 #######################
 @login_required
 def allowed_logs_view(request):
@@ -371,25 +462,38 @@ def allowed_logs_view(request):
         delete_id = request.POST.get('delete_id')
         delete_all = request.POST.get('delete_all')
 
-        if delete_all == '1':
-            Visitor.objects.all().delete()
-            messages.success(request, "All allowed logs have been deleted.")
-        elif delete_id:
+        if delete_id:
             try:
                 log = Visitor.objects.get(id=delete_id)
-                log.delete()
-                messages.success(request, f"Deleted Allowed Log: {log.ip_address}")
+                ip = log.ip_address
+                Visitor.objects.filter(ip_address=ip).delete()
+                messages.error(request, f"🗑️ Deleted all logs for IP: {ip}")
             except Visitor.DoesNotExist:
                 messages.error(request, "Log not found.")
+        elif delete_all:
+            Visitor.objects.all().delete()
+            messages.success(request, "✅ All allowed logs have been deleted.")
         else:
-            messages.error(request, "Invalid input.")
+            messages.error(request, "Invalid action.")
+
+        if request.headers.get("HX-Request"):
+            queryset = Visitor.objects.all().order_by('-timestamp')
+            paginator = Paginator(queryset, 20)
+            page_obj = paginator.get_page(1)
+
+            return render(request, "partials/allowed_logs_partial.html", {
+                "logs": page_obj.object_list,
+                "page_obj": page_obj,
+                "messages": messages.get_messages(request)
+            })
 
         return redirect('dashboard:allowed_logs')
 
-    logs = Visitor.objects.all().order_by('-id')
-    search = request.GET.get('search', '')
+    # GET العادي
+    search = request.GET.get("search", "")
+    queryset = Visitor.objects.all().order_by("-timestamp")
     if search:
-        logs = logs.filter(
+        queryset = queryset.filter(
             Q(ip_address__icontains=search) |
             Q(hostname__icontains=search) |
             Q(isp__icontains=search) |
@@ -398,44 +502,72 @@ def allowed_logs_view(request):
             Q(country__icontains=search)
         )
 
-    return render(request, 'allowed_logs.html', {'logs': logs})
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "allowed_logs.html", {
+        "logs": page_obj.object_list,
+        "page_obj": page_obj
+    })
 @login_required
 def allowed_logs_table(request):
-    logs = Visitor.objects.all().order_by('-timestamp')
-    search = request.GET.get('search', '')
-    if search:
-        logs = logs.filter(
-            Q(ip_address__icontains=search) |
-            Q(hostname__icontains=search) |
-            Q(isp__icontains=search) |
-            Q(os__icontains=search) |
-            Q(browser__icontains=search) |
-            Q(country__icontains=search)
-        )
-    return render(request, 'partials/allowed_logs_table.html', {'logs': logs})
+    queryset = Visitor.objects.all().order_by("-timestamp")
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/allowed_logs_table.html", {
+        "logs": page_obj.object_list
+    })
+@login_required
+def allowed_logs_partial(request):
+    queryset = Visitor.objects.all().order_by("-timestamp")
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/allowed_logs_partial.html", {
+        "logs": page_obj.object_list,
+        "page_obj": page_obj
+    })
 ##########################
 @login_required
 def denied_logs_view(request):
     if request.method == 'POST':
-        if 'delete_all' in request.POST:
-            RejectedVisitor.objects.all().delete()
-            messages.success(request, "All denied logs have been deleted.")
-            return redirect('dashboard:denied_logs')
-
         delete_id = request.POST.get('delete_id')
+        delete_all = request.POST.get('delete_all')
+
         if delete_id:
             try:
                 log = RejectedVisitor.objects.get(id=delete_id)
                 ip = log.ip_address
                 RejectedVisitor.objects.filter(ip_address=ip).delete()
-                messages.success(request, f"Deleted all logs for IP: {ip}")
+                messages.success(request, f"🗑️ Deleted all logs for IP: {ip}")
             except RejectedVisitor.DoesNotExist:
                 messages.error(request, "Log not found.")
-            return redirect('dashboard:denied_logs')
+        elif delete_all:
+            RejectedVisitor.objects.all().delete()
+            messages.success(request, "✅ All denied logs have been deleted.")
+        else:
+            messages.error(request, "Invalid action.")
 
-    # فلترة بالسيرش
-    search = request.GET.get('search', '')
-    queryset = RejectedVisitor.objects.all().order_by('-timestamp')
+        if request.headers.get("HX-Request"):
+            queryset = RejectedVisitor.objects.all().order_by('-timestamp')
+            paginator = Paginator(queryset, 10)
+            page_obj = paginator.get_page(1)
+
+            return render(request, "partials/denied_logs_partial.html", {
+                "logs": page_obj.object_list,
+                "page_obj": page_obj,
+                "messages": messages.get_messages(request)
+            })
+
+        return redirect('dashboard:denied_logs')
+
+    # GET
+    search = request.GET.get("search", "")
+    queryset = RejectedVisitor.objects.all().order_by("-timestamp")
     if search:
         queryset = queryset.filter(
             Q(ip_address__icontains=search) |
@@ -446,43 +578,70 @@ def denied_logs_view(request):
             Q(country__icontains=search)
         )
 
-    # إلغاء التكرار حسب IP يدويًا
-    logs = []
-    seen_ips = set()
-    for log in queryset:
-        if log.ip_address not in seen_ips:
-            logs.append(log)
-            seen_ips.add(log.ip_address)
+    paginator = Paginator(queryset, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
 
-    return render(request, 'denied_logs.html', {'logs': logs})
+    return render(request, "denied_logs.html", {
+        "logs": page_obj.object_list,
+        "page_obj": page_obj
+    })
+@login_required
+def denied_logs_partial(request):
+    queryset = RejectedVisitor.objects.all().order_by("-timestamp")
+    paginator = Paginator(queryset, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
 
+    return render(request, "partials/denied_logs_partial.html", {
+        "logs": page_obj.object_list,
+        "page_obj": page_obj
+    })
 @login_required
 def denied_logs_table(request):
-    search = request.GET.get('search', '')
+    queryset = RejectedVisitor.objects.all().order_by("-timestamp")
+    paginator = Paginator(queryset, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
 
-    # خطوة 1: فلترة بالسيرش أولاً
-    queryset = RejectedVisitor.objects.all().order_by('-timestamp')
-    if search:
-        queryset = queryset.filter(
-            Q(ip_address__icontains=search) |
-            Q(hostname__icontains=search) |
-            Q(isp__icontains=search) |
-            Q(os__icontains=search) |
-            Q(browser__icontains=search) |
-            Q(country__icontains=search)
-        )
-
-    # خطوة 2: إزالة التكرار حسب IP
-    logs = []
-    seen_ips = set()
-    for log in queryset:
-        if log.ip_address not in seen_ips:
-            logs.append(log)
-            seen_ips.add(log.ip_address)
-
-    return render(request, 'partials/denied_logs_table.html', {'logs': logs})
-
+    return render(request, "partials/denied_logs_table.html", {
+        "logs": page_obj.object_list
+    })
+@require_POST
 @login_required
+def add_block_rule(request):
+    if request.method == 'POST':
+        block_type = request.POST.get("block_type")
+        block_value = request.POST.get("block_value", "").strip()
+
+        if not block_type or not block_value:
+            messages.error(request, "Both type and value are required.")
+        else:
+            model_map = {
+                'ip': BlockedIP,
+                'isp': BlockedISP,
+                'hostname': BlockedHostname,
+                'os': BlockedOS,
+                'browser': BlockedBrowser,
+            }
+
+            model = model_map.get(block_type.lower())
+            if model:
+                if not model.objects.filter(**{model._meta.fields[1].name + "__iexact": block_value}).exists():
+                    model.objects.create(**{model._meta.fields[1].name: block_value})
+                    messages.success(request, f"✅ Block rule added: {block_value}")
+                else:
+                    messages.warning(request, f"⚠️ Rule already exists: {block_value}")
+            else:
+                messages.error(request, "Invalid rule type.")
+
+        # HTMX Response
+        if request.headers.get("HX-Request"):
+            return render(request, "partials/messages.html", {
+                "messages": messages.get_messages(request)
+            })
+
+        return redirect('dashboard:denied_logs')@login_required
 def dinger_ip_view(request):
     if request.method == 'POST':
         ip_to_delete = request.POST.get('delete_ip')
@@ -637,3 +796,4 @@ def delete_log(request, pk):
     Visitor.objects.filter(pk=pk).delete()
     logs = Visitor.objects.all().order_by('-timestamp')
     return render(request, 'partials/allowed_logs_table.html', {'logs': logs})
+
