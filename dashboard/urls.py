@@ -3,10 +3,10 @@ from django.urls import path
 from tracker.views import (
     blocked_ips_view, blocked_ips_table, blocked_ips_partial,
     blocked_isp_view, blocked_isp_table, blocked_isp_partial,
-    blocked_os_view, blocked_browser_view, allowed_logs_view,
+    blocked_os_view, allowed_logs_view,
     allowed_logs_table, denied_logs_view, denied_logs_table,
     allowed_country_view, blocked_hostname_view, dinger_ip_view,
-    delete_log,blocked_browser_view, blocked_browser_partial, blocked_browser_table
+    delete_log,blocked_browser_view, blocked_browser_partial, blocked_browser_table, blocked_os_table, blocked_os_partial
 )
 from uploader.views import uploader_files_view
 
@@ -28,6 +28,10 @@ urlpatterns = [
     path("blocked-browsers/table/", blocked_browser_table, name="blocked_browser_table"),
     #
     path('blocked-os/', blocked_os_view, name='blocked_os'),
+    path('blocked-os-table/', blocked_os_table, name='blocked_os_table'),
+    path('blocked-os-partial/', blocked_os_partial, name='blocked_os_partial'),
+
+
     #
     path('allowed-country/', allowed_country_view, name='allowed_country'),
     #

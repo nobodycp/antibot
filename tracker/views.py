@@ -169,9 +169,6 @@ def blocked_isp_table(request):
         "blocked_isps": page_obj.object_list
     })
 ################################### end block ip in blouk rouls
-
-
-
 @login_required
 def blocked_browser_view(request):
     if request.method == 'POST':
@@ -221,7 +218,6 @@ def blocked_browser_view(request):
         'blocked_browsers': page_obj.object_list,
         'page_obj': page_obj
     })
-
 @login_required
 def blocked_browser_partial(request):
     all_browsers = BlockedBrowser.objects.all().order_by('-id')
@@ -233,7 +229,6 @@ def blocked_browser_partial(request):
         "page_obj": page_obj,
         "messages": messages.get_messages(request)
     })
-
 @login_required
 def blocked_browser_table(request):
     all_browsers = BlockedBrowser.objects.all().order_by('-id')
@@ -243,34 +238,79 @@ def blocked_browser_table(request):
     return render(request, "partials/blocked_browser_table.html", {
         "blocked_browsers": page_obj.object_list
     })
-#######
+################################### end block ip in blouk rouls
 @login_required
 def blocked_os_view(request):
     if request.method == 'POST':
-        name = request.POST.get('os_name')
+        os_name = request.POST.get('os_name')
         delete_id = request.POST.get('delete_id')
+        delete_all = request.POST.get('delete_all')
 
-        if name:
-            if not BlockedOS.objects.filter(os__iexact=name).exists():
-                BlockedOS.objects.create(os=name)
-                messages.success(request, f"Blocked OS: {name}")
+        if os_name:
+            os_name = os_name.strip()
+            if not BlockedOS.objects.filter(os__iexact=os_name).exists():
+                BlockedOS.objects.create(os=os_name)
+                messages.success(request, f"✅ OS {os_name} added successfully.")
             else:
-                messages.warning(request, f"{name} is already blocked.")
+                messages.warning(request, f"⚠️ OS {os_name} already exists.")
         elif delete_id:
             try:
-                os_entry = BlockedOS.objects.get(id=delete_id)
-                os_entry.delete()
-                messages.success(request, f"Deleted OS: {os_entry.os}")
+                obj = BlockedOS.objects.get(id=delete_id)
+                messages.error(request, f"🗑️ OS {obj.os} deleted.")
+                obj.delete()
             except BlockedOS.DoesNotExist:
-                messages.error(request, "OS not found.")
+                messages.error(request, "❌ OS not found.")
+        elif delete_all:
+            count = BlockedOS.objects.count()
+            BlockedOS.objects.all().delete()
+            messages.error(request, f"🧹 Deleted {count} OS entries.")
         else:
             messages.error(request, "Invalid action.")
 
-        return redirect('blocked_os')
+        if request.headers.get("HX-Request"):
+            all_os = BlockedOS.objects.all().order_by('-id')
+            paginator = Paginator(all_os, 20)
+            page_obj = paginator.get_page(1)
 
-    blocked_os_list = BlockedOS.objects.all().order_by('-id')
-    return render(request, 'blocked_os.html', {'blocked_os_list': blocked_os_list})
+            return render(request, "partials/blocked_os_partial.html", {
+                "blocked_os": page_obj.object_list,
+                "page_obj": page_obj,
+                "messages": messages.get_messages(request)
+            })
 
+        return redirect('dashboard:blocked_os')
+
+    all_os = BlockedOS.objects.all().order_by('-id')
+    paginator = Paginator(all_os, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "blocked_os.html", {
+        "blocked_os": page_obj.object_list,
+        "page_obj": page_obj
+    })
+@login_required
+def blocked_os_table(request):
+    all_os = BlockedOS.objects.all().order_by('-id')
+    paginator = Paginator(all_os, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'partials/blocked_os_table.html', {
+        'blocked_os': page_obj.object_list
+    })
+@login_required
+def blocked_os_partial(request):
+    all_os = BlockedOS.objects.all().order_by('-id')
+    paginator = Paginator(all_os, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/blocked_os_partial.html", {
+        "blocked_os": page_obj.object_list,
+        "page_obj": page_obj
+    })
+##################################
 @login_required
 def allowed_country_view(request):
     if request.method == 'POST':
