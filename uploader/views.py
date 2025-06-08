@@ -1,19 +1,20 @@
-# uploader/views.py
-
 from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
 from .models import ArchiveFile
 from .forms import ArchiveFileForm
 
+@login_required
 def uploader_files_view(request):
     if request.method == 'POST':
         if 'delete_id' in request.POST:
             ArchiveFile.objects.filter(id=request.POST['delete_id']).delete()
-            return redirect('uploader_files')
+            return redirect('dashboard:uploader_files')  # ✅ هنا التعديل المهم
 
         form = ArchiveFileForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
-            return redirect('uploader_files')
+            return redirect('dashboard:uploader_files')  # ✅ هنا كمان
+
     else:
         form = ArchiveFileForm()
 

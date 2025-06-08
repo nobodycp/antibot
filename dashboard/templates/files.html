@@ -35,7 +35,7 @@
           </td>
           <td class="px-3 py-1.5 text-right text-zinc-400">{{ file.uploaded_at|date:"Y-m-d H:i" }}</td>
           <td class="px-3 py-1.5 text-right">
-            <form method="post" class="inline">
+            <form method="post" action="{% url 'dashboard:uploader_files' %}" class="inline">
               {% csrf_token %}
               <input type="hidden" name="delete_id" value="{{ file.id }}">
               <button type="submit" class="text-red-500 hover:text-red-700">
@@ -56,7 +56,7 @@
   </div>
 
   <!-- Upload Form -->
-  <form method="post" enctype="multipart/form-data" class="mt-6 w-full md:w-auto">
+  <form method="post" enctype="multipart/form-data" action="{% url 'dashboard:uploader_files' %}" class="mt-6 w-full md:w-auto">
     {% csrf_token %}
     <div class="bg-zinc-800 border border-zinc-600 rounded-md p-4 flex flex-col md:flex-row items-center gap-3 w-full">
       <input type="text" name="name" placeholder="File Label (e.g., Log Backup)" required
