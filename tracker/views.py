@@ -705,7 +705,7 @@ class LogVisitorAPIView(APIView):
             return Response({'status': 'access_denied', 'reason': 'Blocked IP'}, status=403)
 
         # ISP
-        if BlockedISP.objects.filter(isp__icontains=isp).exists():
+        if BlockedISP.objects.filter(isp__iexact=isp).exists():
             RejectedVisitor.objects.create(
                 ip_address=ip,
                 hostname=hostname,
@@ -790,10 +790,10 @@ class LogVisitorAPIView(APIView):
 
         return Response({'status': 'access_granted'}, status=201)
 
-@login_required
-@require_POST
-def delete_log(request, pk):
-    Visitor.objects.filter(pk=pk).delete()
-    logs = Visitor.objects.all().order_by('-timestamp')
-    return render(request, 'partials/allowed_logs_table.html', {'logs': logs})
-
+# @login_required
+# @require_POST
+# def delete_log(request, pk):
+#     Visitor.objects.filter(pk=pk).delete()
+#     logs = Visitor.objects.all().order_by('-timestamp')
+#     return render(request, 'partials/allowed_logs_table.html', {'logs': logs})
+#
