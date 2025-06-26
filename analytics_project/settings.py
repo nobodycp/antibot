@@ -41,9 +41,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'dashboard',
     'tracker.apps.TrackerConfig',
-    'uploader',
     'core',
-
+    'tools',
 ]
 
 MIDDLEWARE = [

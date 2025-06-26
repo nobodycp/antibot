@@ -19,7 +19,7 @@
   <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
     <div class="flex items-center gap-2">
       <!-- Add IP Form -->
-      <form method="post" class="flex flex-wrap items-center gap-2" hx-post="{% url 'dashboard:blocked_ips' %}" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML">
+      <form method="post" class="flex flex-wrap items-center gap-2" hx-post="{% url 'tracker:blocked_ips' %}" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML">
         {% csrf_token %}
         <input type="text" name="ip_address" placeholder="Enter IP"
                class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500" />
@@ -28,7 +28,7 @@
       </form>
 
       <!-- Delete All Button -->
-      <form method="post" hx-post="{% url 'dashboard:blocked_ips' %}" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML">
+      <form method="post" hx-post="{% url 'tracker:blocked_ips' %}" hx-target="#blocked-ips-wrapper" hx-swap="outerHTML">
         {% csrf_token %}
         <input type="hidden" name="delete_all" value="1">
         <div class="relative group">
@@ -43,7 +43,7 @@
 
       <!-- Refresh Button -->
       <div class="relative group">
-        <a href="#" hx-get="{% url 'dashboard:blocked_ips_table' %}" hx-target="#ip-table-body" hx-swap="outerHTML" class="text-blue-400 hover:text-blue-600">
+        <a href="#" hx-get="{% url 'tracker:blocked_ips_table' %}" hx-target="#ip-table-body" hx-swap="outerHTML" class="text-blue-400 hover:text-blue-600">
           <svg title="Refresh" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M4 20l16-16" />
           </svg>

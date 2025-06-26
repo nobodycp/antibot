@@ -36,7 +36,7 @@
 
     <!-- 🗑️ Delete -->
     <td class="px-3 py-1.5 text-right">
-      <form method="post" hx-post="{% url 'dashboard:denied_logs' %}" hx-target="#denied-logs-wrapper" hx-swap="outerHTML">
+      <form method="post" hx-post="{% url 'tracker:denied_logs' %}" hx-target="#denied-logs-wrapper" hx-swap="outerHTML">
         {% csrf_token %}
         <input type="hidden" name="delete_id" value="{{ log.id }}">
         <button type="submit" class="text-red-500 hover:text-red-700" title="Delete">

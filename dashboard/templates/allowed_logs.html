@@ -15,7 +15,7 @@
     <div class="flex items-center gap-2">
       <!-- Delete All -->
       <form method="post" class="flex items-center gap-2"
-            hx-post="{% url 'dashboard:allowed_logs' %}" hx-target="#allowed-logs-wrapper" hx-swap="outerHTML">
+            hx-post="{% url 'tracker:allowed_logs' %}" hx-target="#allowed-logs-wrapper" hx-swap="outerHTML">
         {% csrf_token %}
         <input type="hidden" name="delete_all" value="1">
         <div class="relative group">
@@ -31,7 +31,7 @@
 
       <!-- Refresh -->
       <div class="relative group">
-        <a href="#" hx-get="{% url 'dashboard:allowed_logs_table' %}" hx-target="#logs-table-body" hx-swap="outerHTML"
+        <a href="#" hx-get="{% url 'tracker:allowed_logs_table' %}" hx-target="#logs-table-body" hx-swap="outerHTML"
            class="text-blue-400 hover:text-blue-600">
           <svg title="Refresh" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none"
                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -52,7 +52,7 @@
 
   <!-- Auto-load partial on first visit only -->
   <div id="allowed-logs-wrapper"
-       hx-get="{% url 'dashboard:allowed_logs_partial' %}"
+       hx-get="{% url 'tracker:allowed_logs_partial' %}"
        hx-trigger="load"
        hx-target="#allowed-logs-wrapper"
        hx-swap="outerHTML">

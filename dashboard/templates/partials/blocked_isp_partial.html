@@ -16,8 +16,8 @@
   {% if page_obj.paginator.num_pages > 1 %}
   <div class="mt-4 flex gap-2 text-xs">
     {% if page_obj.has_previous %}
-      <a href="{% url 'dashboard:blocked_isp_partial' %}?page={{ page_obj.previous_page_number }}"
-         hx-get="{% url 'dashboard:blocked_isp_partial' %}?page={{ page_obj.previous_page_number }}"
+      <a href="{% url 'tracker:blocked_isp_partial' %}?page={{ page_obj.previous_page_number }}"
+         hx-get="{% url 'tracker:blocked_isp_partial' %}?page={{ page_obj.previous_page_number }}"
          hx-target="#blocked-isp-wrapper" hx-swap="outerHTML"
          class="text-blue-400 hover:underline">← Prev</a>
     {% endif %}
@@ -25,8 +25,8 @@
     <span class="text-zinc-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
 
     {% if page_obj.has_next %}
-      <a href="{% url 'dashboard:blocked_isp_partial' %}?page={{ page_obj.next_page_number }}"
-         hx-get="{% url 'dashboard:blocked_isp_partial' %}?page={{ page_obj.next_page_number }}"
+      <a href="{% url 'tracker:blocked_isp_partial' %}?page={{ page_obj.next_page_number }}"
+         hx-get="{% url 'tracker:blocked_isp_partial' %}?page={{ page_obj.next_page_number }}"
          hx-target="#blocked-isp-wrapper" hx-swap="outerHTML"
          class="text-blue-400 hover:underline">Next →</a>
     {% endif %}

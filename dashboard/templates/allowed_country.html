@@ -20,7 +20,7 @@
   <div class="flex items-center gap-2">
     <!-- Add Country -->
     <form method="post" class="flex flex-wrap items-center gap-2"
-          hx-post="{% url 'dashboard:allowed_country' %}"
+          hx-post="{% url 'tracker:allowed_country' %}"
           hx-target="#allowed-country-wrapper"
           hx-swap="outerHTML">
       {% csrf_token %}
@@ -32,7 +32,7 @@
 
     <!-- Delete All -->
     <form method="post"
-          hx-post="{% url 'dashboard:allowed_country' %}"
+          hx-post="{% url 'tracker:allowed_country' %}"
           hx-target="#allowed-country-wrapper"
           hx-swap="outerHTML">
       {% csrf_token %}
@@ -50,7 +50,7 @@
 
     <!-- Refresh Button -->
     <div class="relative group">
-      <a href="#" hx-get="{% url 'dashboard:allowed_country_table' %}"
+      <a href="#" hx-get="{% url 'tracker:allowed_country_table' %}"
          hx-target="#country-table-body" hx-swap="outerHTML"
          class="text-blue-400 hover:text-blue-600">
         <svg title="Refresh" xmlns="http://www.w3.org/2000/svg"

@@ -4,7 +4,7 @@
     <td class="px-3 py-1.5 text-zinc-200 font-mono text-xs">{{ os.os }}</td>
     <td class="px-3 py-1.5 text-right">
       <form method="post" class="inline"
-            hx-post="{% url 'dashboard:blocked_os' %}"
+            hx-post="{% url 'tracker:blocked_os' %}"
             hx-target="#blocked-os-wrapper"
             hx-swap="outerHTML">
         {% csrf_token %}

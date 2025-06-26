@@ -3,7 +3,7 @@
   <tr class="border-b border-zinc-700 hover:bg-zinc-700/30">
     <td class="px-3 py-1.5 text-zinc-200 font-mono text-xs">{{ isp.isp }}</td>
     <td class="px-3 py-1.5 text-right">
-      <form method="post" class="inline" hx-post="{% url 'dashboard:blocked_isp' %}" hx-target="#blocked-isp-wrapper" hx-swap="outerHTML">
+      <form method="post" class="inline" hx-post="{% url 'tracker:blocked_isp' %}" hx-target="#blocked-isp-wrapper" hx-swap="outerHTML">
         {% csrf_token %}
         <input type="hidden" name="delete_id" value="{{ isp.id }}">
         <button type="submit" class="text-red-500 hover:text-red-700">

@@ -14,11 +14,10 @@ from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
-from django.http import HttpResponse
 
 
-def home_redirect(request):
-    return redirect('dashboard')
+# def home_redirect(request):
+#     return redirect('dashboard')
 
 @login_required
 def dashboard_view(request):
@@ -64,7 +63,7 @@ def blocked_ips_view(request):
                 "messages": messages.get_messages(request)
             })
 
-        return redirect('dashboard:blocked_ips')
+        return redirect('tracker:blocked_ips')
 
     # GET العادي
     all_ips = BlockedIP.objects.all().order_by('-id')
@@ -136,7 +135,7 @@ def blocked_isp_view(request):
                 "messages": messages.get_messages(request)
             })
 
-        return redirect("dashboard:blocked_isp")
+        return redirect("tracker:blocked_isp")
 
     all_isps = BlockedISP.objects.all().order_by('-id')
     paginator = Paginator(all_isps, 20)
@@ -208,7 +207,7 @@ def blocked_browser_view(request):
                 "messages": messages.get_messages(request)
             })
 
-        return redirect('dashboard:blocked_browser')
+        return redirect('tracker:blocked_browser')
 
     all_browsers = BlockedBrowser.objects.all().order_by('-id')
     paginator = Paginator(all_browsers, 20)
@@ -279,7 +278,7 @@ def blocked_os_view(request):
                 "messages": messages.get_messages(request)
             })
 
-        return redirect('dashboard:blocked_os')
+        return redirect('tracker:blocked_os')
 
     all_os = BlockedOS.objects.all().order_by('-id')
     paginator = Paginator(all_os, 20)
@@ -351,7 +350,7 @@ def blocked_hostname_view(request):
                 "messages": messages.get_messages(request)
             })
 
-        return redirect('dashboard:blocked_hostname')
+        return redirect('tracker:blocked_hostname')
 
     all_items = BlockedHostname.objects.all().order_by('-id')
     paginator = Paginator(all_items, 20)
@@ -423,7 +422,7 @@ def allowed_country_view(request):
                 "messages": messages.get_messages(request)
             })
 
-        return redirect('dashboard:allowed_country')
+        return redirect('tracker:allowed_country')
 
     queryset = AllowedCountry.objects.all().order_by("code")
     paginator = Paginator(queryset, 20)
@@ -487,7 +486,7 @@ def allowed_logs_view(request):
                 "messages": messages.get_messages(request)
             })
 
-        return redirect('dashboard:allowed_logs')
+        return redirect('tracker:allowed_logs')
 
     # GET العادي
     search = request.GET.get("search", "")
@@ -563,7 +562,7 @@ def denied_logs_view(request):
                 "messages": messages.get_messages(request)
             })
 
-        return redirect('dashboard:denied_logs')
+        return redirect('tracker:denied_logs')
 
     # GET
     search = request.GET.get("search", "")
@@ -641,7 +640,7 @@ def add_block_rule(request):
                 "messages": messages.get_messages(request)
             })
 
-        return redirect('dashboard:denied_logs')@login_required
+        return redirect('tracker:denied_logs')@login_required
 def dinger_ip_view(request):
     if request.method == 'POST':
         ip_to_delete = request.POST.get('delete_ip')
@@ -651,7 +650,7 @@ def dinger_ip_view(request):
                 messages.success(request, f"IP {ip_to_delete} deleted successfully.")
             else:
                 messages.error(request, f"Failed to delete IP {ip_to_delete}.")
-        return redirect('/dashboard/dinger-ip/')  # اسم الـ URL في urls.py
+        return redirect('/tracker/dinger-ip/')  # اسم الـ URL في urls.py
 
     dingers = (
         IPLog.objects
