@@ -19,7 +19,7 @@
             <hr class="border-t border-zinc-700 my-2" />
 
             <!-- Block Rules -->
-<div x-data="{ open: '{% if '/tracker/blocked-ips/' in request.path or '/tracker/blocked-isp/' in request.path or '/tracker/blocked-browser/' in request.path or '/tracker/blocked-os/' in request.path or '/tracker/allowed-country/' in request.path or '/tracker/blocked-hostname/' in request.path or '/tracker/dinger-ip/' in request.path %}true{% else %}false{% endif %}' == 'true' }" class="mt-1">
+<div x-data="{ open: '{% if '/tracker/blocked-ips/' in request.path or '/tracker/blocked-subnets/' in request.path or '/tracker/blocked-isp/' in request.path or '/tracker/blocked-browser/' in request.path or '/tracker/blocked-os/' in request.path or '/tracker/allowed-country/' in request.path or '/tracker/blocked-hostname/' in request.path or '/tracker/dinger-ip/' in request.path %}true{% else %}false{% endif %}' == 'true' }" class="mt-1">
   <button @click="open = !open" class="flex items-center justify-between w-full px-3 py-2 rounded hover:bg-zinc-700">
     <span class="flex items-center gap-2">
       <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -32,6 +32,7 @@
     </svg>
   </button>
   <div x-show="open" class="flex flex-col pl-3 mt-1 space-y-1 text-xs">
+    <a href="/tracker/blocked-subnets/" class="{% if request.path == '/tracker/blocked-subnets/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700"><svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01" /></svg>Subnet</a>
     <a href="/tracker/blocked-ips/" class="{% if request.path == '/tracker/blocked-ips/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700"><svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01" /></svg>IP</a>
     <a href="/tracker/blocked-isp/" class="{% if request.path == '/tracker/blocked-isp/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700"><svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>ISP</a>
     <a href="/tracker/blocked-browser/" class="{% if request.path == '/tracker/blocked-browser/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700"><svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>Browser</a>

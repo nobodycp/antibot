@@ -4,25 +4,118 @@ from .models import AllowedCountry
 from django.db.models import Q
 from .models import (
     Visitor, IPLog,
-    BlockedIP, BlockedHostname, BlockedISP, BlockedOS, BlockedBrowser, RejectedVisitor
+    BlockedIP, BlockedHostname, BlockedISP, BlockedOS, BlockedBrowser, RejectedVisitor, BlockedSubnet
 )
 import user_agents
 import socket
 import requests
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
+import ipaddress
 from django.core.paginator import Paginator
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
 
-
-# def home_redirect(request):
-#     return redirect('dashboard')
 
 @login_required
 def dashboard_view(request):
     return render(request, 'dashboard.html')
 ################################### start block ip in blouk rouls
+@login_required
+def blocked_subnets_view(request):
+    if request.method == 'POST':
+        cidr = request.POST.get('cidr')
+        delete_id = request.POST.get('delete_id')
+        delete_all = request.POST.get('delete_all')
+
+        if cidr:
+            cidr = cidr.strip()
+
+            # validate + normalize CIDR
+            try:
+                net = ipaddress.ip_network(cidr, strict=False)
+                cidr_norm = str(net)
+            except ValueError:
+                cidr_norm = None
+
+            if not cidr_norm:
+                messages.error(request, "❌ Invalid CIDR. Example: 192.168.1.0/24")
+            else:
+                if not BlockedSubnet.objects.filter(cidr=cidr_norm).exists():
+                    BlockedSubnet.objects.create(cidr=cidr_norm)
+                    messages.success(request, f"✅ Subnet {cidr_norm} added successfully.")
+                else:
+                    messages.warning(request, f"⚠️ Subnet {cidr_norm} already exists.")
+
+        elif delete_id:
+            try:
+                obj = BlockedSubnet.objects.get(id=delete_id)
+                messages.error(request, f"🗑️ Subnet {obj.cidr} deleted.")
+                obj.delete()
+            except BlockedSubnet.DoesNotExist:
+                messages.error(request, "❌ Subnet not found.")
+
+        elif delete_all:
+            count = BlockedSubnet.objects.count()
+            BlockedSubnet.objects.all().delete()
+            messages.error(request, f"🧹 Deleted {count} Subnet(s).")
+
+        else:
+            messages.error(request, "Invalid action.")
+
+        if request.headers.get("HX-Request"):
+            # بعد العملية نرجّع أول صفحة محدثة
+            all_subnets = BlockedSubnet.objects.all().order_by('-id')
+            paginator = Paginator(all_subnets, 20)
+            page_obj = paginator.get_page(1)
+
+            return render(request, "partials/blocked_subnets_partial.html", {
+                "blocked_subnets": page_obj.object_list,
+                "page_obj": page_obj,
+                "messages": messages.get_messages(request)
+            })
+
+        return redirect('tracker:blocked_subnets')
+
+    # GET العادي
+    all_subnets = BlockedSubnet.objects.all().order_by('-id')
+    paginator = Paginator(all_subnets, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "blocked_subnets.html", {
+        "blocked_subnets": page_obj.object_list,
+        "page_obj": page_obj
+    })
+@login_required
+def blocked_subnets_table(request):
+    all_subnets = BlockedSubnet.objects.all().order_by('-id')
+    paginator = Paginator(all_subnets, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        'partials/blocked_subnets_table.html',
+        {'blocked_subnets': page_obj.object_list}
+    )
+
+@login_required
+def blocked_subnets_partial(request):
+    all_subnets = BlockedSubnet.objects.all().order_by('-id')
+    paginator = Paginator(all_subnets, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        "partials/blocked_subnets_partial.html",
+        {
+            "blocked_subnets": page_obj.object_list,
+            "page_obj": page_obj
+        }
+    )
+
 @login_required
 def blocked_ips_view(request):
     if request.method == 'POST':
@@ -689,6 +782,27 @@ class LogVisitorAPIView(APIView):
             isp = ''
             country = ''
             country_code = ''
+
+        # Blocked Subnet (CIDR)
+        try:
+            ip_obj = ipaddress.ip_address(ip)
+            for cidr in BlockedSubnet.objects.values_list('cidr', flat=True):
+                try:
+                    if ip_obj in ipaddress.ip_network(cidr, strict=False):
+                        RejectedVisitor.objects.create(
+                            ip_address=ip,
+                            hostname=hostname,
+                            isp=isp,
+                            os=os,
+                            browser=browser,
+                            country=country_code,
+                            reason="Blocked Subnet"
+                        )
+                        return Response({'status': 'access_denied', 'reason': 'Blocked Subnet'}, status=403)
+                except ValueError:
+                    continue
+        except ValueError:
+            pass
 
         # IP
         if BlockedIP.objects.filter(ip_address=ip).exists():

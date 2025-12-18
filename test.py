@@ -1,40 +1,20 @@
 import requests
 
 
+def send(input_number):
+    s = requests.Session()  # this is a requests library to make a http connection
+    try:
+        headers = {'Content-Type': 'application/json'}
+        payloads = {
+            'ip': f'{input_number}',
+            'useragent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+        }
+        req = s.post('http://127.0.0.1:8002/tracker/api/log/', headers=headers, json=payloads)
+        print(req.text)
+    except Exception as e:
+        print(e)
+        # you can print error as e here the errors was come form bad connection or losing internet or proxy >> etc
+        return 2
 
-def save_browser_checker(i):
-    headers = {
-        'Host': 'transparencyreport.google.com',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:139.0) Gecko/20100101 Firefox/139.0',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br, zstd',
-        'Alt-Used': 'transparencyreport.google.com',
-    }
-    req = requests.get(f'https://transparencyreport.google.com/transparencyreport/api/v3/safebrowsing/status?site={i}', headers=headers)
-    # print(req.text)
-    if 'true' in req.text:
-        print("Red Flag")
-    else:
-        print("Working")
 
-def redirect_checker(link, keyword):
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:139.0) Gecko/20100101 Firefox/139.0',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate',
-    }
-    req = requests.get(f"{link}", headers=headers, allow_redirects=False)
-    # print(req.status_code)
-    # print(req.headers.get("Location"))
-    if req.status_code == 302:
-        if f'{keyword}' in req.headers.get('Location'):
-            return "working"
-        else:
-            return "not working"
-    else:
-        return "error"
-
-# save_browser_checker('https://gthelema01.ivyro.net/')
-redirect_checker('https://dashboard.testahel.sa/ini.php', 'Post/index.php')
+send('5.29.87.1')

@@ -1,6 +1,15 @@
 from django.db import models
 
 
+class BlockedSubnet(models.Model):
+    cidr = models.CharField(max_length=43, unique=True)  # مثال: 192.168.1.0/24
+
+    class Meta:
+        verbose_name_plural = "1.1 - Subnets"
+
+    def __str__(self):
+        return self.cidr
+
 class BlockedIP(models.Model):
     ip_address = models.GenericIPAddressField(unique=True)
     class Meta:

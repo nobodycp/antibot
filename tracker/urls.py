@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     LogVisitorAPIView,
     blocked_ips_view, blocked_ips_table, blocked_ips_partial,
+    blocked_subnets_view, blocked_subnets_table, blocked_subnets_partial,   # ✅
     blocked_isp_view, blocked_isp_table, blocked_isp_partial,
     blocked_browser_view, blocked_browser_table, blocked_browser_partial,
     blocked_os_view, blocked_os_table, blocked_os_partial,
@@ -13,6 +14,7 @@ from .views import (
     add_block_rule,
 )
 
+
 app_name = 'tracker'
 
 urlpatterns = [
@@ -21,6 +23,10 @@ urlpatterns = [
     path('blocked-ips/', blocked_ips_view, name='blocked_ips'),
     path('blocked-ips/table/', blocked_ips_table, name='blocked_ips_table'),
     path('blocked-ips/partial/', blocked_ips_partial, name='blocked_ips_partial'),
+
+    path('blocked-subnets/', blocked_subnets_view, name='blocked_subnets'),
+    path('blocked-subnets/table/', blocked_subnets_table, name='blocked_subnets_table'),
+    path('blocked-subnets/partial/', blocked_subnets_partial, name='blocked_subnets_partial'),
 
     path('blocked-isp/', blocked_isp_view, name='blocked_isp'),
     path("blocked-isps/partial/", blocked_isp_partial, name="blocked_isp_partial"),
