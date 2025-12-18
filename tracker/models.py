@@ -55,6 +55,7 @@ class AllowedCountry(models.Model):
 
 class Visitor(models.Model):
     ip_address = models.GenericIPAddressField()
+    b_subnet = models.CharField(max_length=64, blank=True, default="")
     hostname = models.CharField(max_length=255, blank=True, null=True)
     isp = models.CharField(max_length=255, blank=True, null=True)
     os = models.CharField(max_length=100)
@@ -71,6 +72,7 @@ class Visitor(models.Model):
 class RejectedVisitor(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     ip_address = models.GenericIPAddressField()
+    b_subnet = models.CharField(max_length=64, blank=True, default="")
     browser = models.CharField(max_length=100, blank=True)
     os = models.CharField(max_length=100, blank=True)
     country = models.CharField(max_length=100, blank=True)

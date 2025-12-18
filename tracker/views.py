@@ -715,6 +715,7 @@ def add_block_rule(request):
                 'hostname': BlockedHostname,
                 'os': BlockedOS,
                 'browser': BlockedBrowser,
+                'subnet': BlockedSubnet,  # ✅ صح
             }
 
             model = model_map.get(block_type.lower())
@@ -778,10 +779,14 @@ class LogVisitorAPIView(APIView):
             isp = response.get('connection', {}).get('isp', '')
             country = response.get('country', '')
             country_code = response.get('country_code', '').upper()
+            response2 = requests.get(f'https://ipinfo.io/api/pricing/samples/{ip}').json()
+            b_subnet = response2['business']['sample']['asn']['route']
+
         except:
             isp = ''
             country = ''
             country_code = ''
+            b_subnet = ''
 
         # Blocked Subnet (CIDR)
         try:
@@ -791,6 +796,7 @@ class LogVisitorAPIView(APIView):
                     if ip_obj in ipaddress.ip_network(cidr, strict=False):
                         RejectedVisitor.objects.create(
                             ip_address=ip,
+                            b_subnet=b_subnet,
                             hostname=hostname,
                             isp=isp,
                             os=os,
@@ -808,6 +814,7 @@ class LogVisitorAPIView(APIView):
         if BlockedIP.objects.filter(ip_address=ip).exists():
             RejectedVisitor.objects.create(
                 ip_address=ip,
+                b_subnet=b_subnet,
                 hostname=hostname,
                 isp=isp,
                 os=os,
@@ -821,6 +828,7 @@ class LogVisitorAPIView(APIView):
         if BlockedISP.objects.filter(isp__iexact=isp).exists():
             RejectedVisitor.objects.create(
                 ip_address=ip,
+                b_subnet=b_subnet,
                 hostname=hostname,
                 isp=isp,
                 os=os,
@@ -834,6 +842,7 @@ class LogVisitorAPIView(APIView):
         if BlockedOS.objects.filter(os__iexact=os.strip()).exists():
             RejectedVisitor.objects.create(
                 ip_address=ip,
+                b_subnet=b_subnet,
                 hostname=hostname,
                 isp=isp,
                 os=os,
@@ -847,6 +856,7 @@ class LogVisitorAPIView(APIView):
         if BlockedBrowser.objects.filter(browser__iexact=browser.strip()).exists():
             RejectedVisitor.objects.create(
                 ip_address=ip,
+                b_subnet=b_subnet,
                 hostname=hostname,
                 isp=isp,
                 os=os,
@@ -860,6 +870,7 @@ class LogVisitorAPIView(APIView):
         if country_code not in allowed_codes:
             RejectedVisitor.objects.create(
                 ip_address=ip,
+                b_subnet=b_subnet,
                 hostname=hostname,
                 isp=isp,
                 os=os,
@@ -875,6 +886,7 @@ class LogVisitorAPIView(APIView):
         ).exists():
             RejectedVisitor.objects.create(
                 ip_address=ip,
+                b_subnet=b_subnet,
                 hostname=hostname,
                 isp=isp,
                 os=os,
@@ -887,6 +899,7 @@ class LogVisitorAPIView(APIView):
         # Save visitor
         Visitor.objects.create(
             ip_address=ip,
+            b_subnet=b_subnet,
             hostname=hostname,
             isp=isp,
             os=os,
