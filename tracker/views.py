@@ -155,47 +155,73 @@ def blocked_ips_view(request):
             messages.error(request, "Invalid action.")
 
         if request.headers.get("HX-Request"):
-            # بعد العملية نرجّع أول صفحة محدثة
+            q = (request.GET.get("q") or "").strip()
+
             all_ips = BlockedIP.objects.all().order_by('-id')
+            if q:
+                all_ips = all_ips.filter(Q(ip_address__icontains=q))
+
             paginator = Paginator(all_ips, 20)
             page_obj = paginator.get_page(1)
 
             return render(request, "partials/blocked_ips_partial.html", {
                 "blocked_ips": page_obj.object_list,
                 "page_obj": page_obj,
+                "q": q,
                 "messages": messages.get_messages(request)
             })
 
         return redirect('tracker:blocked_ips')
 
-    # GET العادي
+    q = (request.GET.get("q") or "").strip()
+
     all_ips = BlockedIP.objects.all().order_by('-id')
+    if q:
+        all_ips = all_ips.filter(Q(ip_address__icontains=q))
+
     paginator = Paginator(all_ips, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "blocked_ips.html", {
         "blocked_ips": page_obj.object_list,
-        "page_obj": page_obj
+        "page_obj": page_obj,
+        "q": q
     })
 @login_required
-def blocked_ips_table(request):
-    all_ips = BlockedIP.objects.all().order_by('-id')
-    paginator = Paginator(all_ips, 20)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, 'partials/blocked_ips_table.html', {'blocked_ips': page_obj.object_list})
-@login_required
 def blocked_ips_partial(request):
+    q = (request.GET.get("q") or "").strip()
+
     all_ips = BlockedIP.objects.all().order_by('-id')
-    paginator = Paginator(all_ips, 20)  # عرض 50 IP في كل صفحة
+    if q:
+        all_ips = all_ips.filter(Q(ip_address__icontains=q))
+
+    paginator = Paginator(all_ips, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "partials/blocked_ips_partial.html", {
         "blocked_ips": page_obj.object_list,
-        "page_obj": page_obj
+        "page_obj": page_obj,
+        "q": q,
+        "messages": messages.get_messages(request)
+    })
+@login_required
+def blocked_ips_table(request):
+    q = (request.GET.get("q") or "").strip()
+
+    all_ips = BlockedIP.objects.all().order_by('-id')
+    if q:
+        all_ips = all_ips.filter(Q(ip_address__icontains=q))
+
+    paginator = Paginator(all_ips, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'partials/blocked_ips_table.html', {
+        'blocked_ips': page_obj.object_list,
+        "page_obj": page_obj,
+        "q": q
     })
 ######################################################################
 @login_required
