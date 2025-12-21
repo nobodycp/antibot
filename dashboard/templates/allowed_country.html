@@ -64,8 +64,13 @@
   </div>
 
   <!-- Search -->
-  <input type="text" placeholder="Search Country..." onkeyup="filterCountries(this)"
-         class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs focus:outline-none focus:ring-1 focus:ring-purple-500" />
+<input type="text" name="q" placeholder="Search Country Code..."
+       hx-get="{% url 'tracker:allowed_country_partial' %}"
+       hx-trigger="keyup changed delay:300ms"
+       hx-target="#allowed-country-wrapper"
+       hx-swap="outerHTML"
+       hx-vals='{"page":1}'
+       class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs md:ml-auto focus:outline-none focus:ring-1 focus:ring-purple-500" />
 </div>
   <!-- Wrapper -->
   {% include 'partials/allowed_country_partial.html' %}
@@ -80,14 +85,6 @@
       }, 3000);
     }
   });
-
-  function filterCountries(input) {
-    const filter = input.value.toLowerCase();
-    const rows = document.querySelectorAll("#country-table-body tr");
-    rows.forEach(row => {
-      const text = row.querySelector("td").textContent.toLowerCase();
-      row.style.display = text.includes(filter) ? "" : "none";
-    });
   }
 </script>
 {% endblock %}

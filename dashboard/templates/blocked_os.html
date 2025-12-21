@@ -52,8 +52,13 @@
     </div>
 
     <!-- Search Bar -->
-    <input type="text" placeholder="Search OS..." onkeyup="filterOS(this)"
-           class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs focus:outline-none focus:ring-1 focus:ring-purple-500" />
+<input type="text" name="q" placeholder="Search OS..."
+       hx-get="{% url 'tracker:blocked_os_partial' %}"
+       hx-trigger="keyup changed delay:300ms"
+       hx-target="#blocked-os-wrapper"
+       hx-swap="outerHTML"
+       hx-vals='{"page":1}'
+       class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs md:ml-auto focus:outline-none focus:ring-1 focus:ring-purple-500" />
   </div>
 
   <!-- Wrapper for messages + table -->
@@ -75,14 +80,6 @@
       }, 3000);
     }
   });
-
-  function filterOS(input) {
-    const filter = input.value.toLowerCase();
-    const rows = document.querySelectorAll("#os-table-body tr");
-    rows.forEach(row => {
-      const name = row.querySelector("td").textContent.toLowerCase();
-      row.style.display = name.includes(filter) ? "" : "none";
-    });
   }
 </script>
 {% endblock %}

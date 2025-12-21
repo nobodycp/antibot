@@ -326,6 +326,7 @@ def blocked_browser_view(request):
         delete_all = request.POST.get('delete_all')
 
         if name:
+            name = name.strip()
             if not BlockedBrowser.objects.filter(browser__iexact=name).exists():
                 BlockedBrowser.objects.create(browser=name)
                 messages.success(request, f"✅ Browser {name} added successfully.")
@@ -334,8 +335,8 @@ def blocked_browser_view(request):
         elif delete_id:
             try:
                 browser_obj = BlockedBrowser.objects.get(id=delete_id)
-                browser_obj.delete()
                 messages.error(request, f"🗑️ Browser {browser_obj.browser} deleted.")
+                browser_obj.delete()
             except BlockedBrowser.DoesNotExist:
                 messages.error(request, "❌ Browser not found.")
         elif delete_all:
@@ -346,46 +347,73 @@ def blocked_browser_view(request):
             messages.error(request, "Invalid action.")
 
         if request.headers.get("HX-Request"):
+            q = (request.GET.get("q") or "").strip()
+
             all_browsers = BlockedBrowser.objects.all().order_by('-id')
+            if q:
+                all_browsers = all_browsers.filter(Q(browser__icontains=q))
+
             paginator = Paginator(all_browsers, 20)
-            page_number = request.GET.get("page")
-            page_obj = paginator.get_page(page_number)
+            page_obj = paginator.get_page(1)
+
             return render(request, "partials/blocked_browser_partial.html", {
                 "blocked_browsers": page_obj.object_list,
                 "page_obj": page_obj,
+                "q": q,
                 "messages": messages.get_messages(request)
             })
 
         return redirect('tracker:blocked_browser')
 
+    q = (request.GET.get("q") or "").strip()
+
     all_browsers = BlockedBrowser.objects.all().order_by('-id')
+    if q:
+        all_browsers = all_browsers.filter(Q(browser__icontains=q))
+
     paginator = Paginator(all_browsers, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'blocked_browser.html', {
         'blocked_browsers': page_obj.object_list,
-        'page_obj': page_obj
+        'page_obj': page_obj,
+        'q': q
     })
 @login_required
 def blocked_browser_partial(request):
+    q = (request.GET.get("q") or "").strip()
+
     all_browsers = BlockedBrowser.objects.all().order_by('-id')
+    if q:
+        all_browsers = all_browsers.filter(Q(browser__icontains=q))
+
     paginator = Paginator(all_browsers, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
+
     return render(request, "partials/blocked_browser_partial.html", {
         "blocked_browsers": page_obj.object_list,
         "page_obj": page_obj,
+        "q": q,
         "messages": messages.get_messages(request)
     })
 @login_required
 def blocked_browser_table(request):
+    q = (request.GET.get("q") or "").strip()
+
     all_browsers = BlockedBrowser.objects.all().order_by('-id')
+    if q:
+        all_browsers = all_browsers.filter(Q(browser__icontains=q))
+
     paginator = Paginator(all_browsers, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
+
     return render(request, "partials/blocked_browser_table.html", {
-        "blocked_browsers": page_obj.object_list
+        "blocked_browsers": page_obj.object_list,
+        "page_obj": page_obj,
+        "q": q
     })
 ######################################################################
 @login_required
@@ -417,47 +445,73 @@ def blocked_os_view(request):
             messages.error(request, "Invalid action.")
 
         if request.headers.get("HX-Request"):
+            q = (request.GET.get("q") or "").strip()
+
             all_os = BlockedOS.objects.all().order_by('-id')
+            if q:
+                all_os = all_os.filter(Q(os__icontains=q))
+
             paginator = Paginator(all_os, 20)
             page_obj = paginator.get_page(1)
 
             return render(request, "partials/blocked_os_partial.html", {
                 "blocked_os": page_obj.object_list,
                 "page_obj": page_obj,
+                "q": q,
                 "messages": messages.get_messages(request)
             })
 
         return redirect('tracker:blocked_os')
 
+    q = (request.GET.get("q") or "").strip()
+
     all_os = BlockedOS.objects.all().order_by('-id')
+    if q:
+        all_os = all_os.filter(Q(os__icontains=q))
+
     paginator = Paginator(all_os, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "blocked_os.html", {
         "blocked_os": page_obj.object_list,
-        "page_obj": page_obj
-    })
-@login_required
-def blocked_os_table(request):
-    all_os = BlockedOS.objects.all().order_by('-id')
-    paginator = Paginator(all_os, 20)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, 'partials/blocked_os_table.html', {
-        'blocked_os': page_obj.object_list
+        "page_obj": page_obj,
+        "q": q
     })
 @login_required
 def blocked_os_partial(request):
+    q = (request.GET.get("q") or "").strip()
+
     all_os = BlockedOS.objects.all().order_by('-id')
+    if q:
+        all_os = all_os.filter(Q(os__icontains=q))
+
     paginator = Paginator(all_os, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "partials/blocked_os_partial.html", {
         "blocked_os": page_obj.object_list,
-        "page_obj": page_obj
+        "page_obj": page_obj,
+        "q": q,
+        "messages": messages.get_messages(request)
+    })
+@login_required
+def blocked_os_table(request):
+    q = (request.GET.get("q") or "").strip()
+
+    all_os = BlockedOS.objects.all().order_by('-id')
+    if q:
+        all_os = all_os.filter(Q(os__icontains=q))
+
+    paginator = Paginator(all_os, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'partials/blocked_os_table.html', {
+        'blocked_os': page_obj.object_list,
+        "page_obj": page_obj,
+        "q": q
     })
 ######################################################################
 @login_required
@@ -489,47 +543,73 @@ def blocked_hostname_view(request):
             messages.error(request, "Invalid action.")
 
         if request.headers.get("HX-Request"):
+            q = (request.GET.get("q") or "").strip()
+
             all_items = BlockedHostname.objects.all().order_by('-id')
+            if q:
+                all_items = all_items.filter(Q(hostname__icontains=q))
+
             paginator = Paginator(all_items, 20)
             page_obj = paginator.get_page(1)
 
             return render(request, "partials/blocked_hostname_partial.html", {
                 "blocked_hostnames": page_obj.object_list,
                 "page_obj": page_obj,
+                "q": q,
                 "messages": messages.get_messages(request)
             })
 
         return redirect('tracker:blocked_hostname')
 
+    q = (request.GET.get("q") or "").strip()
+
     all_items = BlockedHostname.objects.all().order_by('-id')
+    if q:
+        all_items = all_items.filter(Q(hostname__icontains=q))
+
     paginator = Paginator(all_items, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "blocked_hostname.html", {
         "blocked_hostnames": page_obj.object_list,
-        "page_obj": page_obj
-    })
-@login_required
-def blocked_hostname_table(request):
-    all_items = BlockedHostname.objects.all().order_by('-id')
-    paginator = Paginator(all_items, 20)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, "partials/blocked_hostname_table.html", {
-        "blocked_hostnames": page_obj.object_list
+        "page_obj": page_obj,
+        "q": q
     })
 @login_required
 def blocked_hostname_partial(request):
+    q = (request.GET.get("q") or "").strip()
+
     all_items = BlockedHostname.objects.all().order_by('-id')
+    if q:
+        all_items = all_items.filter(Q(hostname__icontains=q))
+
     paginator = Paginator(all_items, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "partials/blocked_hostname_partial.html", {
         "blocked_hostnames": page_obj.object_list,
-        "page_obj": page_obj
+        "page_obj": page_obj,
+        "q": q,
+        "messages": messages.get_messages(request)
+    })
+@login_required
+def blocked_hostname_table(request):
+    q = (request.GET.get("q") or "").strip()
+
+    all_items = BlockedHostname.objects.all().order_by('-id')
+    if q:
+        all_items = all_items.filter(Q(hostname__icontains=q))
+
+    paginator = Paginator(all_items, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/blocked_hostname_table.html", {
+        "blocked_hostnames": page_obj.object_list,
+        "page_obj": page_obj,
+        "q": q
     })
 ######################################################################
 @login_required
@@ -561,47 +641,73 @@ def allowed_country_view(request):
             messages.error(request, "Invalid action.")
 
         if request.headers.get("HX-Request"):
+            q = (request.GET.get("q") or "").strip()
+
             queryset = AllowedCountry.objects.all().order_by("code")
+            if q:
+                queryset = queryset.filter(Q(code__icontains=q))
+
             paginator = Paginator(queryset, 20)
             page_obj = paginator.get_page(1)
 
             return render(request, "partials/allowed_country_partial.html", {
                 "allowed_countries": page_obj.object_list,
                 "page_obj": page_obj,
+                "q": q,
                 "messages": messages.get_messages(request)
             })
 
         return redirect('tracker:allowed_country')
 
+    q = (request.GET.get("q") or "").strip()
+
     queryset = AllowedCountry.objects.all().order_by("code")
+    if q:
+        queryset = queryset.filter(Q(code__icontains=q))
+
     paginator = Paginator(queryset, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "allowed_country.html", {
         "allowed_countries": page_obj.object_list,
-        "page_obj": page_obj
-    })
-@login_required
-def allowed_country_table(request):
-    queryset = AllowedCountry.objects.all().order_by("code")
-    paginator = Paginator(queryset, 20)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, "partials/allowed_country_table.html", {
-        "allowed_countries": page_obj.object_list
+        "page_obj": page_obj,
+        "q": q
     })
 @login_required
 def allowed_country_partial(request):
+    q = (request.GET.get("q") or "").strip()
+
     queryset = AllowedCountry.objects.all().order_by("code")
+    if q:
+        queryset = queryset.filter(Q(code__icontains=q))
+
     paginator = Paginator(queryset, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "partials/allowed_country_partial.html", {
         "allowed_countries": page_obj.object_list,
-        "page_obj": page_obj
+        "page_obj": page_obj,
+        "q": q,
+        "messages": messages.get_messages(request)
+    })
+@login_required
+def allowed_country_table(request):
+    q = (request.GET.get("q") or "").strip()
+
+    queryset = AllowedCountry.objects.all().order_by("code")
+    if q:
+        queryset = queryset.filter(Q(code__icontains=q))
+
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/allowed_country_table.html", {
+        "allowed_countries": page_obj.object_list,
+        "page_obj": page_obj,
+        "q": q
     })
 ######################################################################
 @login_required
@@ -625,29 +731,42 @@ def allowed_logs_view(request):
             messages.error(request, "Invalid action.")
 
         if request.headers.get("HX-Request"):
-            queryset = Visitor.objects.all().order_by('-timestamp')
+            q = (request.GET.get("q") or request.GET.get("search") or "").strip()
+
+            queryset = Visitor.objects.all().order_by("-timestamp")
+            if q:
+                queryset = queryset.filter(
+                    Q(ip_address__icontains=q) |
+                    Q(hostname__icontains=q) |
+                    Q(isp__icontains=q) |
+                    Q(os__icontains=q) |
+                    Q(browser__icontains=q) |
+                    Q(country__icontains=q)
+                )
+
             paginator = Paginator(queryset, 20)
             page_obj = paginator.get_page(1)
 
             return render(request, "partials/allowed_logs_partial.html", {
                 "logs": page_obj.object_list,
                 "page_obj": page_obj,
+                "q": q,
                 "messages": messages.get_messages(request)
             })
 
         return redirect('tracker:allowed_logs')
 
-    # GET العادي
-    search = request.GET.get("search", "")
+    q = (request.GET.get("q") or request.GET.get("search") or "").strip()
+
     queryset = Visitor.objects.all().order_by("-timestamp")
-    if search:
+    if q:
         queryset = queryset.filter(
-            Q(ip_address__icontains=search) |
-            Q(hostname__icontains=search) |
-            Q(isp__icontains=search) |
-            Q(os__icontains=search) |
-            Q(browser__icontains=search) |
-            Q(country__icontains=search)
+            Q(ip_address__icontains=q) |
+            Q(hostname__icontains=q) |
+            Q(isp__icontains=q) |
+            Q(os__icontains=q) |
+            Q(browser__icontains=q) |
+            Q(country__icontains=q)
         )
 
     paginator = Paginator(queryset, 20)
@@ -656,28 +775,57 @@ def allowed_logs_view(request):
 
     return render(request, "allowed_logs.html", {
         "logs": page_obj.object_list,
-        "page_obj": page_obj
-    })
-@login_required
-def allowed_logs_table(request):
-    queryset = Visitor.objects.all().order_by("-timestamp")
-    paginator = Paginator(queryset, 20)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, "partials/allowed_logs_table.html", {
-        "logs": page_obj.object_list
+        "page_obj": page_obj,
+        "q": q
     })
 @login_required
 def allowed_logs_partial(request):
+    q = (request.GET.get("q") or request.GET.get("search") or "").strip()
+
     queryset = Visitor.objects.all().order_by("-timestamp")
+    if q:
+        queryset = queryset.filter(
+            Q(ip_address__icontains=q) |
+            Q(hostname__icontains=q) |
+            Q(isp__icontains=q) |
+            Q(os__icontains=q) |
+            Q(browser__icontains=q) |
+            Q(country__icontains=q)
+        )
+
     paginator = Paginator(queryset, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "partials/allowed_logs_partial.html", {
         "logs": page_obj.object_list,
-        "page_obj": page_obj
+        "page_obj": page_obj,
+        "q": q,
+        "messages": messages.get_messages(request)
+    })
+@login_required
+def allowed_logs_table(request):
+    q = (request.GET.get("q") or request.GET.get("search") or "").strip()
+
+    queryset = Visitor.objects.all().order_by("-timestamp")
+    if q:
+        queryset = queryset.filter(
+            Q(ip_address__icontains=q) |
+            Q(hostname__icontains=q) |
+            Q(isp__icontains=q) |
+            Q(os__icontains=q) |
+            Q(browser__icontains=q) |
+            Q(country__icontains=q)
+        )
+
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/allowed_logs_table.html", {
+        "logs": page_obj.object_list,
+        "page_obj": page_obj,
+        "q": q
     })
 ######################################################################
 @login_required
@@ -701,29 +849,42 @@ def denied_logs_view(request):
             messages.error(request, "Invalid action.")
 
         if request.headers.get("HX-Request"):
-            queryset = RejectedVisitor.objects.all().order_by('-timestamp')
+            q = (request.GET.get("q") or request.GET.get("search") or "").strip()
+
+            queryset = RejectedVisitor.objects.all().order_by("-timestamp")
+            if q:
+                queryset = queryset.filter(
+                    Q(ip_address__icontains=q) |
+                    Q(hostname__icontains=q) |
+                    Q(isp__icontains=q) |
+                    Q(os__icontains=q) |
+                    Q(browser__icontains=q) |
+                    Q(country__icontains=q)
+                )
+
             paginator = Paginator(queryset, 10)
             page_obj = paginator.get_page(1)
 
             return render(request, "partials/denied_logs_partial.html", {
                 "logs": page_obj.object_list,
                 "page_obj": page_obj,
+                "q": q,
                 "messages": messages.get_messages(request)
             })
 
         return redirect('tracker:denied_logs')
 
-    # GET
-    search = request.GET.get("search", "")
+    q = (request.GET.get("q") or request.GET.get("search") or "").strip()
+
     queryset = RejectedVisitor.objects.all().order_by("-timestamp")
-    if search:
+    if q:
         queryset = queryset.filter(
-            Q(ip_address__icontains=search) |
-            Q(hostname__icontains=search) |
-            Q(isp__icontains=search) |
-            Q(os__icontains=search) |
-            Q(browser__icontains=search) |
-            Q(country__icontains=search)
+            Q(ip_address__icontains=q) |
+            Q(hostname__icontains=q) |
+            Q(isp__icontains=q) |
+            Q(os__icontains=q) |
+            Q(browser__icontains=q) |
+            Q(country__icontains=q)
         )
 
     paginator = Paginator(queryset, 10)
@@ -732,28 +893,57 @@ def denied_logs_view(request):
 
     return render(request, "denied_logs.html", {
         "logs": page_obj.object_list,
-        "page_obj": page_obj
+        "page_obj": page_obj,
+        "q": q
     })
 @login_required
 def denied_logs_partial(request):
+    q = (request.GET.get("q") or request.GET.get("search") or "").strip()
+
     queryset = RejectedVisitor.objects.all().order_by("-timestamp")
+    if q:
+        queryset = queryset.filter(
+            Q(ip_address__icontains=q) |
+            Q(hostname__icontains=q) |
+            Q(isp__icontains=q) |
+            Q(os__icontains=q) |
+            Q(browser__icontains=q) |
+            Q(country__icontains=q)
+        )
+
     paginator = Paginator(queryset, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "partials/denied_logs_partial.html", {
         "logs": page_obj.object_list,
-        "page_obj": page_obj
+        "page_obj": page_obj,
+        "q": q,
+        "messages": messages.get_messages(request)
     })
 @login_required
 def denied_logs_table(request):
+    q = (request.GET.get("q") or request.GET.get("search") or "").strip()
+
     queryset = RejectedVisitor.objects.all().order_by("-timestamp")
+    if q:
+        queryset = queryset.filter(
+            Q(ip_address__icontains=q) |
+            Q(hostname__icontains=q) |
+            Q(isp__icontains=q) |
+            Q(os__icontains=q) |
+            Q(browser__icontains=q) |
+            Q(country__icontains=q)
+        )
+
     paginator = Paginator(queryset, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "partials/denied_logs_table.html", {
-        "logs": page_obj.object_list
+        "logs": page_obj.object_list,
+        "page_obj": page_obj,
+        "q": q
     })
 ######################################################################
 @login_required
@@ -762,22 +952,16 @@ def ip_info_view(request):
         delete_id = request.POST.get('delete_id')
         delete_all = request.POST.get('delete_all')
 
-        # زر اضافة بلوك رول من الأعلى (نفس denied logs)
         block_type = request.POST.get("block_type")
         block_value = request.POST.get("block_value")
-
         if block_type and block_value:
-            # نفس الدالة/اللوجيك اللي بتستخدمه في denied logs
             return add_block_rule(request)
 
         if delete_id:
             try:
                 row = IPInfo.objects.get(id=delete_id)
                 ip = row.ip_address
-
-                # إذا بدك تحذف كل السجلات المتعلقة بهذا الايبي (اختياري)
                 IPInfo.objects.filter(ip_address=ip).delete()
-
                 messages.success(request, f"🗑️ Deleted IP info for IP: {ip}")
             except IPInfo.DoesNotExist:
                 messages.error(request, "Row not found.")
@@ -788,27 +972,38 @@ def ip_info_view(request):
             messages.error(request, "Invalid action.")
 
         if request.headers.get("HX-Request"):
-            queryset = IPInfo.objects.all().order_by('-last_seen')
+            q = (request.GET.get("q") or request.GET.get("search") or "").strip()
+
+            queryset = IPInfo.objects.all().order_by("-last_seen")
+            if q:
+                queryset = queryset.filter(
+                    Q(ip_address__icontains=q) |
+                    Q(isp__icontains=q) |
+                    Q(subnet__icontains=q) |
+                    Q(as_type__icontains=q)
+                )
+
             paginator = Paginator(queryset, 10)
             page_obj = paginator.get_page(1)
 
             return render(request, "partials/ip_info_partial.html", {
                 "ips": page_obj.object_list,
                 "page_obj": page_obj,
+                "q": q,
                 "messages": messages.get_messages(request)
             })
 
         return redirect('tracker:ip_info')
 
-    # GET
-    search = request.GET.get("search", "")
+    q = (request.GET.get("q") or request.GET.get("search") or "").strip()
+
     queryset = IPInfo.objects.all().order_by("-last_seen")
-    if search:
+    if q:
         queryset = queryset.filter(
-            Q(ip_address__icontains=search) |
-            Q(isp__icontains=search) |
-            Q(subnet__icontains=search) |
-            Q(as_type__icontains=search)
+            Q(ip_address__icontains=q) |
+            Q(isp__icontains=q) |
+            Q(subnet__icontains=q) |
+            Q(as_type__icontains=q)
         )
 
     paginator = Paginator(queryset, 10)
@@ -817,28 +1012,53 @@ def ip_info_view(request):
 
     return render(request, "ip_info.html", {
         "ips": page_obj.object_list,
-        "page_obj": page_obj
+        "page_obj": page_obj,
+        "q": q
     })
 @login_required
 def ip_info_partial(request):
+    q = (request.GET.get("q") or request.GET.get("search") or "").strip()
+
     queryset = IPInfo.objects.all().order_by("-last_seen")
+    if q:
+        queryset = queryset.filter(
+            Q(ip_address__icontains=q) |
+            Q(isp__icontains=q) |
+            Q(subnet__icontains=q) |
+            Q(as_type__icontains=q)
+        )
+
     paginator = Paginator(queryset, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "partials/ip_info_partial.html", {
         "ips": page_obj.object_list,
-        "page_obj": page_obj
+        "page_obj": page_obj,
+        "q": q,
+        "messages": messages.get_messages(request)
     })
 @login_required
 def ip_info_table(request):
+    q = (request.GET.get("q") or request.GET.get("search") or "").strip()
+
     queryset = IPInfo.objects.all().order_by("-last_seen")
+    if q:
+        queryset = queryset.filter(
+            Q(ip_address__icontains=q) |
+            Q(isp__icontains=q) |
+            Q(subnet__icontains=q) |
+            Q(as_type__icontains=q)
+        )
+
     paginator = Paginator(queryset, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "partials/ip_info_table.html", {
-        "ips": page_obj.object_list
+        "ips": page_obj.object_list,
+        "page_obj": page_obj,
+        "q": q
     })
 ######################################################################
 @require_POST

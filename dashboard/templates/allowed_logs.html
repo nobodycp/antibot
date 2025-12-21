@@ -44,9 +44,13 @@
 
     <!-- Search -->
     <form method="get" class="w-full md:max-w-xs ml-auto">
-      <input type="text" placeholder="Search logs..." name="search" value="{{ request.GET.search }}"
-             oninput="this.form.submit()"
-             class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full focus:outline-none focus:ring-1 focus:ring-purple-500" />
+      <input type="text" name="q" placeholder="Search logs..."
+       hx-get="{% url 'tracker:allowed_logs_partial' %}"
+       hx-trigger="keyup changed delay:300ms"
+       hx-target="#allowed-logs-wrapper"
+       hx-swap="outerHTML"
+       hx-vals='{"page":1}'
+       class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs md:ml-auto focus:outline-none focus:ring-1 focus:ring-purple-500" />
     </form>
   </div>
 
