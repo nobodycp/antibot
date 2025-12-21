@@ -58,9 +58,15 @@
     </div>
 
     <!-- Search Bar -->
-    <input type="text" placeholder="Search Subnet..." onkeyup="filterSubnets(this)"
-           class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs focus:outline-none focus:ring-1 focus:ring-purple-500" />
+<input type="text" name="q" placeholder="Search Subnet..."
+       hx-get="{% url 'tracker:blocked_subnets_partial' %}"
+       hx-trigger="keyup changed delay:300ms"
+       hx-target="#blocked-subnets-wrapper"
+       hx-swap="outerHTML"
+       hx-vals='{"page":1}'
+       class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs focus:outline-none focus:ring-1 focus:ring-purple-500" />
   </div>
+</div>
 
   <!-- Wrapper for messages + table -->
   {% include 'partials/blocked_subnets_partial.html' %}
@@ -83,14 +89,5 @@
     });
   </script>
 
-  <script>
-  function filterSubnets(input) {
-    const filter = input.value.toLowerCase();
-    const rows = document.querySelectorAll("#subnet-table-body tr");
-    rows.forEach(row => {
-      const cidr = row.querySelector("td").textContent.toLowerCase();
-      row.style.display = cidr.includes(filter) ? "" : "none";
-    });
-  }
-  </script>
+
 {% endblock %}

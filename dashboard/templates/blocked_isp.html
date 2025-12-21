@@ -48,8 +48,13 @@
     </div>
 
     <!-- Search Bar -->
-    <input type="text" placeholder="Search ISP..." onkeyup="filterISPs(this)"
-           class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs md:ml-auto focus:outline-none focus:ring-1 focus:ring-purple-500" />
+    <input type="text" name="q" placeholder="Search ISP..."
+       hx-get="{% url 'tracker:blocked_isp_partial' %}"
+       hx-trigger="keyup changed delay:300ms"
+       hx-target="#blocked-isp-wrapper"
+       hx-swap="outerHTML"
+       hx-vals='{"page":1}'
+       class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs md:ml-auto focus:outline-none focus:ring-1 focus:ring-purple-500" />
   </div>
 
   {% include "partials/blocked_isp_partial.html" %}
@@ -70,16 +75,6 @@
         const msgBox = document.getElementById("htmx-messages");
         if (msgBox) msgBox.innerHTML = '';
       }, 3000);
-    }
-  });
-function filterISPs(input) {
-  const filter = input.value.toLowerCase();
-  const rows = document.querySelectorAll("#isp-table-body tr");
-  rows.forEach(row => {
-    const cell = row.querySelector("td");
-    if (cell) {
-      const isp = cell.textContent.toLowerCase();
-      row.style.display = isp.includes(filter) ? "" : "none";
     }
   });
 }

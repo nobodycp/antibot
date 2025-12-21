@@ -1,7 +1,7 @@
 import json
 
-with open('Bad_IPs.json', 'r', encoding='utf-8') as f:
+with open('Blacklist_ISP.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 
 for d in data:
-    print(d)
+    print(f"{d['isp']}")

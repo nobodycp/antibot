@@ -92,3 +92,30 @@ class IPLog(models.Model):
     def __str__(self):
         return f"{self.ip_address} ({self.count})"
 
+from django.db import models
+
+
+class IPInfo(models.Model):
+    ip_address = models.GenericIPAddressField(unique=True)
+    # 2
+    isp = models.CharField(max_length=255, blank=True, default="")
+    # 3
+    subnet = models.CharField(max_length=64, blank=True, default="")
+    # 4
+    as_type = models.CharField(max_length=64, blank=True, default="")
+    # 5-9 (true/false)
+    is_anonymous = models.BooleanField(default=False)
+    is_proxy = models.BooleanField(default=False)
+    is_hosting = models.BooleanField(default=False)
+    is_tor = models.BooleanField(default=False)
+    is_vpn = models.BooleanField(default=False)
+    # إضافي عندك
+    is_satellite = models.BooleanField(default=False)
+    # 1 (وقت الدخول/آخر ظهور - منها بنحسب "كم مضى")
+    first_seen = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(auto_now=True)
+    class Meta:
+        verbose_name_plural = "IP Info"
+
+    def __str__(self):
+        return self.ip_address

@@ -4,7 +4,7 @@ from .models import AllowedCountry
 from django.db.models import Q
 from .models import (
     Visitor, IPLog,
-    BlockedIP, BlockedHostname, BlockedISP, BlockedOS, BlockedBrowser, RejectedVisitor, BlockedSubnet
+    BlockedIP, BlockedHostname, BlockedISP, BlockedOS, BlockedBrowser, RejectedVisitor, BlockedSubnet, IPInfo
 )
 import user_agents
 import socket
@@ -20,7 +20,7 @@ from django.shortcuts import render, redirect
 @login_required
 def dashboard_view(request):
     return render(request, 'dashboard.html')
-################################### start block ip in blouk rouls
+######################################################################
 @login_required
 def blocked_subnets_view(request):
     if request.method == 'POST':
@@ -30,8 +30,6 @@ def blocked_subnets_view(request):
 
         if cidr:
             cidr = cidr.strip()
-
-            # validate + normalize CIDR
             try:
                 net = ipaddress.ip_network(cidr, strict=False)
                 cidr_norm = str(net)
@@ -59,63 +57,75 @@ def blocked_subnets_view(request):
             count = BlockedSubnet.objects.count()
             BlockedSubnet.objects.all().delete()
             messages.error(request, f"🧹 Deleted {count} Subnet(s).")
-
         else:
             messages.error(request, "Invalid action.")
 
         if request.headers.get("HX-Request"):
-            # بعد العملية نرجّع أول صفحة محدثة
+            q = (request.GET.get("q") or "").strip()
             all_subnets = BlockedSubnet.objects.all().order_by('-id')
+            if q:
+                all_subnets = all_subnets.filter(cidr__icontains=q)
+
             paginator = Paginator(all_subnets, 20)
             page_obj = paginator.get_page(1)
 
             return render(request, "partials/blocked_subnets_partial.html", {
                 "blocked_subnets": page_obj.object_list,
                 "page_obj": page_obj,
+                "q": q,
                 "messages": messages.get_messages(request)
             })
 
         return redirect('tracker:blocked_subnets')
 
-    # GET العادي
+    q = (request.GET.get("q") or "").strip()
     all_subnets = BlockedSubnet.objects.all().order_by('-id')
+    if q:
+        all_subnets = all_subnets.filter(cidr__icontains=q)
+
     paginator = Paginator(all_subnets, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "blocked_subnets.html", {
         "blocked_subnets": page_obj.object_list,
-        "page_obj": page_obj
+        "page_obj": page_obj,
+        "q": q
+    })
+@login_required
+def blocked_subnets_partial(request):
+    q = (request.GET.get("q") or "").strip()
+    all_subnets = BlockedSubnet.objects.all().order_by('-id')
+    if q:
+        all_subnets = all_subnets.filter(cidr__icontains=q)
+
+    paginator = Paginator(all_subnets, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/blocked_subnets_partial.html", {
+        "blocked_subnets": page_obj.object_list,
+        "page_obj": page_obj,
+        "q": q,
+        "messages": messages.get_messages(request)
     })
 @login_required
 def blocked_subnets_table(request):
+    q = (request.GET.get("q") or "").strip()
     all_subnets = BlockedSubnet.objects.all().order_by('-id')
+    if q:
+        all_subnets = all_subnets.filter(cidr__icontains=q)
+
     paginator = Paginator(all_subnets, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
-    return render(
-        request,
-        'partials/blocked_subnets_table.html',
-        {'blocked_subnets': page_obj.object_list}
-    )
-
-@login_required
-def blocked_subnets_partial(request):
-    all_subnets = BlockedSubnet.objects.all().order_by('-id')
-    paginator = Paginator(all_subnets, 20)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-
-    return render(
-        request,
-        "partials/blocked_subnets_partial.html",
-        {
-            "blocked_subnets": page_obj.object_list,
-            "page_obj": page_obj
-        }
-    )
-
+    return render(request, "partials/blocked_subnets_table.html", {
+        "blocked_subnets": page_obj.object_list,
+        "page_obj": page_obj,
+        "q": q
+    })
+######################################################################
 @login_required
 def blocked_ips_view(request):
     if request.method == 'POST':
@@ -187,7 +197,7 @@ def blocked_ips_partial(request):
         "blocked_ips": page_obj.object_list,
         "page_obj": page_obj
     })
-################################### end block ip in blouk rouls
+######################################################################
 @login_required
 def blocked_isp_view(request):
     if request.method == 'POST':
@@ -217,7 +227,11 @@ def blocked_isp_view(request):
             messages.error(request, "Invalid action.")
 
         if request.headers.get("HX-Request"):
+            q = (request.GET.get("q") or "").strip()
             all_isps = BlockedISP.objects.all().order_by('-id')
+            if q:
+                all_isps = all_isps.filter(Q(isp__icontains=q))
+
             paginator = Paginator(all_isps, 20)
             page_number = request.GET.get("page")
             page_obj = paginator.get_page(page_number)
@@ -225,23 +239,33 @@ def blocked_isp_view(request):
             return render(request, "partials/blocked_isp_partial.html", {
                 "blocked_isps": page_obj.object_list,
                 "page_obj": page_obj,
+                "q": q,
                 "messages": messages.get_messages(request)
             })
 
         return redirect("tracker:blocked_isp")
 
+    q = (request.GET.get("q") or "").strip()
     all_isps = BlockedISP.objects.all().order_by('-id')
+    if q:
+        all_isps = all_isps.filter(Q(isp__icontains=q))
+
     paginator = Paginator(all_isps, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "blocked_isp.html", {
         "blocked_isps": page_obj.object_list,
-        "page_obj": page_obj
+        "page_obj": page_obj,
+        "q": q
     })
 @login_required
 def blocked_isp_partial(request):
+    q = (request.GET.get("q") or "").strip()
     all_isps = BlockedISP.objects.all().order_by('-id')
+    if q:
+        all_isps = all_isps.filter(Q(isp__icontains=q))
+
     paginator = Paginator(all_isps, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -249,19 +273,25 @@ def blocked_isp_partial(request):
     return render(request, "partials/blocked_isp_partial.html", {
         "blocked_isps": page_obj.object_list,
         "page_obj": page_obj,
+        "q": q,
         "messages": messages.get_messages(request)
     })
 @login_required
 def blocked_isp_table(request):
+    q = (request.GET.get("q") or "").strip()
     all_isps = BlockedISP.objects.all().order_by('-id')
+    if q:
+        all_isps = all_isps.filter(Q(isp__icontains=q))
+
     paginator = Paginator(all_isps, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(request, "partials/blocked_isp_table.html", {
-        "blocked_isps": page_obj.object_list
+        "blocked_isps": page_obj.object_list,
+        "q": q
     })
-################################### end block ip in blouk rouls
+######################################################################
 @login_required
 def blocked_browser_view(request):
     if request.method == 'POST':
@@ -331,7 +361,7 @@ def blocked_browser_table(request):
     return render(request, "partials/blocked_browser_table.html", {
         "blocked_browsers": page_obj.object_list
     })
-################################### end block ip in blouk rouls
+######################################################################
 @login_required
 def blocked_os_view(request):
     if request.method == 'POST':
@@ -403,7 +433,7 @@ def blocked_os_partial(request):
         "blocked_os": page_obj.object_list,
         "page_obj": page_obj
     })
-##################################
+######################################################################
 @login_required
 def blocked_hostname_view(request):
     if request.method == 'POST':
@@ -475,7 +505,7 @@ def blocked_hostname_partial(request):
         "blocked_hostnames": page_obj.object_list,
         "page_obj": page_obj
     })
-#######################
+######################################################################
 @login_required
 def allowed_country_view(request):
     if request.method == 'POST':
@@ -547,7 +577,7 @@ def allowed_country_partial(request):
         "allowed_countries": page_obj.object_list,
         "page_obj": page_obj
     })
-#######################
+######################################################################
 @login_required
 def allowed_logs_view(request):
     if request.method == 'POST':
@@ -623,7 +653,7 @@ def allowed_logs_partial(request):
         "logs": page_obj.object_list,
         "page_obj": page_obj
     })
-##########################
+######################################################################
 @login_required
 def denied_logs_view(request):
     if request.method == 'POST':
@@ -699,6 +729,92 @@ def denied_logs_table(request):
     return render(request, "partials/denied_logs_table.html", {
         "logs": page_obj.object_list
     })
+######################################################################
+@login_required
+def ip_info_view(request):
+    if request.method == 'POST':
+        delete_id = request.POST.get('delete_id')
+        delete_all = request.POST.get('delete_all')
+
+        # زر اضافة بلوك رول من الأعلى (نفس denied logs)
+        block_type = request.POST.get("block_type")
+        block_value = request.POST.get("block_value")
+
+        if block_type and block_value:
+            # نفس الدالة/اللوجيك اللي بتستخدمه في denied logs
+            return add_block_rule(request)
+
+        if delete_id:
+            try:
+                row = IPInfo.objects.get(id=delete_id)
+                ip = row.ip_address
+
+                # إذا بدك تحذف كل السجلات المتعلقة بهذا الايبي (اختياري)
+                IPInfo.objects.filter(ip_address=ip).delete()
+
+                messages.success(request, f"🗑️ Deleted IP info for IP: {ip}")
+            except IPInfo.DoesNotExist:
+                messages.error(request, "Row not found.")
+        elif delete_all:
+            IPInfo.objects.all().delete()
+            messages.success(request, "✅ All IP info records have been deleted.")
+        else:
+            messages.error(request, "Invalid action.")
+
+        if request.headers.get("HX-Request"):
+            queryset = IPInfo.objects.all().order_by('-last_seen')
+            paginator = Paginator(queryset, 10)
+            page_obj = paginator.get_page(1)
+
+            return render(request, "partials/ip_info_partial.html", {
+                "ips": page_obj.object_list,
+                "page_obj": page_obj,
+                "messages": messages.get_messages(request)
+            })
+
+        return redirect('tracker:ip_info')
+
+    # GET
+    search = request.GET.get("search", "")
+    queryset = IPInfo.objects.all().order_by("-last_seen")
+    if search:
+        queryset = queryset.filter(
+            Q(ip_address__icontains=search) |
+            Q(isp__icontains=search) |
+            Q(subnet__icontains=search) |
+            Q(as_type__icontains=search)
+        )
+
+    paginator = Paginator(queryset, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "ip_info.html", {
+        "ips": page_obj.object_list,
+        "page_obj": page_obj
+    })
+@login_required
+def ip_info_partial(request):
+    queryset = IPInfo.objects.all().order_by("-last_seen")
+    paginator = Paginator(queryset, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/ip_info_partial.html", {
+        "ips": page_obj.object_list,
+        "page_obj": page_obj
+    })
+@login_required
+def ip_info_table(request):
+    queryset = IPInfo.objects.all().order_by("-last_seen")
+    paginator = Paginator(queryset, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "partials/ip_info_table.html", {
+        "ips": page_obj.object_list
+    })
+######################################################################
 @require_POST
 @login_required
 def add_block_rule(request):
@@ -734,7 +850,9 @@ def add_block_rule(request):
                 "messages": messages.get_messages(request)
             })
 
-        return redirect('tracker:denied_logs')@login_required
+        return redirect('tracker:denied_logs')
+######################################################################
+@login_required()
 def dinger_ip_view(request):
     if request.method == 'POST':
         ip_to_delete = request.POST.get('delete_ip')
@@ -753,7 +871,7 @@ def dinger_ip_view(request):
         .order_by('-count')
     )
     return render(request, 'dinger_ip.html', {'dingers': dingers})
-
+######################################################################
 class LogVisitorAPIView(APIView):
     def post(self, request):
         allowed_codes = list(AllowedCountry.objects.values_list('code', flat=True))
@@ -776,17 +894,36 @@ class LogVisitorAPIView(APIView):
 
         try:
             response = requests.get(f'https://ipwho.is/{ip}').json()
-            isp = response.get('connection', {}).get('isp', '')
-            country = response.get('country', '')
-            country_code = response.get('country_code', '').upper()
-            response2 = requests.get(f'https://ipinfo.io/api/pricing/samples/{ip}').json()
-            b_subnet = response2['business']['sample']['asn']['route']
+            isp = response.get('connection', {}).get('isp', '') or ''
+            country_code = (response.get('country_code', '') or '').upper()
 
-        except:
+            response2 = requests.get(f'https://ipinfo.io/api/pricing/samples/{ip}').json()
+
+            b_subnet = response2.get('business', {}).get('sample', {}).get('asn', {}).get('route', '') or ''
+            as_type = response2.get('core', {}).get('sample', {}).get('as', {}).get('type', '') or ''
+
+            is_anonymous = bool(response2.get('core', {}).get('sample', {}).get('is_anonymous', False))
+            is_hosting = bool(response2.get('core', {}).get('sample', {}).get('is_hosting', False))
+
+            privacy = response2.get('business', {}).get('sample', {}).get('privacy', {}) or {}
+            is_proxy = bool(privacy.get('proxy', False))
+            is_vpn = bool(privacy.get('vpn', False))
+            is_tor = bool(privacy.get('tor', False))
+
+            # إضافي
+            is_satellite = bool(response2.get('core', {}).get('sample', {}).get('is_satellite', False))
+
+        except Exception:
             isp = ''
-            country = ''
             country_code = ''
             b_subnet = ''
+            as_type = ''
+            is_anonymous = False
+            is_hosting = False
+            is_proxy = False
+            is_vpn = False
+            is_tor = False
+            is_satellite = False
 
         # Blocked Subnet (CIDR)
         try:
@@ -896,7 +1033,7 @@ class LogVisitorAPIView(APIView):
             )
             return Response({'status': 'access_denied', 'reason': 'Blocked Hostname'}, status=403)
 
-        # Save visitor
+        # Save visitor (ALLOWED)
         Visitor.objects.create(
             ip_address=ip,
             b_subnet=b_subnet,
@@ -908,6 +1045,22 @@ class LogVisitorAPIView(APIView):
             country=country_code
         )
 
+        # Save / Update IPInfo (ALLOWED IPs ONLY)
+        IPInfo.objects.update_or_create(
+            ip_address=ip,
+            defaults={
+                'isp': isp,
+                'subnet': b_subnet,
+                'as_type': as_type,
+                'is_anonymous': is_anonymous,
+                'is_proxy': is_proxy,
+                'is_hosting': is_hosting,
+                'is_tor': is_tor,
+                'is_vpn': is_vpn,
+                'is_satellite': is_satellite,
+            }
+        )
+
         # Update IPLog
         ip_log, created = IPLog.objects.get_or_create(ip_address=ip)
         if not created:
@@ -916,6 +1069,8 @@ class LogVisitorAPIView(APIView):
 
         return Response({'status': 'access_granted'}, status=201)
 
+
+######################################################################
 # @login_required
 # @require_POST
 # def delete_log(request, pk):

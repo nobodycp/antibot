@@ -10,7 +10,7 @@ from .views import (
     allowed_country_view, allowed_country_table, allowed_country_partial,
     allowed_logs_view, allowed_logs_table, allowed_logs_partial,
     denied_logs_view, denied_logs_table, denied_logs_partial,
-    dinger_ip_view,
+    dinger_ip_view, ip_info_view, ip_info_table, ip_info_partial,
     add_block_rule,
 )
 
@@ -56,6 +56,11 @@ urlpatterns = [
     path("denied-logs-partial/", denied_logs_partial, name="denied_logs_partial"),
     path("denied-logs-table/", denied_logs_table, name="denied_logs_table"),
     path("denied-logs/add-rule/", add_block_rule, name="add_block_rule"),
+
+    path("ip-info/", ip_info_view, name="ip_info"),
+    path("ip-info/partial/", ip_info_partial, name="ip_info_partial"),
+    path("ip-info/table/", ip_info_table, name="ip_info_table"),
+    path("ip-info/add-rule/", add_block_rule, name="ip_info_add_block_rule"),
 
     path('dinger-ip/', dinger_ip_view, name='dinger_ip'),
 ]
