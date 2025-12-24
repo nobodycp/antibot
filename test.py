@@ -9,7 +9,7 @@ def send(input_number):
             'ip': f'{input_number}',
             'useragent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
         }
-        req = s.post('http://0.0.0.0:8000/tracker/api/log/', headers=headers, json=payloads)
+        req = s.post('http://104.194.157.122:8000/tracker/api/log/', headers=headers, json=payloads)
         print(req.text)
     except Exception as e:
         print(e)
@@ -17,4 +17,4 @@ def send(input_number):
         return 2
 
 
-send('8.8.8.8')
+send('212.14.255.143')
