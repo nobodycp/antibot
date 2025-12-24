@@ -1185,7 +1185,7 @@ class LogVisitorAPIView(APIView):
                             os=os,
                             browser=browser,
                             country=country_code,
-                            reason="Blocked Subnet"
+                            reason="Subnet"
                         )
                         return Response({'status': 'access_denied', 'reason': 'Blocked Subnet'}, status=403)
                 except ValueError:
@@ -1203,7 +1203,7 @@ class LogVisitorAPIView(APIView):
                 os=os,
                 browser=browser,
                 country=country_code,
-                reason="Blocked IP"
+                reason="IP"
             )
             return Response({'status': 'access_denied', 'reason': 'Blocked IP'}, status=403)
 
@@ -1217,7 +1217,7 @@ class LogVisitorAPIView(APIView):
                 os=os,
                 browser=browser,
                 country=country_code,
-                reason="Blocked ISP"
+                reason="ISP"
             )
             return Response({'status': 'access_denied', 'reason': 'Blocked ISP'}, status=403)
 
@@ -1231,7 +1231,7 @@ class LogVisitorAPIView(APIView):
                 os=os,
                 browser=browser,
                 country=country_code,
-                reason="Blocked OS"
+                reason="OS"
             )
             return Response({'status': 'access_denied', 'reason': 'Blocked OS'}, status=403)
 
@@ -1245,7 +1245,7 @@ class LogVisitorAPIView(APIView):
                 os=os,
                 browser=browser,
                 country=country_code,
-                reason="Blocked Browser"
+                reason="Browser"
             )
             return Response({'status': 'access_denied', 'reason': 'Blocked Browser'}, status=403)
 
@@ -1259,7 +1259,7 @@ class LogVisitorAPIView(APIView):
                 os=os,
                 browser=browser,
                 country=country_code,
-                reason="Blocked Country"
+                reason="Country"
             )
             return Response({'status': 'access_denied', 'reason': f'Country code \"{country_code}\" is not allowed'}, status=403)
 
@@ -1275,7 +1275,7 @@ class LogVisitorAPIView(APIView):
                 os=os,
                 browser=browser,
                 country=country_code,
-                reason="Blocked Hostname"
+                reason="Hostname"
             )
             return Response({'status': 'access_denied', 'reason': 'Blocked Hostname'}, status=403)
 
