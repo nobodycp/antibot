@@ -1284,7 +1284,6 @@ class LogVisitorAPIView(APIView):
             ip_address=ip,
             b_subnet=b_subnet,
             # hostname=hostname,
-            url=page_url,
             isp=isp,
             os=os,
             browser=browser,
@@ -1305,7 +1304,6 @@ class LogVisitorAPIView(APIView):
                 'is_tor': is_tor,
                 'is_vpn': is_vpn,
                 'is_mobile': is_mobile,
-                'url': page_url,
             }
         )
 
