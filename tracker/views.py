@@ -1157,7 +1157,7 @@ class LogVisitorAPIView(APIView):
             is_tor = bool(privacy.get('tor', False))
 
             # إضافي
-            is_mobile = bool(response2.get('core', {}).get('sample', {}).get('is_mobile', False))
+            is_satellite = bool(response2.get('core', {}).get('sample', {}).get('is_mobile', False))
 
         except Exception:
             isp = ''
@@ -1169,7 +1169,7 @@ class LogVisitorAPIView(APIView):
             is_proxy = False
             is_vpn = False
             is_tor = False
-            is_mobile = False
+            is_satellite = False
 
         # Blocked Subnet (CIDR)
         try:
@@ -1303,7 +1303,7 @@ class LogVisitorAPIView(APIView):
                 'is_hosting': is_hosting,
                 'is_tor': is_tor,
                 'is_vpn': is_vpn,
-                'is_mobile': is_mobile,
+                'is_satellite': is_satellite,
             }
         )
 
