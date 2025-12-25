@@ -1123,7 +1123,7 @@ class LogVisitorAPIView(APIView):
         allowed_codes = list(AllowedCountry.objects.values_list('code', flat=True))
         ip = request.data.get('ip')
         user_agent_str = request.data.get('useragent', '')
-
+        page_url = request.data.get('url', '')
         if not ip or not user_agent_str:
             return Response({'error': 'Missing ip or useragent'}, status=400)
 
@@ -1157,7 +1157,7 @@ class LogVisitorAPIView(APIView):
             is_tor = bool(privacy.get('tor', False))
 
             # إضافي
-            is_satellite = bool(response2.get('core', {}).get('sample', {}).get('is_satellite', False))
+            is_mobile = bool(response2.get('core', {}).get('sample', {}).get('is_mobile', False))
 
         except Exception:
             isp = ''
@@ -1169,7 +1169,7 @@ class LogVisitorAPIView(APIView):
             is_proxy = False
             is_vpn = False
             is_tor = False
-            is_satellite = False
+            is_mobile = False
 
         # Blocked Subnet (CIDR)
         try:
@@ -1283,7 +1283,8 @@ class LogVisitorAPIView(APIView):
         Visitor.objects.create(
             ip_address=ip,
             b_subnet=b_subnet,
-            hostname=hostname,
+            # hostname=hostname,
+            url=page_url,
             isp=isp,
             os=os,
             browser=browser,
@@ -1303,7 +1304,8 @@ class LogVisitorAPIView(APIView):
                 'is_hosting': is_hosting,
                 'is_tor': is_tor,
                 'is_vpn': is_vpn,
-                'is_satellite': is_satellite,
+                'is_mobile': is_mobile,
+                'url': page_url,
             }
         )
 
