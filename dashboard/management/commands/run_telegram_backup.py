@@ -26,13 +26,23 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR("Bot token or chat id missing"))
             return
 
+        if not settings_obj.backup_database:
+            self.stdout.write(self.style.WARNING("Database backup is disabled"))
+            return
+
         now = timezone.now()
 
         if settings_obj.last_success_at:
             next_run = settings_obj.last_success_at + timezone.timedelta(days=settings_obj.interval_days)
             if now < next_run:
-                self.stdout.write(self.style.WARNING("Backup is not due yet"))
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Backup is not due yet. Next run: {next_run}"
+                    )
+                )
                 return
+
+        backup_path = None
 
         try:
             settings_obj.last_run_at = now
@@ -57,10 +67,7 @@ class Command(BaseCommand):
                     timeout=60
                 )
 
-            if os.path.exists(backup_path):
-                os.remove(backup_path)
-
-            if res.ok:
+            if res.ok and res.json().get("ok"):
                 settings_obj.last_success_at = timezone.now()
                 settings_obj.last_error = ""
                 settings_obj.save(update_fields=["last_success_at", "last_error"])
@@ -74,3 +81,7 @@ class Command(BaseCommand):
             settings_obj.last_error = str(e)
             settings_obj.save(update_fields=["last_error"])
             self.stdout.write(self.style.ERROR(str(e)))
+
+        finally:
+            if backup_path and os.path.exists(backup_path):
+                os.remove(backup_path)
