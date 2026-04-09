@@ -23,4 +23,4 @@ def send(input_number):
         return 2
 
 
-send('5.28.189.173')
+send('10.5.6.9')
