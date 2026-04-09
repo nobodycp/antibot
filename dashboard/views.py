@@ -1,19 +1,16 @@
-from django.contrib.auth.decorators import login_required
-from .models import TelegramBackupSettings
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse
 import requests
 import tempfile
 from django.core.management import call_command
 import os
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.models import User
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .models import TelegramBackupSettings, UserProfile
+from decorators import superuser_required
 
 
 @receiver(post_save, sender=User)
@@ -26,10 +23,6 @@ def create_user_profile(sender, instance, created, **kwargs):
 def save_user_profile(sender, instance, **kwargs):
     UserProfile.objects.get_or_create(user=instance)
     instance.profile.save()
-
-
-def superuser_required(view_func):
-    return login_required(user_passes_test(lambda u: u.is_superuser)(view_func))
 
 
 @login_required

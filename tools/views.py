@@ -4,6 +4,7 @@ from django.contrib import messages
 import os
 import requests
 from django.utils import timezone
+from decorators import superuser_required
 from .models import GoogleSafeCheck, RedirectCheck, ArchiveFile
 from .forms import GoogleSafeCheckForm, RedirectCheckForm, ArchiveFileForm
 from datetime import timedelta
@@ -14,7 +15,7 @@ from django.middleware.csrf import get_token
 import os
 
 
-@login_required
+@superuser_required
 def uploader_files_view(request):
     if request.method == 'POST':
         if 'delete_id' in request.POST:

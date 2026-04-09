@@ -15,13 +15,14 @@ from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
+from decorators import superuser_required
 
 
 @login_required
 def dashboard_view(request):
     return render(request, 'dashboard.html')
 ######################################################################
-@login_required
+@superuser_required
 def blocked_subnets_view(request):
     if request.method == 'POST':
         cidr = request.POST.get('cidr')
@@ -92,7 +93,7 @@ def blocked_subnets_view(request):
         "page_obj": page_obj,
         "q": q
     })
-@login_required
+@superuser_required
 def blocked_subnets_partial(request):
     q = (request.GET.get("q") or "").strip()
     all_subnets = BlockedSubnet.objects.all().order_by('-id')
@@ -109,7 +110,7 @@ def blocked_subnets_partial(request):
         "q": q,
         "messages": messages.get_messages(request)
     })
-@login_required
+@superuser_required
 def blocked_subnets_table(request):
     q = (request.GET.get("q") or "").strip()
     all_subnets = BlockedSubnet.objects.all().order_by('-id')
@@ -126,7 +127,7 @@ def blocked_subnets_table(request):
         "q": q
     })
 ######################################################################
-@login_required
+@superuser_required
 def blocked_ips_view(request):
     if request.method == 'POST':
         ip = request.POST.get('ip_address')
@@ -188,7 +189,7 @@ def blocked_ips_view(request):
         "page_obj": page_obj,
         "q": q
     })
-@login_required
+@superuser_required
 def blocked_ips_partial(request):
     q = (request.GET.get("q") or "").strip()
 
@@ -206,7 +207,7 @@ def blocked_ips_partial(request):
         "q": q,
         "messages": messages.get_messages(request)
     })
-@login_required
+@superuser_required
 def blocked_ips_table(request):
     q = (request.GET.get("q") or "").strip()
 
@@ -224,7 +225,7 @@ def blocked_ips_table(request):
         "q": q
     })
 ######################################################################
-@login_required
+@superuser_required
 def blocked_isp_view(request):
     if request.method == 'POST':
         name = request.POST.get('isp_name')
@@ -285,7 +286,7 @@ def blocked_isp_view(request):
         "page_obj": page_obj,
         "q": q
     })
-@login_required
+@superuser_required
 def blocked_isp_partial(request):
     q = (request.GET.get("q") or "").strip()
     all_isps = BlockedISP.objects.all().order_by('-id')
@@ -302,7 +303,7 @@ def blocked_isp_partial(request):
         "q": q,
         "messages": messages.get_messages(request)
     })
-@login_required
+@superuser_required
 def blocked_isp_table(request):
     q = (request.GET.get("q") or "").strip()
     all_isps = BlockedISP.objects.all().order_by('-id')
@@ -318,7 +319,7 @@ def blocked_isp_table(request):
         "q": q
     })
 ######################################################################
-@login_required
+@superuser_required
 def blocked_browser_view(request):
     if request.method == 'POST':
         name = request.POST.get('browser_name')
@@ -380,7 +381,7 @@ def blocked_browser_view(request):
         'page_obj': page_obj,
         'q': q
     })
-@login_required
+@superuser_required
 def blocked_browser_partial(request):
     q = (request.GET.get("q") or "").strip()
 
@@ -398,7 +399,7 @@ def blocked_browser_partial(request):
         "q": q,
         "messages": messages.get_messages(request)
     })
-@login_required
+@superuser_required
 def blocked_browser_table(request):
     q = (request.GET.get("q") or "").strip()
 
@@ -416,7 +417,7 @@ def blocked_browser_table(request):
         "q": q
     })
 ######################################################################
-@login_required
+@superuser_required
 def blocked_os_view(request):
     if request.method == 'POST':
         os_name = request.POST.get('os_name')
@@ -478,7 +479,7 @@ def blocked_os_view(request):
         "page_obj": page_obj,
         "q": q
     })
-@login_required
+@superuser_required
 def blocked_os_partial(request):
     q = (request.GET.get("q") or "").strip()
 
@@ -496,7 +497,7 @@ def blocked_os_partial(request):
         "q": q,
         "messages": messages.get_messages(request)
     })
-@login_required
+@superuser_required
 def blocked_os_table(request):
     q = (request.GET.get("q") or "").strip()
 
@@ -514,7 +515,7 @@ def blocked_os_table(request):
         "q": q
     })
 ######################################################################
-@login_required
+@superuser_required
 def blocked_hostname_view(request):
     if request.method == 'POST':
         name = request.POST.get('hostname_name')
@@ -576,7 +577,7 @@ def blocked_hostname_view(request):
         "page_obj": page_obj,
         "q": q
     })
-@login_required
+@superuser_required
 def blocked_hostname_partial(request):
     q = (request.GET.get("q") or "").strip()
 
@@ -594,7 +595,7 @@ def blocked_hostname_partial(request):
         "q": q,
         "messages": messages.get_messages(request)
     })
-@login_required
+@superuser_required
 def blocked_hostname_table(request):
     q = (request.GET.get("q") or "").strip()
 
@@ -612,7 +613,7 @@ def blocked_hostname_table(request):
         "q": q
     })
 ######################################################################
-@login_required
+@superuser_required
 def allowed_country_view(request):
     if request.method == 'POST':
         code = request.POST.get('country')
@@ -674,7 +675,7 @@ def allowed_country_view(request):
         "page_obj": page_obj,
         "q": q
     })
-@login_required
+@superuser_required
 def allowed_country_partial(request):
     q = (request.GET.get("q") or "").strip()
 
@@ -692,7 +693,7 @@ def allowed_country_partial(request):
         "q": q,
         "messages": messages.get_messages(request)
     })
-@login_required
+@superuser_required
 def allowed_country_table(request):
     q = (request.GET.get("q") or "").strip()
 
@@ -828,7 +829,7 @@ def allowed_logs_table(request):
         "q": q
     })
 ######################################################################
-@login_required
+@superuser_required
 def denied_logs_view(request):
     if request.method == 'POST':
         delete_id = request.POST.get('delete_id')
@@ -896,7 +897,7 @@ def denied_logs_view(request):
         "page_obj": page_obj,
         "q": q
     })
-@login_required
+@superuser_required
 def denied_logs_partial(request):
     q = (request.GET.get("q") or request.GET.get("search") or "").strip()
 
@@ -921,7 +922,7 @@ def denied_logs_partial(request):
         "q": q,
         "messages": messages.get_messages(request)
     })
-@login_required
+@superuser_required
 def denied_logs_table(request):
     q = (request.GET.get("q") or request.GET.get("search") or "").strip()
 
@@ -946,7 +947,7 @@ def denied_logs_table(request):
         "q": q
     })
 ######################################################################
-@login_required
+@superuser_required
 def ip_info_view(request):
     if request.method == 'POST':
         delete_id = request.POST.get('delete_id')
@@ -1015,7 +1016,7 @@ def ip_info_view(request):
         "page_obj": page_obj,
         "q": q
     })
-@login_required
+@superuser_required
 def ip_info_partial(request):
     q = (request.GET.get("q") or request.GET.get("search") or "").strip()
 
@@ -1038,7 +1039,7 @@ def ip_info_partial(request):
         "q": q,
         "messages": messages.get_messages(request)
     })
-@login_required
+@superuser_required
 def ip_info_table(request):
     q = (request.GET.get("q") or request.GET.get("search") or "").strip()
 
@@ -1062,7 +1063,7 @@ def ip_info_table(request):
     })
 ######################################################################
 @require_POST
-@login_required
+@superuser_required
 def add_block_rule(request):
     if request.method == 'POST':
         block_type = request.POST.get("block_type")
@@ -1098,7 +1099,7 @@ def add_block_rule(request):
 
         return redirect('tracker:denied_logs')
 ######################################################################
-@login_required()
+@superuser_required
 def dinger_ip_view(request):
     if request.method == 'POST':
         ip_to_delete = request.POST.get('delete_ip')
