@@ -11,7 +11,6 @@ urlpatterns = [
     path("users/add/", views.add_user, name="add_user"),
     path("users/delete/<int:user_id>/", views.delete_user, name="delete_user"),
     path("users/edit/<int:user_id>/", views.edit_user, name="edit_user"),
-    path("change-password/", views.change_password_view, name="change_password"),
     path("profile-settings/", views.profile_settings_view, name="profile_settings"),
 
     path("telegram-backup-settings/", telegram_backup_settings_view, name="telegram_backup_settings"),

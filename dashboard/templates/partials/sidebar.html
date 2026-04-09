@@ -125,7 +125,7 @@
   </div>
 
 <!-- User -->
-<div x-data="{ open: {% if '/dashboard/change-password/' in request.path or '/dashboard/profile-settings/' in request.path or '/dashboard/telegram-backup-settings/' in request.path or '/dashboard/users/' in request.path %}true{% else %}false{% endif %} }" class="mt-1">
+<div x-data="{ open: {% if '/dashboard/profile-settings/' in request.path or '/dashboard/telegram-backup-settings/' in request.path or '/dashboard/users/' in request.path %}true{% else %}false{% endif %} }" class="mt-1">
     <button @click="open = !open" class="flex items-center justify-between w-full px-3 py-2 rounded hover:bg-zinc-700">
       <span class="flex items-center gap-2">
         <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -140,11 +140,6 @@
     </button>
 
     <div x-show="open" class="flex flex-col pl-3 mt-1 space-y-1 text-xs">
-
-      <!-- Change Password (متاح للجميع) -->
-      <a href="/dashboard/change-password/" class="{% if request.path == '/dashboard/change-password/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
-        Change Password
-      </a>
 
       <!-- Profile -->
       <a href="/dashboard/profile-settings/" class="{% if request.path == '/dashboard/profile-settings/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">

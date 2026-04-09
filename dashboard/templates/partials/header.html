@@ -7,15 +7,17 @@
     </button>
     <button class="text-sm bg-zinc-700 px-3 py-1 rounded text-zinc-300">Quick Shortener</button>
   </div>
-  <div class="flex items-center gap-4">
   <div class="flex items-center gap-3">
     <a href="/accounts/logout/" class="text-sm text-zinc-300 hover:underline">Logout</a>
 
-    {% if request.user.is_authenticated and request.user.profile.avatar %}
-      <img src="{{ request.user.profile.avatar.url }}" alt="Avatar" class="w-8 h-8 rounded-full object-cover border border-zinc-600">
-    {% else %}
-      <div class="w-8 h-8 bg-green-500 rounded-full"></div>
-    {% endif %}
-  </div>
+    <a href="/dashboard/profile-settings/">
+      {% if request.user.is_authenticated and request.user.profile.avatar %}
+        <img src="{{ request.user.profile.avatar.url }}"
+             alt="Avatar"
+             class="w-8 h-8 rounded-full object-cover border border-zinc-600 hover:ring-2 hover:ring-green-500 transition">
+      {% else %}
+        <div class="w-8 h-8 bg-green-500 rounded-full hover:ring-2 hover:ring-green-500 transition"></div>
+      {% endif %}
+    </a>
   </div>
 </header>

@@ -129,38 +129,6 @@ def edit_user(request, user_id):
     messages.success(request, "User updated successfully.")
     return redirect("dashboard:users_management")
 
-@login_required
-def change_password_view(request):
-    if request.method == "POST":
-        old_password = request.POST.get("old_password", "").strip()
-        new_password = request.POST.get("new_password", "").strip()
-        confirm_password = request.POST.get("confirm_password", "").strip()
-
-        if not old_password or not new_password or not confirm_password:
-            messages.error(request, "All password fields are required.")
-            return redirect("dashboard:change_password")
-
-        if not request.user.check_password(old_password):
-            messages.error(request, "Old password is incorrect.")
-            return redirect("dashboard:change_password")
-
-        if new_password != confirm_password:
-            messages.error(request, "New password and confirm password do not match.")
-            return redirect("dashboard:change_password")
-
-        if len(new_password) < 8:
-            messages.error(request, "New password must be at least 8 characters.")
-            return redirect("dashboard:change_password")
-
-        request.user.set_password(new_password)
-        request.user.save()
-        update_session_auth_hash(request, request.user)
-
-        messages.success(request, "Password changed successfully.")
-        return redirect("dashboard:change_password")
-
-    return render(request, "change_password.html")
-
 
 @superuser_required
 def telegram_backup_settings_view(request):
@@ -264,28 +232,53 @@ def profile_settings_view(request):
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
 
     if request.method == "POST":
-        username = request.POST.get("username", "").strip()
-        email = request.POST.get("email", "").strip()
-        avatar = request.FILES.get("avatar")
+        action = request.POST.get("action")
 
-        if not username:
-            messages.error(request, "Username is required.")
+        # تحديث البروفايل
+        if action == "profile":
+            username = request.POST.get("username", "").strip()
+            email = request.POST.get("email", "").strip()
+            avatar = request.FILES.get("avatar")
+
+            if not username:
+                messages.error(request, "Username is required.")
+                return redirect("dashboard:profile_settings")
+
+            if User.objects.exclude(id=request.user.id).filter(username=username).exists():
+                messages.error(request, "Username already exists.")
+                return redirect("dashboard:profile_settings")
+
+            request.user.username = username
+            request.user.email = email
+            request.user.save()
+
+            if avatar:
+                profile.avatar = avatar
+                profile.save()
+
+            messages.success(request, "Profile updated successfully.")
             return redirect("dashboard:profile_settings")
 
-        if User.objects.exclude(id=request.user.id).filter(username=username).exists():
-            messages.error(request, "Username already exists.")
+        # تغيير الباسورد
+        if action == "password":
+            old_password = request.POST.get("old_password", "").strip()
+            new_password = request.POST.get("new_password", "").strip()
+            confirm_password = request.POST.get("confirm_password", "").strip()
+
+            if not request.user.check_password(old_password):
+                messages.error(request, "Old password is incorrect.")
+                return redirect("dashboard:profile_settings")
+
+            if new_password != confirm_password:
+                messages.error(request, "Passwords do not match.")
+                return redirect("dashboard:profile_settings")
+
+            request.user.set_password(new_password)
+            request.user.save()
+            update_session_auth_hash(request, request.user)
+
+            messages.success(request, "Password changed successfully.")
             return redirect("dashboard:profile_settings")
-
-        request.user.username = username
-        request.user.email = email
-        request.user.save()
-
-        if avatar:
-            profile.avatar = avatar
-            profile.save()
-
-        messages.success(request, "Profile updated successfully.")
-        return redirect("dashboard:profile_settings")
 
     return render(request, "profile_settings.html", {
         "profile": profile
