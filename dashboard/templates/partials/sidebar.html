@@ -1,24 +1,24 @@
-      <template x-if="sidebar">
-        <aside class="w-64 bg-zinc-800 flex flex-col p-3 space-y-2 text-sm">
-          <div class="text-xl font-bold mb-3">Antibot</div>
-          <nav class="flex flex-col gap-1 text-sm">
-            <a href="/dashboard/" class="{% if request.path == '/dashboard/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700"">
-              <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6" />
-              </svg>
-              Dashboard
-            </a>
-            <a href="#" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700 text-sm">
-              <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M11 17a4 4 0 100-8 4 4 0 000 8z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1112.21 3H21v9.79z" />
-              </svg>
-              Statistics
-            </a>
+<template x-if="sidebar">
+  <aside class="w-64 bg-zinc-800 flex flex-col p-3 space-y-2 text-sm">
+    <div class="text-xl font-bold mb-3">Antibot</div>
+    <nav class="flex flex-col gap-1 text-sm">
+      <a href="/dashboard/" class="{% if request.path == '/dashboard/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
+        <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6" />
+        </svg>
+        Dashboard
+      </a>
+      <a href="#" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700 text-sm">
+        <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 17a4 4 0 100-8 4 4 0 000 8z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1112.21 3H21v9.79z" />
+        </svg>
+        Statistics
+      </a>
 
-            <hr class="border-t border-zinc-700 my-2" />
+      <hr class="border-t border-zinc-700 my-2" />
 
-            <!-- Block Rules -->
+<!-- Block Rules -->
 <div x-data="{ open: '{% if '/tracker/blocked-ips/' in request.path or '/tracker/blocked-subnets/' in request.path or '/tracker/blocked-isp/' in request.path or '/tracker/blocked-browser/' in request.path or '/tracker/blocked-os/' in request.path or '/tracker/allowed-country/' in request.path or '/tracker/blocked-hostname/' in request.path or '/tracker/dinger-ip/' in request.path %}true{% else %}false{% endif %}' == 'true' }" class="mt-1">
   <button @click="open = !open" class="flex items-center justify-between w-full px-3 py-2 rounded hover:bg-zinc-700">
     <span class="flex items-center gap-2">
@@ -48,7 +48,7 @@
   </div>
 </div>
 
-            <!-- Logs -->
+<!-- Logs -->
 <div x-data="{ open: '{% if '/tracker/allowed-logs/' in request.path or '/tracker/denied-logs/' in request.path or '/tracker/ip-info/' in request.path %}true{% else %}false{% endif %}' == 'true' }">
   <button @click="open = !open" class="flex items-center justify-between w-full px-3 py-2 rounded hover:bg-zinc-700">
     <span class="flex items-center gap-2">
@@ -88,7 +88,7 @@
   </div>
 </div>
 
-            <!-- Tools -->
+<!-- Tools -->
 <div x-data="{ open: '{% if '/tools/upload-files/' in request.path or '/tools/google-safe-check/' in request.path or '/tools/redirect-check/' in request.path %}true{% else %}false{% endif %}' == 'true' }" class="mt-1">
   <button @click="open = !open" class="flex items-center justify-between w-full px-3 py-2 rounded hover:bg-zinc-700">
     <span class="flex items-center gap-2">
@@ -101,6 +101,7 @@
       <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
     </svg>
   </button>
+
   <div x-show="open" class="flex flex-col pl-3 mt-1 space-y-1 text-xs">
     <a href="/tools/upload-files/" class="{% if request.path == '/tools/upload-files/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
       <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -123,6 +124,53 @@
   </div>
 </div>
 
-          </nav>
-        </aside>
-      </template>
+<!-- Admin -->
+<div x-data="{ open: '{% if '/dashboard/telegram-backup-settings/' in request.path or '/dashboard/admin-users/' in request.path or '/dashboard/change-password/' in request.path or '/dashboard/profile-settings/' in request.path %}true{% else %}false{% endif %}' == 'true' }" class="mt-1">
+  <button @click="open = !open" class="flex items-center justify-between w-full px-3 py-2 rounded hover:bg-zinc-700">
+    <span class="flex items-center gap-2">
+      <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 16v-2m8-6h-2M6 12H4m11.314 5.314l-1.414-1.414M8.1 8.1 6.686 6.686m8.628 0L13.9 8.1M8.1 15.9l-1.414 1.414" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+      Admin
+    </span>
+    <svg :class="{'rotate-90': open}" class="w-4 h-4 transform transition-transform text-zinc-400 group-hover:text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+  </button>
+
+  <div x-show="open" class="flex flex-col pl-3 mt-1 space-y-1 text-xs">
+    <a href="/dashboard/telegram-backup-settings/" class="{% if request.path == '/dashboard/telegram-backup-settings/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
+      <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10" />
+      </svg>
+      Backup
+    </a>
+
+    <a href="/dashboard/admin-users/" class="{% if request.path == '/dashboard/admin-users/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
+      <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5V4H2v16h5m10 0v-2a4 4 0 00-4-4H11a4 4 0 00-4 4v2m10 0H7m5-10a4 4 0 100-8 4 4 0 000 8z" />
+      </svg>
+      Users
+    </a>
+
+    <a href="/dashboard/change-password/" class="{% if request.path == '/dashboard/change-password/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
+      <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2h-1V9a5 5 0 00-10 0v2H6a2 2 0 00-2 2v6a2 2 0 002 2zm3-10V9a3 3 0 116 0v2H9z" />
+      </svg>
+      Change Password
+    </a>
+
+    <a href="/dashboard/profile-settings/" class="{% if request.path == '/dashboard/profile-settings/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
+      <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A9 9 0 1118.88 17.8M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+      Profile
+    </a>
+  </div>
+</div>
+
+
+    </nav>
+  </aside>
+</template>

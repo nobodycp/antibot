@@ -5,6 +5,7 @@ from .views import (
     google_safe_check_table_partial,
     redirect_check_view,
     redirect_check_table_view,
+
 )
 
 app_name = 'tools'
@@ -17,4 +18,6 @@ urlpatterns = [
 
     path('redirect-check/', redirect_check_view, name='redirect_check'),
     path('redirect-check/table/', redirect_check_table_view, name='redirect_check_table'),
+
+
 ]

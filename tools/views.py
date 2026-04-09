@@ -11,6 +11,8 @@ from django.template.loader import render_to_string
 from django.http import HttpResponse
 from django.template.context_processors import csrf
 from django.middleware.csrf import get_token
+import os
+
 
 @login_required
 def uploader_files_view(request):
@@ -191,3 +193,6 @@ def redirect_check_table_view(request):
     }
     html = render_to_string('redirect_check_table.html', context)
     return HttpResponse(html)
+
+
+
