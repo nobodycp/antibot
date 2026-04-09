@@ -44,7 +44,8 @@ def telegram_test_backup(request):
     settings_obj = TelegramBackupSettings.objects.first()
 
     if not settings_obj or not settings_obj.bot_token or not settings_obj.chat_id:
-        return HttpResponse("Telegram settings not configured")
+        messages.error(request, "Telegram settings not configured")
+        return redirect("dashboard:telegram_backup_settings")
 
     url = f"https://api.telegram.org/bot{settings_obj.bot_token}/sendMessage"
 
@@ -52,19 +53,28 @@ def telegram_test_backup(request):
         res = requests.post(url, data={
             "chat_id": settings_obj.chat_id,
             "text": "✅ Test backup message from antibot"
-        })
+        }, timeout=20)
 
-        return HttpResponse(res.text)
+        data = res.json()
+
+        if res.ok and data.get("ok"):
+            messages.success(request, "✅ Test message sent successfully")
+        else:
+            messages.error(request, f"❌ Telegram error: {data}")
 
     except Exception as e:
-        return HttpResponse(str(e))
+        messages.error(request, f"❌ Request failed: {str(e)}")
 
+    return redirect("dashboard:telegram_backup_settings")
 @login_required
 def telegram_send_db_backup(request):
     settings_obj = TelegramBackupSettings.objects.first()
 
     if not settings_obj or not settings_obj.bot_token or not settings_obj.chat_id:
-        return HttpResponse("Telegram settings not configured")
+        messages.error(request, "Telegram settings not configured")
+        return redirect("dashboard:telegram_backup_settings")
+
+    backup_path = None
 
     try:
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
@@ -81,13 +91,22 @@ def telegram_send_db_backup(request):
                     "chat_id": settings_obj.chat_id,
                     "caption": "✅ Antibot database backup"
                 },
-                files={
-                    "document": f
-                }
+                files={"document": f},
+                timeout=60
             )
 
-        os.remove(backup_path)
-        return HttpResponse(res.text)
+        data = res.json()
+
+        if res.ok and data.get("ok"):
+            messages.success(request, "✅ Backup sent successfully")
+        else:
+            messages.error(request, f"❌ Telegram error: {data}")
 
     except Exception as e:
-        return HttpResponse(str(e))
+        messages.error(request, f"❌ Backup failed: {str(e)}")
+
+    finally:
+        if backup_path and os.path.exists(backup_path):
+            os.remove(backup_path)
+
+    return redirect("dashboard:telegram_backup_settings")
