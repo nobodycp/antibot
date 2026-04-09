@@ -851,7 +851,7 @@ def denied_logs_view(request):
         if request.headers.get("HX-Request"):
             q = (request.GET.get("q") or request.GET.get("search") or "").strip()
 
-            queryset = RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp")
+            queryset = RejectedVisitor.objects.all().order_by("-timestamp")
             if q:
                 queryset = queryset.filter(
                     Q(ip_address__icontains=q) |
@@ -876,7 +876,7 @@ def denied_logs_view(request):
 
     q = (request.GET.get("q") or request.GET.get("search") or "").strip()
 
-    queryset = RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp")
+    queryset = RejectedVisitor.objects.all().order_by("-timestamp")
     if q:
         queryset = queryset.filter(
             Q(ip_address__icontains=q) |
@@ -900,7 +900,7 @@ def denied_logs_view(request):
 def denied_logs_partial(request):
     q = (request.GET.get("q") or request.GET.get("search") or "").strip()
 
-    queryset = RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp")
+    queryset = RejectedVisitor.objects.all().order_by("-timestamp")
     if q:
         queryset = queryset.filter(
             Q(ip_address__icontains=q) |
@@ -925,7 +925,7 @@ def denied_logs_partial(request):
 def denied_logs_table(request):
     q = (request.GET.get("q") or request.GET.get("search") or "").strip()
 
-    queryset = RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp")
+    queryset = RejectedVisitor.objects.all().order_by("-timestamp")
     if q:
         queryset = queryset.filter(
             Q(ip_address__icontains=q) |
