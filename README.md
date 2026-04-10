@@ -257,6 +257,13 @@ Paths assume the app is mounted at the site root (e.g. `https://example.com`). A
 |--------|------|-------------|
 | `POST` | `/tracker/api/log/` | Header `X-API-Key` required (user’s key from profile settings). JSON: `ip`, `useragent`. Returns `access_granted` or `access_denied` with a reason on deny. |
 
+**API key storage**
+
+- Lookup uses **HMAC-SHA256** with Django’s `SECRET_KEY` (field `api_key_lookup_hash`), not bare SHA-256. Migration **`dashboard.0006_userapikey_hmac_lookup`** backfills hashes from existing plaintext keys; run `python manage.py migrate` after deploy.
+- **Regenerate** (profile settings) returns the new secret **once** in the UI/session; the database keeps only the digest plus an internal placeholder (`__hk__…`), not the full key.
+- Keys created automatically at **user signup** may still live as plaintext until the user regenerates once; the API still resolves **HMAC**, legacy **SHA-256** digest, or plaintext for those rows.
+- Rotating **`SECRET_KEY`** invalidates HMAC-based lookups until keys are re-issued or re-hashed.
+
 **Example request**
 
 ```bash

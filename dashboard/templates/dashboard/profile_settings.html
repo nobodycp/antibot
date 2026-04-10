@@ -3,161 +3,169 @@
 {% block title %}Profile Settings{% endblock %}
 
 {% block content %}
-<div class="w-full px-6 text-sm">
-  <h1 class="text-base font-semibold mb-4 text-white border-b border-zinc-700 pb-1 flex items-center justify-between">
-    <span>👤 Profile Settings</span>
-    <span class="text-xs font-normal text-zinc-400">Update your account information</span>
-  </h1>
+<div class="mx-auto w-full max-w-5xl text-sm">
+  <header class="mb-6 border-b border-zinc-700/80 pb-4">
+    <h1 class="text-base font-semibold text-white">👤 Profile Settings</h1>
+    <p class="mt-1 text-xs text-zinc-500">Update your account information</p>
+  </header>
 
   {% include "dashboard/partials/messages.html" %}
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-    <div class="lg:col-span-2 space-y-4">
+  <div class="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-6">
+    <div class="space-y-5 lg:col-span-2">
       <!-- Profile Form -->
-      <div class="bg-zinc-800 border border-zinc-700 rounded p-4">
-        <h2 class="text-sm font-semibold text-white mb-4 border-b border-zinc-700 pb-2">
+      <section class="rounded-lg border border-zinc-700/80 bg-zinc-800/80 p-5 shadow-sm ring-1 ring-zinc-800">
+        <h2 class="mb-5 border-b border-zinc-700/80 pb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
           ⚙️ Profile Information
         </h2>
 
-        <form method="post" enctype="multipart/form-data" class="space-y-4">
+        <form method="post" enctype="multipart/form-data" class="space-y-5">
           {% csrf_token %}
           <input type="hidden" name="action" value="profile">
 
-          <div>
-            <label class="block text-xs text-zinc-300 mb-1">Username</label>
-            <input type="text"
+          <div class="space-y-1.5">
+            <label class="block text-xs font-medium text-zinc-400" for="id-profile-username">Username</label>
+            <input id="id-profile-username"
+                   type="text"
                    name="username"
                    value="{{ request.user.username }}"
                    placeholder="Enter username"
-                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                   class="w-full rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500/25">
           </div>
 
-          <div>
-            <label class="block text-xs text-zinc-300 mb-1">Email</label>
-            <input type="email"
+          <div class="space-y-1.5">
+            <label class="block text-xs font-medium text-zinc-400" for="id-profile-email">Email</label>
+            <input id="id-profile-email"
+                   type="email"
                    name="email"
                    value="{{ request.user.email }}"
                    placeholder="Enter email"
-                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500">
+                   class="w-full rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500/25">
           </div>
 
-          <div>
-            <label class="block text-xs text-zinc-300 mb-1">Avatar</label>
-            <input type="file"
+          <div class="space-y-1.5">
+            <label class="block text-xs font-medium text-zinc-400" for="id-profile-avatar">Avatar</label>
+            <input id="id-profile-avatar"
+                   type="file"
                    name="avatar"
                    accept="image/*"
-                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white">
+                   class="w-full cursor-pointer rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 file:mr-3 file:rounded file:border-0 file:bg-zinc-700 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-zinc-200 hover:file:bg-zinc-600 focus:outline-none focus:ring-2 focus:ring-green-500/25">
           </div>
 
-          <div class="flex flex-wrap items-center gap-2 pt-2">
+          <div class="flex flex-wrap items-center gap-2 border-t border-zinc-700/80 pt-5">
             <button type="submit"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-xs">
+                    class="rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
               Save Changes
             </button>
           </div>
         </form>
 
         {# API key + regenerate must NOT be nested inside the profile <form> (invalid HTML; browser submits wrong form). #}
-        <div class="mt-4 pt-4 border-t border-zinc-700 space-y-2">
-          <label class="block text-xs text-zinc-300 mb-1">Tracker API key</label>
-          {% if api_key_reveal_once %}
-            <input type="text"
-                   readonly
-                   value="{{ api_key_reveal_once }}"
-                   class="w-full px-3 py-2 bg-zinc-900 border border-amber-700 rounded text-xs text-amber-100 focus:outline-none cursor-default"
-                   aria-readonly="true">
-            <p class="text-[10px] text-amber-500 mt-1">Copy this key now — it is not stored in full after you leave this page.</p>
-          {% elif api_key_is_hidden %}
-            <input type="text"
-                   readonly
-                   value="•••••••• (full key not stored — regenerate to get a new key)"
-                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-zinc-500 focus:outline-none cursor-default"
-                   aria-readonly="true">
-            <p class="text-[10px] text-zinc-500 mt-1">Your key is stored as a secure digest only. Regenerate if you need a new secret.</p>
-          {% else %}
-            <input type="text"
-                   readonly
-                   value="{{ user_api_key.api_key }}"
-                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-zinc-400 focus:outline-none cursor-default"
-                   aria-readonly="true">
-          {% endif %}
-          <p class="text-[10px] text-zinc-500 mt-1">Send as header <code class="text-zinc-400">X-API-Key</code> with <code class="text-zinc-400">POST /tracker/api/log/</code>.</p>
+        <div class="mt-6 space-y-3 border-t border-zinc-700/80 pt-6">
+          <div class="space-y-1.5">
+            <span class="block text-xs font-medium text-zinc-400">Tracker API key</span>
+            {% if api_key_reveal_once %}
+              <input type="text"
+                     readonly
+                     value="{{ api_key_reveal_once }}"
+                     class="w-full cursor-default rounded-md border border-amber-600/60 bg-zinc-900 px-3 py-2.5 text-sm text-amber-100 focus:outline-none"
+                     aria-readonly="true">
+              <p class="text-[11px] leading-relaxed text-amber-500/90">Copy this key now — it is not stored in full after you leave this page.</p>
+            {% elif api_key_is_hidden %}
+              <input type="text"
+                     readonly
+                     value="•••••••• (full key not stored — regenerate to get a new key)"
+                     class="w-full cursor-default rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-500 focus:outline-none"
+                     aria-readonly="true">
+              <p class="text-[11px] leading-relaxed text-zinc-500">Your key is stored as a secure digest only. Regenerate if you need a new secret.</p>
+            {% else %}
+              <input type="text"
+                     readonly
+                     value="{{ user_api_key.api_key }}"
+                     class="w-full cursor-default rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-300 focus:outline-none"
+                     aria-readonly="true">
+            {% endif %}
+            <p class="text-[11px] leading-relaxed text-zinc-500">Send as header <code class="rounded bg-zinc-900 px-1 py-0.5 text-zinc-400">X-API-Key</code> with <code class="rounded bg-zinc-900 px-1 py-0.5 text-zinc-400">POST /tracker/api/log/</code>.</p>
+          </div>
           <form method="post"
                 action="{% url 'dashboard:regenerate_api_key' %}"
-                class="mt-2"
+                class="flex flex-wrap items-center gap-2"
                 onsubmit="return confirm('This will invalidate your current API key. Continue?');">
             {% csrf_token %}
             <button type="submit"
-                    class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded text-xs">
+                    class="rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
               Regenerate API Key
             </button>
           </form>
         </div>
-      </div>
+      </section>
 
       <!-- Change Password -->
-      <div class="bg-zinc-800 border border-zinc-700 rounded p-4">
-        <h2 class="text-sm font-semibold text-white mb-4 border-b border-zinc-700 pb-2">
+      <section class="rounded-lg border border-zinc-700/80 bg-zinc-800/80 p-5 shadow-sm ring-1 ring-zinc-800">
+        <h2 class="mb-5 border-b border-zinc-700/80 pb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
           🔒 Change Password
         </h2>
 
-        <form method="post" class="space-y-4">
+        <form method="post" class="space-y-5">
           {% csrf_token %}
           <input type="hidden" name="action" value="password">
 
-          <div>
-            <label class="block text-xs text-zinc-300 mb-1">Old Password</label>
-            <input type="password"
+          <div class="space-y-1.5">
+            <label class="block text-xs font-medium text-zinc-400" for="id-pw-old">Old Password</label>
+            <input id="id-pw-old"
+                   type="password"
                    name="old_password"
                    placeholder="Enter current password"
-                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                   class="w-full rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500/25">
           </div>
 
-          <div>
-            <label class="block text-xs text-zinc-300 mb-1">New Password</label>
-            <input type="password"
+          <div class="space-y-1.5">
+            <label class="block text-xs font-medium text-zinc-400" for="id-pw-new">New Password</label>
+            <input id="id-pw-new"
+                   type="password"
                    name="new_password"
                    placeholder="Enter new password"
-                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-green-500">
+                   class="w-full rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500/25">
           </div>
 
-          <div>
-            <label class="block text-xs text-zinc-300 mb-1">Confirm Password</label>
-            <input type="password"
+          <div class="space-y-1.5">
+            <label class="block text-xs font-medium text-zinc-400" for="id-pw-confirm">Confirm Password</label>
+            <input id="id-pw-confirm"
+                   type="password"
                    name="confirm_password"
                    placeholder="Confirm new password"
-                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500">
+                   class="w-full rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500/25">
           </div>
 
-          <div class="flex flex-wrap items-center gap-2 pt-2">
+          <div class="flex flex-wrap items-center gap-2 border-t border-zinc-700/80 pt-5">
             <button type="submit"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-xs">
+                    class="rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
               Change Password
             </button>
           </div>
         </form>
-      </div>
+      </section>
     </div>
 
     <!-- Profile Preview -->
-    <div class="bg-zinc-800 border border-zinc-700 rounded p-4 h-fit">
-      <h2 class="text-sm font-semibold text-white mb-4 border-b border-zinc-700 pb-2">
+    <aside class="h-fit rounded-lg border border-zinc-700/80 bg-zinc-800/80 p-5 shadow-sm ring-1 ring-zinc-800">
+      <h2 class="mb-4 border-b border-zinc-700/80 pb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
         🖼️ Profile Preview
       </h2>
 
-      <div class="space-y-3 text-xs">
-        <div class="bg-zinc-900 border border-zinc-700 rounded px-3 py-4 flex flex-col items-center">
+      <div class="text-xs">
+        <div class="flex flex-col items-center rounded-md border border-zinc-700/80 bg-zinc-900/50 px-3 py-5">
           {% if profile.avatar %}
-            <img src="{{ profile.avatar.url }}" alt="Avatar" class="w-20 h-20 rounded-full object-cover border border-zinc-700 mb-3">
+            <img src="{{ profile.avatar.url }}" alt="" class="mb-3 h-20 w-20 rounded-full border border-zinc-600 object-cover">
           {% else %}
-            <div class="w-20 h-20 bg-green-500 rounded-full mb-3"></div>
+            <div class="mb-3 h-20 w-20 rounded-full border border-zinc-600 bg-green-600/90" aria-hidden="true"></div>
           {% endif %}
 
-          <div class="text-white font-semibold">{{ request.user.username }}</div>
-          <div class="text-zinc-400">{{ request.user.email|default:"No email" }}</div>
+          <div class="font-semibold text-white">{{ request.user.username }}</div>
+          <div class="mt-0.5 text-zinc-400">{{ request.user.email|default:"No email" }}</div>
         </div>
       </div>
-    </div>
+    </aside>
   </div>
 </div>
 
