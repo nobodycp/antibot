@@ -25,7 +25,7 @@ PG_DB_USER="antibot"
 PG_DB_HOST="127.0.0.1"
 PG_DB_PORT="5432"
 
-echo "[1/8] تثبيت المتطلبات (حزم، Redis، PostgreSQL، .env، migrate، Gunicorn، cron)..."
+echo "[1/8] Installing packages (apt, Redis, PostgreSQL, then .env, migrate, Gunicorn, cron)..."
 sudo apt update
 sudo apt install -y python3 python3-venv python3-pip git curl openssl postgresql postgresql-contrib redis-server
 
@@ -33,13 +33,13 @@ echo "[2/8] Redis..."
 sudo systemctl enable redis-server
 sudo systemctl start redis-server
 
-echo "[3/8] إنشاء وتحديث venv..."
+echo "[3/8] Creating/updating Python venv..."
 python3 -m venv "${VENV_PATH}"
 "${VENV_PATH}/bin/pip" install --upgrade pip
 [ -f "${INSTALL_DIR}/requirements.txt" ] && \
   "${VENV_PATH}/bin/pip" install -r "${INSTALL_DIR}/requirements.txt"
 
-echo "[4/8] PostgreSQL + ملف .env..."
+echo "[4/8] PostgreSQL and .env file..."
 sudo systemctl enable postgresql
 sudo systemctl start postgresql
 
@@ -137,11 +137,11 @@ DJANGO_SUPERUSER_EMAIL="${SU_EMAIL}" \
 DJANGO_SUPERUSER_PASSWORD="${SU_PASS}" \
 "${VENV_PATH}/bin/python" "${INSTALL_DIR}/manage.py" createsuperuser --noinput || true
 
-echo "[collectstatic] جمع الملفات الثابتة..."
+echo "[collectstatic] Collecting static files..."
 "${VENV_PATH}/bin/python" "${INSTALL_DIR}/manage.py" collectstatic --noinput || \
   echo "[warn] collectstatic failed — check logs and STATIC_ROOT in settings."
 
-echo "[6/8] إنشاء خدمة systemd (Gunicorn)..."
+echo "[6/8] Creating systemd unit (Gunicorn)..."
 sudo tee /etc/systemd/system/${SERVICE_NAME}.service >/dev/null <<EOF
 [Unit]
 Description=${SERVICE_NAME} Django (Gunicorn)
@@ -163,7 +163,7 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now ${SERVICE_NAME}
 
-echo "[7/8] إعداد cron للباك اب التلقائي..."
+echo "[7/8] Configuring cron (Telegram backup)..."
 CRON_CMD="*/10 * * * * cd ${INSTALL_DIR} && set -a && . ${INSTALL_DIR}/.env && set +a && ${VENV_PATH}/bin/python manage.py run_telegram_backup >> ${INSTALL_DIR}/backup.log 2>&1"
 
 (crontab -l 2>/dev/null | grep -v "run_telegram_backup"; echo "$CRON_CMD") | crontab -
@@ -171,8 +171,38 @@ CRON_CMD="*/10 * * * * cd ${INSTALL_DIR} && set -a && . ${INSTALL_DIR}/.env && s
 echo "Cron job added:"
 crontab -l
 
-echo "[8/8] الحالة:"
+echo "[8/8] Service status:"
 systemctl status ${SERVICE_NAME} --no-pager || true
 
+# Pick a sensible host for the login URL (first non-loopback from ALLOWED_HOSTS, else 127.0.0.1)
+_LOGIN_PORT="${BIND_ADDR##*:}"
+_LOGIN_HOST=""
+IFS=',' read -ra _ah_arr <<< "${ALLOWED_HOSTS_VALUE}"
+for h in "${_ah_arr[@]}"; do
+  h="$(echo "${h}" | tr -d '[:space:]')"
+  [ -z "${h}" ] && continue
+  if [ "${h}" != "127.0.0.1" ] && [ "${h}" != "localhost" ]; then
+    _LOGIN_HOST="${h}"
+    break
+  fi
+done
+[ -z "${_LOGIN_HOST}" ] && _LOGIN_HOST="127.0.0.1"
+_LOGIN_URL="http://${_LOGIN_HOST}:${_LOGIN_PORT}/accounts/login/"
+_DASH_URL="http://${_LOGIN_HOST}:${_LOGIN_PORT}/dashboard/"
+
+echo ""
+echo "══════════════════════════════════════════════════════════════"
+echo "  Install complete"
+echo "══════════════════════════════════════════════════════════════"
+echo "  Username:     ${SU_USER}"
+echo "  Password:     ${SU_PASS}"
+echo "  Login URL:    ${_LOGIN_URL}"
+echo "  Dashboard:    ${_DASH_URL}"
+echo "  Local login:  http://127.0.0.1:${_LOGIN_PORT}/accounts/login/"
+echo "══════════════════════════════════════════════════════════════"
+echo "  Save the password; change it after first login if possible."
+echo "  If the superuser already existed, createsuperuser was skipped — use the old password or:"
+echo "    cd ${INSTALL_DIR} && source env/bin/activate && set -a && . .env && set +a && python manage.py changepassword ${SU_USER}"
+echo "══════════════════════════════════════════════════════════════"
 echo ""
 echo "Deploy path: ${INSTALL_DIR} — use uninstall.sh to remove this install only."

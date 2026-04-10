@@ -28,7 +28,6 @@ for arg in "$@"; do
 done
 
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
-  echo "يجب التشغيل كـ root: sudo bash uninstall.sh"
   echo "Run as root: sudo bash uninstall.sh"
   exit 1
 fi
@@ -80,13 +79,11 @@ if [ -e "${INSTALL_DIR}" ]; then
   chmod -R u+rwX "${INSTALL_DIR}" 2>/dev/null || true
   if ! command rm -rf -- "${INSTALL_DIR}"; then
     echo "ERROR: failed to remove ${INSTALL_DIR}. Try: sudo lsof +D ${INSTALL_DIR}"
-    echo "خطأ: تعذر حذف المجلد. تحقق من عمليات تستخدم الملفات."
     exit 1
   fi
 fi
 if [ -e "${INSTALL_DIR}" ]; then
   echo "ERROR: ${INSTALL_DIR} still exists after rm -rf."
-  echo "خطأ: المجلد ما زال موجوداً بعد الحذف."
   exit 1
 fi
 echo "  Removed ${INSTALL_DIR} OK."
@@ -113,6 +110,6 @@ fi
 echo "[7/7] Removing superuser credentials file..."
 rm -f "${CREDS_FILE}"
 
-echo "Done / تم."
+echo "Done."
 echo "Antibot uninstall finished. System packages (postgresql, redis-server, etc.) were left installed."
 echo "Note: if you cloned the repo under ~/antibot (or elsewhere), remove that folder yourself if needed."

@@ -16,7 +16,6 @@
 set -eo pipefail
 
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
-  echo "شغّل كـ root: sudo bash install.sh"
   echo "Run as root: sudo bash install.sh"
   exit 1
 fi
