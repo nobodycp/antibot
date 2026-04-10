@@ -1,51 +1,54 @@
 <span class="hidden" data-page-title="Redirect Check"></span>
-<div class="w-full px-4 text-xs sm:text-sm">
-  <h1 class="text-sm font-semibold mb-3 text-white border-b border-zinc-700 pb-1 flex items-center justify-between">
-    <span>🔁 Redirect Check</span>
-    <span class="text-xs font-normal text-zinc-400">Total: {{ entries|length }}</span>
-  </h1>
+<div class="min-w-0 w-full px-4 text-sm">
+  <header class="mb-6 border-b border-zinc-700/50 pb-4">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+      <div class="min-w-0 flex-1">
+        <h1 class="text-base font-semibold tracking-tight text-white sm:text-lg">🔁 Redirect Check</h1>
+        <p class="mt-1.5 max-w-3xl text-xs leading-relaxed text-zinc-500 sm:text-[13px]">Track redirect URLs and keyword matches</p>
+      </div>
+      <p class="shrink-0 text-right text-xs font-medium tabular-nums text-zinc-400">
+        <span class="text-zinc-500">Total</span>
+        <span class="ml-2 text-zinc-200">{{ entries|length }}</span>
+      </p>
+    </div>
+  </header>
 
-  <!-- Controls -->
-  <div class="flex flex-col gap-2 mb-3 md:flex-row md:items-center md:justify-between">
-    <div class="flex items-center gap-2">
-      <!-- Add Link Form -->
+  {% include "tracker/partials/includes/tracker_shell_actions_card_open.html" with panel_title="Add entry & filter" %}
+  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div class="flex flex-wrap items-center gap-2">
       <form method="post" class="flex flex-wrap items-center gap-2">
         {% csrf_token %}
-        <input type="url" name="url" placeholder="Enter redirect URL"
-               class="px-2 py-0.5 bg-zinc-800 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500" required />
-        <input type="text" name="keyword" placeholder="Keyword to match"
-               class="px-2 py-0.5 bg-zinc-800 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500" required />
+        <input type="url" name="url" placeholder="Enter redirect URL" required
+               class="min-h-[2.25rem] min-w-[10rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20" />
+        <input type="text" name="keyword" placeholder="Keyword to match" required
+               class="min-h-[2.25rem] min-w-[8rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20" />
         <button type="submit"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-0.5 rounded text-xs">Add</button>
+                class="min-h-[2.125rem] rounded-md bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-900/30 transition-all hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 active:scale-[0.99]">Add</button>
       </form>
-
-      <!-- Refresh Button -->
       <div class="relative group">
-        <a href="" class="text-blue-400 hover:text-blue-600">
+        <a href="" class="rounded-md p-2 text-blue-400 transition-colors hover:bg-zinc-900/80 hover:text-blue-300">
           <svg title="Refresh" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M4 20l16-16" />
           </svg>
         </a>
       </div>
     </div>
-
-    <!-- Search -->
     <input type="text" placeholder="Search URL..." onkeyup="filterRedirects(this)"
-           class="px-2 py-0.5 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs focus:outline-none focus:ring-1 focus:ring-purple-500" />
+           class="min-h-[2.25rem] w-full rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20 md:ml-auto md:max-w-xs" />
   </div>
+  {% include "tracker/partials/includes/tracker_shell_actions_card_close.html" %}
 
   {% include "dashboard/partials/messages.html" %}
 
-  <!-- Table -->
-  <div class="rounded overflow-hidden border border-zinc-700">
-    <table class="w-full bg-zinc-800 text-xs">
-      <thead class="bg-zinc-700 text-left text-zinc-300 uppercase tracking-wide">
+  <div class="overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 shadow-lg shadow-black/15 ring-1 ring-zinc-700/30">
+    <table class="w-full bg-zinc-800/80 text-[11px] leading-snug sm:text-xs">
+      <thead class="bg-zinc-700/80 text-left text-[10px] font-semibold uppercase tracking-wide text-zinc-400 sm:text-[11px]">
         <tr>
-          <th class="px-2 py-1.5">URL</th>
-          <th class="px-2 py-1.5">Keyword</th>
-          <th class="px-2 py-1.5">Status</th>
-          <th class="px-2 py-1.5">Last Checked</th>
-          <th class="px-2 py-1.5 text-right">Delete</th>
+          <th class="px-3 py-2.5 sm:px-4">URL</th>
+          <th class="px-3 py-2.5 sm:px-4">Keyword</th>
+          <th class="px-3 py-2.5 sm:px-4">Status</th>
+          <th class="px-3 py-2.5 sm:px-4">Last checked</th>
+          <th class="px-3 py-2.5 sm:px-4 text-right">Delete</th>
         </tr>
       </thead>
       <tbody id="redirect-check-table">

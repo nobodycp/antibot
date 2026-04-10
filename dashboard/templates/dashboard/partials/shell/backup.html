@@ -1,115 +1,119 @@
 <span class="hidden" data-page-title="Admin Settings"></span>
-<div class="w-full px-4 text-xs sm:text-sm">
-  <h1 class="text-sm font-semibold mb-3 text-white border-b border-zinc-700 pb-1 flex items-center justify-between">
-    <span>⚙️ Backup</span>
-    <span class="text-xs font-normal text-zinc-400">Telegram Backup Configuration</span>
-  </h1>
+<div class="min-w-0 w-full text-sm">
+  <header class="mb-6 border-b border-zinc-700/50 pb-4">
+    <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
+      <div class="min-w-0 flex-1">
+        <h1 class="text-base font-semibold tracking-tight text-white sm:text-lg">⚙️ Backup</h1>
+        <p class="mt-1.5 max-w-3xl text-xs leading-relaxed text-zinc-500 sm:text-[13px]">Telegram backup configuration and delivery</p>
+      </div>
+    </div>
+  </header>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:items-start">
+  <div class="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start lg:gap-8">
     <!-- Backup Settings Form -->
-    <div class="lg:col-span-2 bg-zinc-800 border border-zinc-700 rounded p-4">
-      <h2 class="text-sm font-semibold text-white mb-2 border-b border-zinc-700 pb-2">
-        📦 Telegram Backup Settings
-      </h2>
-
-      <div id="htmx-messages" class="messages-anchor">{% include "core/partials/messages_list.html" %}</div>
-
-      <form method="post" class="mt-2 space-y-4">
-        {% csrf_token %}
-
-        <div>
-          <label class="block text-xs text-zinc-300 mb-1">Bot Token</label>
-          <input type="text"
-                 name="bot_token"
-                 value="{{ settings_obj.bot_token }}"
-                 placeholder="Enter Telegram Bot Token"
-                 class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+    <div class="min-w-0 space-y-4 lg:col-span-8">
+      <section class="overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 shadow-lg shadow-black/20 ring-1 ring-zinc-700/30">
+        <div class="border-b border-zinc-700/50 bg-zinc-900/25 px-4 py-3 sm:px-5">
+          <h2 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:text-[11px]">📦 Telegram backup settings</h2>
+          <p class="mt-1 text-xs text-zinc-600">Credentials and schedule for automated backups</p>
         </div>
+        <div class="p-4 sm:p-5">
+          {% include "dashboard/partials/messages.html" %}
 
-        <div>
-          <label class="block text-xs text-zinc-300 mb-1">Chat ID</label>
-          <input type="text"
-                 name="chat_id"
-                 value="{{ settings_obj.chat_id }}"
-                 placeholder="Enter Telegram Chat ID"
-                 class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500">
+          <form method="post" class="space-y-4">
+            {% csrf_token %}
+
+            <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 p-3 sm:p-4">
+              <div class="space-y-4">
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-medium text-zinc-400">Bot token</label>
+                  <input type="text" name="bot_token" value="{{ settings_obj.bot_token }}" placeholder="Enter Telegram Bot Token"
+                         class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+                </div>
+
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-medium text-zinc-400">Chat ID</label>
+                  <input type="text" name="chat_id" value="{{ settings_obj.chat_id }}" placeholder="Enter Telegram Chat ID"
+                         class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+                </div>
+
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-medium text-zinc-400">Interval (days)</label>
+                  <input type="number" name="interval_days" value="{{ settings_obj.interval_days }}" min="1"
+                         class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+              <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700/40 bg-zinc-900/35 px-3 py-2.5 text-xs text-zinc-300">
+                <input type="checkbox" name="is_enabled" {% if settings_obj.is_enabled %}checked{% endif %} class="rounded border-zinc-600 bg-zinc-950 text-blue-600 focus:ring-green-500/30">
+                Enable backup
+              </label>
+              <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700/40 bg-zinc-900/35 px-3 py-2.5 text-xs text-zinc-300">
+                <input type="checkbox" name="backup_database" {% if settings_obj.backup_database %}checked{% endif %} class="rounded border-zinc-600 bg-zinc-950 text-blue-600 focus:ring-green-500/30">
+                Backup database
+              </label>
+              <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700/40 bg-zinc-900/35 px-3 py-2.5 text-xs text-zinc-300">
+                <input type="checkbox" name="backup_media" {% if settings_obj.backup_media %}checked{% endif %} class="rounded border-zinc-600 bg-zinc-950 text-blue-600 focus:ring-green-500/30">
+                Backup media
+              </label>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 border-t border-zinc-700/50 pt-4">
+              <button type="submit"
+                      class="min-h-[2.125rem] rounded-md bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-900/30 transition-all hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 active:scale-[0.99]">
+                Save settings
+              </button>
+              <a href="{% url 'dashboard:telegram_test' %}"
+                 class="inline-flex min-h-[2.125rem] items-center rounded-md bg-violet-600 px-4 text-sm font-semibold text-white shadow-sm shadow-violet-900/30 transition-all hover:bg-violet-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 active:scale-[0.99]">
+                Send test message
+              </a>
+              <a href="{% url 'dashboard:telegram_send_db_backup' %}"
+                 class="inline-flex min-h-[2.125rem] items-center rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm shadow-emerald-900/30 transition-all hover:bg-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50 active:scale-[0.99]">
+                Send DB backup
+              </a>
+            </div>
+          </form>
         </div>
-
-        <div>
-          <label class="block text-xs text-zinc-300 mb-1">Interval Days</label>
-          <input type="number" name="interval_days" value="{{ settings_obj.interval_days }}" min="1"
-       class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white">
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <label class="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-xs text-zinc-200">
-            <input type="checkbox" name="is_enabled" {% if settings_obj.is_enabled %}checked{% endif %}>
-            Enable Backup
-          </label>
-
-          <label class="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-xs text-zinc-200">
-            <input type="checkbox" name="backup_database" {% if settings_obj.backup_database %}checked{% endif %}>
-            Backup Database
-          </label>
-
-          <label class="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-xs text-zinc-200">
-            <input type="checkbox" name="backup_media" {% if settings_obj.backup_media %}checked{% endif %}>
-            Backup Media
-          </label>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2 pt-2">
-          <button type="submit"
-                  class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-xs">
-            Save Settings
-          </button>
-
-          <a href="{% url 'dashboard:telegram_test' %}"
-             class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-xs">
-            Send Test Message
-          </a>
-
-          <a href="{% url 'dashboard:telegram_send_db_backup' %}"
-             class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-xs">
-            Send DB Backup
-          </a>
-        </div>
-      </form>
+      </section>
     </div>
 
     <!-- Status Panel -->
-    <div class="bg-zinc-800 border border-zinc-700 rounded p-4">
-      <h2 class="text-sm font-semibold text-white mb-4 border-b border-zinc-700 pb-2">
-        📊 Backup Status
-      </h2>
+    <div class="min-w-0 lg:col-span-4">
+      <section class="overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 shadow-lg shadow-black/20 ring-1 ring-zinc-700/30">
+        <div class="border-b border-zinc-700/50 bg-zinc-900/25 px-4 py-3 sm:px-5">
+          <h2 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:text-[11px]">📊 Backup status</h2>
+          <p class="mt-1 text-xs text-zinc-600">Last runs and errors</p>
+        </div>
+        <div class="space-y-3 p-4 sm:p-5">
+          <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 px-3 py-2.5">
+            <div class="text-[10px] font-medium uppercase tracking-wide text-zinc-500">Status</div>
+            <div class="mt-1 text-sm text-white">
+              {% if settings_obj.is_enabled %}
+                <span class="font-semibold text-emerald-400">Enabled</span>
+              {% else %}
+                <span class="font-semibold text-red-400">Disabled</span>
+              {% endif %}
+            </div>
+          </div>
 
-      <div class="space-y-3 text-xs">
-        <div class="bg-zinc-900 border border-zinc-700 rounded px-3 py-2">
-          <div class="text-zinc-400 mb-1">Status</div>
-          <div class="text-white">
-            {% if settings_obj.is_enabled %}
-              <span class="text-green-400 font-semibold">Enabled</span>
-            {% else %}
-              <span class="text-red-400 font-semibold">Disabled</span>
-            {% endif %}
+          <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 px-3 py-2.5">
+            <div class="text-[10px] font-medium uppercase tracking-wide text-zinc-500">Last run</div>
+            <div class="mt-1 text-sm text-zinc-200">{{ settings_obj.last_run_at|default:"—" }}</div>
+          </div>
+
+          <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 px-3 py-2.5">
+            <div class="text-[10px] font-medium uppercase tracking-wide text-zinc-500">Last success</div>
+            <div class="mt-1 text-sm text-zinc-200">{{ settings_obj.last_success_at|default:"—" }}</div>
+          </div>
+
+          <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 px-3 py-2.5">
+            <div class="text-[10px] font-medium uppercase tracking-wide text-zinc-500">Last error</div>
+            <div class="mt-1 break-words text-sm text-red-400/90">{{ settings_obj.last_error|default:"—" }}</div>
           </div>
         </div>
-
-        <div class="bg-zinc-900 border border-zinc-700 rounded px-3 py-2">
-          <div class="text-zinc-400 mb-1">Last Run</div>
-          <div class="text-white">{{ settings_obj.last_run_at|default:"—" }}</div>
-        </div>
-
-        <div class="bg-zinc-900 border border-zinc-700 rounded px-3 py-2">
-          <div class="text-zinc-400 mb-1">Last Success</div>
-          <div class="text-white">{{ settings_obj.last_success_at|default:"—" }}</div>
-        </div>
-
-        <div class="bg-zinc-900 border border-zinc-700 rounded px-3 py-2">
-          <div class="text-zinc-400 mb-1">Last Error</div>
-          <div class="text-red-400 break-words">{{ settings_obj.last_error|default:"—" }}</div>
-        </div>
-      </div>
+      </section>
     </div>
   </div>
 </div>

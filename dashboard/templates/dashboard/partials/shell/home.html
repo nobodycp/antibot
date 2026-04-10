@@ -1,24 +1,23 @@
 <span class="hidden" data-page-title="Dashboard"></span>
-<div class="w-full px-4 text-xs sm:text-sm space-y-4">
-
-  <div class="flex flex-col gap-2 border-b border-zinc-700 pb-2 md:flex-row md:items-center md:justify-between">
-    <div>
-      <h1 class="text-lg font-bold text-white">Dashboard</h1>
-      <p class="text-zinc-400 text-xs mt-1">Main overview of visitors, denied logs, top activity and alerts.</p>
+<div class="min-w-0 w-full space-y-5 text-sm">
+  <header class="mb-2 border-b border-zinc-700/50 pb-4">
+    <div class="flex flex-col gap-1">
+      <h1 class="text-base font-semibold tracking-tight text-white sm:text-lg">Dashboard</h1>
+      <p class="max-w-3xl text-xs leading-relaxed text-zinc-500 sm:text-[13px]">Overview of visitors, denied logs, top activity, and alerts.</p>
     </div>
-  </div>
+  </header>
 
   <!-- 1) Stats -->
   <div
-  hx-get="/dashboard/home/stats/"
-  hx-trigger="load"
-  hx-target="this"
-  hx-swap="outerHTML"
->
-  <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-zinc-400 text-xs">
-    Loading stats...
+    hx-get="/dashboard/home/stats/"
+    hx-trigger="load"
+    hx-target="this"
+    hx-swap="outerHTML"
+  >
+    <div class="rounded-xl border border-zinc-700/50 bg-zinc-800/60 px-4 py-3 text-xs text-zinc-500 shadow-lg shadow-black/15 ring-1 ring-zinc-700/30">
+      Loading stats…
+    </div>
   </div>
-</div>
 
   <!-- 2) Secondary Stats -->
   <div
@@ -27,8 +26,8 @@
     hx-target="this"
     hx-swap="outerHTML"
   >
-    <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-zinc-400 text-xs">
-      Loading secondary stats...
+    <div class="rounded-xl border border-zinc-700/50 bg-zinc-800/60 px-4 py-3 text-xs text-zinc-500 shadow-lg shadow-black/15 ring-1 ring-zinc-700/30">
+      Loading secondary stats…
     </div>
   </div>
 
@@ -39,8 +38,8 @@
     hx-target="this"
     hx-swap="outerHTML"
   >
-    <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-zinc-400 text-xs">
-      Loading latest logs...
+    <div class="rounded-xl border border-zinc-700/50 bg-zinc-800/60 px-4 py-3 text-xs text-zinc-500 shadow-lg shadow-black/15 ring-1 ring-zinc-700/30">
+      Loading latest logs…
     </div>
   </div>
 
@@ -51,8 +50,8 @@
     hx-target="this"
     hx-swap="outerHTML"
   >
-    <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-zinc-400 text-xs">
-      Loading alerts...
+    <div class="rounded-xl border border-zinc-700/50 bg-zinc-800/60 px-4 py-3 text-xs text-zinc-500 shadow-lg shadow-black/15 ring-1 ring-zinc-700/30">
+      Loading alerts…
     </div>
   </div>
 
@@ -63,9 +62,8 @@
     hx-target="this"
     hx-swap="outerHTML"
   >
-    <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-zinc-400 text-xs">
-      Loading top IPs...
+    <div class="rounded-xl border border-zinc-700/50 bg-zinc-800/60 px-4 py-3 text-xs text-zinc-500 shadow-lg shadow-black/15 ring-1 ring-zinc-700/30">
+      Loading top IPs…
     </div>
   </div>
-
 </div>

@@ -1,14 +1,25 @@
-<h1 class="mb-3 flex items-center justify-between border-b border-zinc-700 pb-1 text-sm font-semibold text-white">
-  <span>{{ heading_title }}</span>
-  <span class="text-xs font-normal text-zinc-400">
-    {% if heading_simple_total %}
-      Total: {{ heading_items|length }}
-    {% else %}
-      {% if page_obj %}
-        Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
-      {% else %}
-        Total: {{ heading_items|length }}
-      {% endif %}
-    {% endif %}
-  </span>
-</h1>
+<header class="mb-6 border-b border-zinc-700/50 pb-4">
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+    <div class="min-w-0 flex-1">
+      <h1 class="text-base font-semibold tracking-tight text-white sm:text-lg">{{ heading_title }}</h1>
+    </div>
+    <div class="shrink-0 text-right">
+      <p class="text-xs font-medium tabular-nums text-zinc-400">
+        {% if heading_simple_total %}
+          <span class="text-zinc-500">Total</span>
+          <span class="ml-2 text-zinc-200">{{ heading_items|length }}</span>
+        {% else %}
+          {% if page_obj %}
+            <span class="text-zinc-500">Showing</span>
+            <span class="ml-1.5 text-zinc-200">{{ page_obj.start_index }}–{{ page_obj.end_index }}</span>
+            <span class="text-zinc-500"> of </span>
+            <span class="text-zinc-200">{{ page_obj.paginator.count }}</span>
+          {% else %}
+            <span class="text-zinc-500">Total</span>
+            <span class="ml-2 text-zinc-200">{{ heading_items|length }}</span>
+          {% endif %}
+        {% endif %}
+      </p>
+    </div>
+  </div>
+</header>
