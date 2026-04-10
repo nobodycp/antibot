@@ -1,12 +1,11 @@
 from django.urls import path
-from .views import (
-    uploader_files_view,
-    google_safe_check_view,
-    google_safe_check_table_partial,
-    redirect_check_view,
-    redirect_check_table_view,
 
+from .views.file_views import uploader_files_view
+from .views.google_safe_views import (
+    google_safe_check_table_partial,
+    google_safe_check_view,
 )
+from .views.redirect_views import redirect_check_table_view, redirect_check_view
 
 app_name = 'tools'
 

@@ -1,0 +1,18 @@
+{% if messages %}
+<div class="space-y-2 mb-4 messages-stack" role="status" aria-live="polite">
+  {% for message in messages %}
+    <div
+      class="message px-3 py-1.5 rounded-md text-xs font-medium border
+        {% if message.level_tag == 'success' %}bg-emerald-700 text-white border-emerald-600
+        {% elif message.level_tag == 'error' %}bg-red-700 text-white border-red-600
+        {% elif message.level_tag == 'warning' %}bg-amber-600 text-white border-amber-500
+        {% elif message.level_tag == 'info' %}bg-sky-700 text-white border-sky-600
+        {% else %}bg-zinc-700 text-white border-zinc-600{% endif %}"
+      role="alert"
+      data-message-level="{{ message.level_tag }}"
+    >
+      {{ message }}
+    </div>
+  {% endfor %}
+</div>
+{% endif %}

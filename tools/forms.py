@@ -1,3 +1,4 @@
+"""Model forms for tools app upload and checker features."""
 from django import forms
 from .models import ArchiveFile, GoogleSafeCheck, RedirectCheck
 

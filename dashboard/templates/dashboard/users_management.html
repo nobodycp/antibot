@@ -1,0 +1,242 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Users Management{% endblock %}
+
+{% block content %}
+<div class="w-full px-6 text-sm">
+  <h1 class="text-base font-semibold mb-4 text-white border-b border-zinc-700 pb-1 flex items-center justify-between">
+    <span>👤 Users Management</span>
+    <span class="text-xs font-normal text-zinc-400">Manage System Users</span>
+  </h1>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <!-- Add User Form -->
+    <div class="lg:col-span-2 bg-zinc-800 border border-zinc-700 rounded p-4">
+      <h2 class="text-sm font-semibold text-white mb-4 border-b border-zinc-700 pb-2">
+        ➕ Add New User
+      </h2>
+
+      {% include "dashboard/partials/messages.html" %}
+
+      <form method="post" action="{% url 'dashboard:add_user' %}" class="space-y-4">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs text-zinc-300 mb-1">Username</label>
+            <input type="text"
+                   name="username"
+                   placeholder="Enter username"
+                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+          </div>
+
+          <div>
+            <label class="block text-xs text-zinc-300 mb-1">Email</label>
+            <input type="email"
+                   name="email"
+                   placeholder="Enter email"
+                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500">
+          </div>
+
+          <div>
+            <label class="block text-xs text-zinc-300 mb-1">Password</label>
+            <input type="text"
+                   name="password"
+                   placeholder="Enter password"
+                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-green-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <label class="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-xs text-zinc-200">
+            <input type="checkbox" name="is_superuser">
+            Is Superuser
+          </label>
+
+          <label class="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-xs text-zinc-200">
+            <input type="checkbox" name="is_staff" checked>
+            Is Staff
+          </label>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 pt-2">
+          <button type="submit"
+                  class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-xs">
+            Add User
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Users Stats -->
+    <div class="bg-zinc-800 border border-zinc-700 rounded p-4">
+      <h2 class="text-sm font-semibold text-white mb-4 border-b border-zinc-700 pb-2">
+        📊 Users Status
+      </h2>
+
+      <div class="space-y-3 text-xs">
+        <div class="bg-zinc-900 border border-zinc-700 rounded px-3 py-2">
+          <div class="text-zinc-400 mb-1">Total Users</div>
+          <div class="text-white font-semibold">{{ users|length }}</div>
+        </div>
+
+        <div class="bg-zinc-900 border border-zinc-700 rounded px-3 py-2">
+          <div class="text-zinc-400 mb-1">Current User</div>
+          <div class="text-white font-semibold">{{ request.user.username }}</div>
+        </div>
+
+        <div class="bg-zinc-900 border border-zinc-700 rounded px-3 py-2">
+          <div class="text-zinc-400 mb-1">Role</div>
+          <div class="text-white">
+            {% if request.user.is_superuser %}
+              <span class="text-green-400 font-semibold">Superuser</span>
+            {% else %}
+              <span class="text-yellow-400 font-semibold">Staff/User</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div class="mt-4 bg-zinc-800 border border-zinc-700 rounded p-4">
+    <h2 class="text-sm font-semibold text-white mb-4 border-b border-zinc-700 pb-2">
+      📋 Users List
+    </h2>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs text-left text-zinc-300">
+        <thead class="text-zinc-400 border-b border-zinc-700">
+          <tr>
+            <th class="py-2 pr-3">ID</th>
+            <th class="py-2 pr-3">Username</th>
+            <th class="py-2 pr-3">Email</th>
+            <th class="py-2 pr-3">Superuser</th>
+            <th class="py-2 pr-3">Staff</th>
+            <th class="py-2 pr-3">Joined</th>
+            <th class="py-2 pr-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr class="border-b border-zinc-700 align-top">
+            <td class="py-3 pr-3 text-white">{{ user.id }}</td>
+            <td class="py-3 pr-3 text-white">{{ user.username }}</td>
+            <td class="py-3 pr-3">{{ user.email|default:"—" }}</td>
+            <td class="py-3 pr-3">
+              {% if user.is_superuser %}
+                <span class="text-green-400 font-semibold">Yes</span>
+              {% else %}
+                <span class="text-red-400 font-semibold">No</span>
+              {% endif %}
+            </td>
+            <td class="py-3 pr-3">
+              {% if user.is_staff %}
+                <span class="text-green-400 font-semibold">Yes</span>
+              {% else %}
+                <span class="text-red-400 font-semibold">No</span>
+              {% endif %}
+            </td>
+            <td class="py-3 pr-3">{{ user.date_joined }}</td>
+            <td class="py-3 pr-3">
+              <div class="flex flex-wrap gap-2 mb-2">
+                <button type="button"
+                        onclick="toggleEditForm('{{ user.id }}')"
+                        class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs">
+                  Edit
+                </button>
+
+                {% if user.id != request.user.id %}
+                <form method="post" action="{% url 'dashboard:delete_user' user.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit"
+                          onclick="return confirm('Delete this user?')"
+                          class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs">
+                    Delete
+                  </button>
+                </form>
+                {% else %}
+                <span class="bg-zinc-700 text-zinc-300 px-3 py-1 rounded text-xs">You</span>
+                {% endif %}
+              </div>
+
+              <div id="editUser{{ user.id }}" class="hidden mt-2">
+                <div class="bg-zinc-900 border border-zinc-700 rounded p-3">
+                  <form method="post" action="{% url 'dashboard:edit_user' user.id %}" class="space-y-3">
+                    {% csrf_token %}
+
+                    <div>
+                      <label class="block text-xs text-zinc-300 mb-1">Username</label>
+                      <input type="text"
+                             name="username"
+                             value="{{ user.username }}"
+                             class="w-full px-3 py-2 bg-zinc-800 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+
+                    <div>
+                      <label class="block text-xs text-zinc-300 mb-1">Email</label>
+                      <input type="email"
+                             name="email"
+                             value="{{ user.email }}"
+                             class="w-full px-3 py-2 bg-zinc-800 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500">
+                    </div>
+
+                    <div>
+                      <label class="block text-xs text-zinc-300 mb-1">New Password (optional)</label>
+                      <input type="text"
+                             name="password"
+                             placeholder="Leave empty to keep current password"
+                             class="w-full px-3 py-2 bg-zinc-800 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-green-500">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <label class="flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-xs text-zinc-200">
+                        <input type="checkbox" name="is_superuser" {% if user.is_superuser %}checked{% endif %}>
+                        Is Superuser
+                      </label>
+
+                      <label class="flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-xs text-zinc-200">
+                        <input type="checkbox" name="is_staff" {% if user.is_staff %}checked{% endif %}>
+                        Is Staff
+                      </label>
+                    </div>
+
+                    <div class="pt-1">
+                      <button type="submit"
+                              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-xs">
+                        Save Changes
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="py-4 text-center text-zinc-400">No users found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleEditForm(userId) {
+  const el = document.getElementById('editUser' + userId);
+  if (el.classList.contains('hidden')) {
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+}
+
+setTimeout(() => {
+  const msgBox = document.getElementById("htmx-messages");
+  if (msgBox) msgBox.innerHTML = '';
+}, 3000);
+</script>
+{% endblock %}

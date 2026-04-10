@@ -1,0 +1,133 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Profile Settings{% endblock %}
+
+{% block content %}
+<div class="w-full px-6 text-sm">
+  <h1 class="text-base font-semibold mb-4 text-white border-b border-zinc-700 pb-1 flex items-center justify-between">
+    <span>👤 Profile Settings</span>
+    <span class="text-xs font-normal text-zinc-400">Update your account information</span>
+  </h1>
+
+  {% include "dashboard/partials/messages.html" %}
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div class="lg:col-span-2 space-y-4">
+      <!-- Profile Form -->
+      <div class="bg-zinc-800 border border-zinc-700 rounded p-4">
+        <h2 class="text-sm font-semibold text-white mb-4 border-b border-zinc-700 pb-2">
+          ⚙️ Profile Information
+        </h2>
+
+        <form method="post" enctype="multipart/form-data" class="space-y-4">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="profile">
+
+          <div>
+            <label class="block text-xs text-zinc-300 mb-1">Username</label>
+            <input type="text"
+                   name="username"
+                   value="{{ request.user.username }}"
+                   placeholder="Enter username"
+                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+          </div>
+
+          <div>
+            <label class="block text-xs text-zinc-300 mb-1">Email</label>
+            <input type="email"
+                   name="email"
+                   value="{{ request.user.email }}"
+                   placeholder="Enter email"
+                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500">
+          </div>
+
+          <div>
+            <label class="block text-xs text-zinc-300 mb-1">Avatar</label>
+            <input type="file"
+                   name="avatar"
+                   accept="image/*"
+                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white">
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 pt-2">
+            <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-xs">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Change Password -->
+      <div class="bg-zinc-800 border border-zinc-700 rounded p-4">
+        <h2 class="text-sm font-semibold text-white mb-4 border-b border-zinc-700 pb-2">
+          🔒 Change Password
+        </h2>
+
+        <form method="post" class="space-y-4">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="password">
+
+          <div>
+            <label class="block text-xs text-zinc-300 mb-1">Old Password</label>
+            <input type="password"
+                   name="old_password"
+                   placeholder="Enter current password"
+                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+          </div>
+
+          <div>
+            <label class="block text-xs text-zinc-300 mb-1">New Password</label>
+            <input type="password"
+                   name="new_password"
+                   placeholder="Enter new password"
+                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-green-500">
+          </div>
+
+          <div>
+            <label class="block text-xs text-zinc-300 mb-1">Confirm Password</label>
+            <input type="password"
+                   name="confirm_password"
+                   placeholder="Confirm new password"
+                   class="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500">
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 pt-2">
+            <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-xs">
+              Change Password
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Profile Preview -->
+    <div class="bg-zinc-800 border border-zinc-700 rounded p-4 h-fit">
+      <h2 class="text-sm font-semibold text-white mb-4 border-b border-zinc-700 pb-2">
+        🖼️ Profile Preview
+      </h2>
+
+      <div class="space-y-3 text-xs">
+        <div class="bg-zinc-900 border border-zinc-700 rounded px-3 py-4 flex flex-col items-center">
+          {% if profile.avatar %}
+            <img src="{{ profile.avatar.url }}" alt="Avatar" class="w-20 h-20 rounded-full object-cover border border-zinc-700 mb-3">
+          {% else %}
+            <div class="w-20 h-20 bg-green-500 rounded-full mb-3"></div>
+          {% endif %}
+
+          <div class="text-white font-semibold">{{ request.user.username }}</div>
+          <div class="text-zinc-400">{{ request.user.email|default:"No email" }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+setTimeout(() => {
+  const msgBox = document.getElementById("htmx-messages");
+  if (msgBox) msgBox.innerHTML = '';
+}, 3000);
+</script>
+{% endblock %}

@@ -1,34 +1,33 @@
+# macOS
 .DS_Store
-env/
+
+# IDE
+.idea/
+.vscode/
 
 # ملفات Python غير ضرورية
 __pycache__/
+*.py[cod]
 *.pyc
+*.pyo
 
 # تجاهل البيئة الافتراضية
 env/
 venv/
-.venv
 .venv/
-# تجاهل قاعدة البيانات
-*.sqlite3
+.venv
 
-# تجاهل ملفات إعدادات
+# Django / ملفات إعدادات محلية
 .env
-
-# تجاهل الملفات المؤقتة
-__pycache__/
-*.pyc
-*.pyo
+*.sqlite3
 *.log
 
 # تجاهل الوسائط أو الملفات الثقيلة
+staticfiles/
 media/
 uploads/
 *.zip
 
-# macOS
-.DS_Store
-
-# VSCode
-.vscode/
+# تجارب محلية وليست جزءاً من التطبيق
+Code_test/
+/test.py

@@ -1,18 +1,39 @@
 from django.urls import path
-from .views import (
-    LogVisitorAPIView,
-    blocked_ips_view, blocked_ips_table, blocked_ips_partial,
-    blocked_subnets_view, blocked_subnets_table, blocked_subnets_partial,   # ✅
-    blocked_isp_view, blocked_isp_table, blocked_isp_partial,
-    blocked_browser_view, blocked_browser_table, blocked_browser_partial,
-    blocked_os_view, blocked_os_table, blocked_os_partial,
-    blocked_hostname_view, blocked_hostname_table, blocked_hostname_partial,
-    allowed_country_view, allowed_country_table, allowed_country_partial,
-    allowed_logs_view, allowed_logs_table, allowed_logs_partial,
-    denied_logs_view, denied_logs_table, denied_logs_partial,
-    dinger_ip_view, ip_info_view, ip_info_table, ip_info_partial,
-    add_block_rule,
+
+from .views.api_views import LogVisitorAPIView
+from .views.blocked_views import (
+    blocked_browser_partial,
+    blocked_browser_table,
+    blocked_browser_view,
+    blocked_hostname_partial,
+    blocked_hostname_table,
+    blocked_hostname_view,
+    blocked_ips_partial,
+    blocked_ips_table,
+    blocked_ips_view,
+    blocked_isp_partial,
+    blocked_isp_table,
+    blocked_isp_view,
+    blocked_os_partial,
+    blocked_os_table,
+    blocked_os_view,
+    blocked_subnets_partial,
+    blocked_subnets_table,
+    blocked_subnets_view,
 )
+from .views.ip_info_views import ip_info_partial, ip_info_table, ip_info_view
+from .views.logs_views import (
+    allowed_country_partial,
+    allowed_country_table,
+    allowed_country_view,
+    allowed_logs_partial,
+    allowed_logs_table,
+    allowed_logs_view,
+    denied_logs_partial,
+    denied_logs_table,
+    denied_logs_view,
+)
+from .views.utility_views import add_block_rule, dinger_ip_view
 
 
 app_name = 'tracker'
