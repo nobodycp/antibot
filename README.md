@@ -27,31 +27,50 @@ A **Django** app for visitor monitoring and blocking rules (IP, subnets, ISP, br
 
 ## Server install (recommended) — `install.sh`
 
-This repo ships **`install.sh`** for automated deployment on **Debian/Ubuntu**: system packages (including **PostgreSQL**, **Redis** `redis-server`, and **Gunicorn** via `requirements.txt`), local **PostgreSQL** database and role, **`redis-server`** enabled and started (so **`REDIS_URL=redis://127.0.0.1:6379/1`** matches the local instance unless you change it later), `/opt/antibot/.env` with **`DJANGO_ENV=production`**, **`DB_*`**, **`DJANGO_SECRET_KEY`**, **`REDIS_URL`**, and **`ALLOWED_HOSTS`**, clone to `/opt/antibot`, virtualenv at `env`, **`migrate` against PostgreSQL**, initial Django superuser (see below), a **systemd** unit running **Gunicorn** bound to **`0.0.0.0:8000`** (with **`EnvironmentFile`** for `.env`, ordered after **`postgresql.service`** and **`redis-server.service`**), and a **cron** job for Telegram backup.
+**Single deploy directory (default `/opt/antibot`).** The bootstrap **`install.sh`** at the repo root **only** `git clone`s into that path and runs **`scripts/install-inner.sh`**. You do **not** need a second copy like **`~/antibot`** on the server for production — use **`curl | sudo bash`** or run **`install.sh`** from **`/tmp`** or your home after downloading it once.
 
-**Public internet:** Do **not** leave port **8000** open to the world. **`install.sh` does not configure Nginx or TLS.** For production, terminate HTTPS on **Nginx** (or similar) and proxy to **Gunicorn** on localhost — see **[Production: reverse proxy, static files, and HTTPS](#production-reverse-proxy-static-files-and-https)** below.
+| Path | Role |
+|------|------|
+| **`/opt/antibot`** (or **`ANTIBOT_INSTALL_DIR`**) | **Only** on-disk app + venv + `.env` — this is what **install** fills and **uninstall** removes. |
+| **`~/antibot`** (or any clone) | Optional: dev / copy of the repo; **not** used by the server app unless you change **`ANTIBOT_INSTALL_DIR`**. |
 
-From your machine (after cloning the repo):
+**Public internet:** Do **not** leave port **8000** open to the world. **`install.sh` does not configure Nginx or TLS.** For production, use **Nginx** (or similar) — see **[Production: reverse proxy, static files, and HTTPS](#production-reverse-proxy-static-files-and-https)** below.
+
+### Quick install on a fresh server (no local clone required)
 
 ```bash
-git clone https://github.com/nobodycp/antibot.git
-cd antibot
-sudo bash install.sh
+curl -fsSL https://raw.githubusercontent.com/nobodycp/antibot/main/install.sh | sudo bash
 ```
 
-The script creates `/opt/antibot` if needed before writing the inner installer.
+(Uses the repository’s default branch from GitHub.)
 
-**What it does internally**
+### Or: run `install.sh` from a clone (not from inside `/opt/antibot`)
 
-1. Ensures `/opt/antibot` exists, writes the real installer to `/opt/antibot/install.sh`, then runs it.
-2. Installs **python3**, **venv**, **git**, **openssl**, **postgresql**, **postgresql-contrib**, and **redis-server**; enables and starts **`redis-server`** (Debian/Ubuntu unit name).
-3. Stops any existing `antibot` service, **wipes** `/opt/antibot`, and clones the repo again (do not rely on uncommitted edits under `/opt` only).
-4. Creates the venv at `/opt/antibot/env` and installs `requirements.txt` (includes **Gunicorn**).
-5. Enables and starts **PostgreSQL**; idempotently ensures a role and database (defaults: **`antibot`** / **`127.0.0.1:5432`**). A strong random **`DB_PASSWORD`** is written to **`/opt/antibot/.env`** (existing role password is updated on reinstall). No `DROP DATABASE`.
-6. Writes **`/opt/antibot/.env`** with **`DJANGO_ENV=production`**, **`DB_*`**, **`DJANGO_SECRET_KEY`**, **`REDIS_URL`**, **`ALLOWED_HOSTS`** (edit **`ALLOWED_HOSTS`** for your public hostname or IP).
-7. **Django superuser (first install):** There is **no default password** in the script. Either set **`ANTIBOT_SUPERUSER_PASSWORD`** in the environment when running the installer (for example `sudo -E bash install.sh` after `export`, or `sudo env ANTIBOT_SUPERUSER_PASSWORD='…' bash install.sh`), or omit it and the script generates a password and writes **`/root/antibot_superuser_credentials.txt`** (mode **600**). Optional: **`ANTIBOT_SUPERUSER_USERNAME`**, **`ANTIBOT_SUPERUSER_EMAIL`**. Then **`migrate`** and **`createsuperuser --noinput`** run.
-8. Installs/enables the **systemd** service using **Gunicorn** (`analytics_project.wsgi:application`, **2** workers, **120** s timeout).
-9. Configures the Telegram backup **cron** job and prints service status.
+```bash
+cd ~
+git clone https://github.com/nobodycp/antibot.git antibot-bootstrap
+sudo bash antibot-bootstrap/install.sh
+# optional: rm -rf antibot-bootstrap
+```
+
+**Do not** `cd /opt/antibot` and run **`install.sh`** from there — the bootstrap **removes** **`/opt/antibot`** first; the script will refuse if your current directory is inside the install path.
+
+**Overrides (optional):**
+
+- **`ANTIBOT_INSTALL_DIR`** — deploy root (default **`/opt/antibot`**). **uninstall.sh** must use the **same** value.
+- **`ANTIBOT_REPO_URL`** — git URL to clone (forks, private mirrors).
+
+```bash
+sudo ANTIBOT_INSTALL_DIR=/srv/antibot ANTIBOT_REPO_URL=https://github.com/you/antibot.git bash install.sh
+```
+
+**What runs after the clone (`scripts/install-inner.sh`)**
+
+1. Installs **python3**, **venv**, **git**, **curl**, **openssl**, **postgresql**, **postgresql-contrib**, **redis-server**; enables **`redis-server`**.
+2. Creates **`env/`** venv and **`pip install -r requirements.txt`** (includes **Gunicorn**).
+3. PostgreSQL role/database **`antibot`**; writes **`${INSTALL_DIR}/.env`** (**`DJANGO_SECRET_KEY`**, **`DB_*`**, **`REDIS_URL`**, **`ALLOWED_HOSTS`** auto-detect unless **`ANTIBOT_ALLOWED_HOSTS`** / **`ANTIBOT_EXTRA_ALLOWED_HOSTS`** — same rules as before).
+4. **`migrate`**, **`createsuperuser --noinput`** (password: **`ANTIBOT_SUPERUSER_PASSWORD`** or generated → **`/root/antibot_superuser_credentials.txt`**).
+5. **`collectstatic`**, **systemd** **Gunicorn** on **`0.0.0.0:8000`**, **cron** for **`run_telegram_backup`**.
 
 After install, the app listens on **`http://<server>:8000`** (all interfaces). For a quick LAN check that is fine; for the public internet, put **Nginx** in front (HTTPS on **443**, proxy to **`127.0.0.1:8000`**) and follow the production section below. Open the **dashboard** at `/dashboard/` and sign in at `/accounts/login/` using the superuser credentials from your chosen method above.
 
@@ -60,6 +79,24 @@ After install, the app listens on **`http://<server>:8000`** (all interfaces). F
 **Data safety (existing SQLite on the server):** This installer does **not** migrate or import old SQLite data into PostgreSQL. Take a **backup** from the current environment first, deploy the new version, let **`migrate`** create the PostgreSQL schema, then **restore or import data manually** if you need historical rows. Until then, the app uses the new empty PostgreSQL database.
 
 **Rerunning `install.sh` (summary):** Does not drop the PostgreSQL database. Resets **`/opt/antibot`**, regenerates **`.env`** (new **`DJANGO_SECRET_KEY`** and DB role **`DB_PASSWORD`**), re-runs **`migrate`**. **apt**, **Redis**, and **PostgreSQL** steps are idempotent. Superuser handling is described under **Rerun behavior** above.
+
+### Uninstall (remove antibot from the server)
+
+The repo includes **`uninstall.sh`**. It stops **`antibot`**, removes cron lines containing **`run_telegram_backup`**, kills leftover Gunicorn processes for **`/opt/antibot/env/bin/gunicorn`**, **deletes `/opt/antibot` early** (with a verify step — if removal fails, the script exits with an error and suggests **`lsof +D`**), then flushes **Redis DB 1**, drops PostgreSQL **`antibot`** DB and role, and removes **`/root/antibot_superuser_credentials.txt`**. It does **not** run **`apt remove`** on PostgreSQL, Redis, or Python.
+
+**Important:** Removes only **`ANTIBOT_INSTALL_DIR`** (default **`/opt/antibot`**). A bootstrap clone under **`~/…`** is optional and **not** deleted.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nobodycp/antibot/main/uninstall.sh -o /tmp/antibot-uninstall.sh
+sudo bash /tmp/antibot-uninstall.sh          # type YES
+sudo bash /tmp/antibot-uninstall.sh --yes    # non-interactive
+```
+
+Or from a repo checkout: **`sudo bash uninstall.sh`**.
+
+Custom install path (must match deploy): **`sudo ANTIBOT_INSTALL_DIR=/srv/antibot bash uninstall.sh --yes`**
+
+If the app directory is already deleted, still run **`uninstall.sh`** so PostgreSQL/cron/Redis/systemd are cleaned up.
 
 ---
 
@@ -152,7 +189,7 @@ Use **Certbot** (or your CA) for real certificates; add an **HTTP → HTTPS** re
 
 1. **TLS:** Certificates installed; **443** (and **80** redirect) served by Nginx only.
 2. **Firewall / security group:** **443** (and **80**) open from the internet; **8000** **not** open publicly (Gunicorn reachable only from **127.0.0.1** on the app host).
-3. **`ALLOWED_HOSTS`:** In **`/opt/antibot/.env`**, set **`ALLOWED_HOSTS`** to your public hostname(s) and IP(s), comma-separated, matching **`server_name`** / how users reach the site.
+3. **`ALLOWED_HOSTS`:** **`install.sh`** usually pre-fills this from detected IPs/hostname; add your **domain** via **`ANTIBOT_EXTRA_ALLOWED_HOSTS`** at install time or edit **`/opt/antibot/.env`** so values match **`server_name`** / how users reach the site, then **`sudo systemctl restart antibot`**.
 4. **Static:** Run **`collectstatic`**; Nginx **`location /static/`** → **`STATIC_ROOT`**.
 5. **Media:** Nginx **`location /media/`** → **`MEDIA_ROOT`**; permissions consistent with the app user.
 6. **Services:** **`postgresql`**, **`redis-server`**, and **`antibot`** (Gunicorn) are **active** (`systemctl status …`).

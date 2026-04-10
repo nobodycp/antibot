@@ -1,153 +1,68 @@
-# 1) اكتب سكربت جديد مكان القديم
-sudo mkdir -p /opt/antibot
-sudo tee /opt/antibot/install.sh >/dev/null <<'BASH'
 #!/usr/bin/env bash
-set -e
+#
+# antibot — server bootstrap (Debian/Ubuntu)
+#
+# Clones the repo into a single fixed directory (default /opt/antibot), then runs
+# scripts/install-inner.sh. You do NOT need a second copy under ~/antibot for production.
+#
+# Usage:
+#   sudo bash install.sh
+#   sudo ANTIBOT_INSTALL_DIR=/srv/antibot bash install.sh
+#   sudo ANTIBOT_REPO_URL=https://github.com/you/fork.git bash install.sh
+#
+# One-liner (uses GitHub default branch):
+#   curl -fsSL https://raw.githubusercontent.com/nobodycp/antibot/main/install.sh | sudo bash
+#
+set -eo pipefail
 
-REPO_URL="https://github.com/nobodycp/antibot.git"
-INSTALL_DIR="/opt/antibot"
-VENV_PATH="${INSTALL_DIR}/env"
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+  echo "شغّل كـ root: sudo bash install.sh"
+  echo "Run as root: sudo bash install.sh"
+  exit 1
+fi
+
+REPO_URL="${ANTIBOT_REPO_URL:-https://github.com/nobodycp/antibot.git}"
+INSTALL_DIR="${ANTIBOT_INSTALL_DIR:-/opt/antibot}"
 SERVICE_NAME="antibot"
-BIND_ADDR="0.0.0.0:8000"
 
-# Django superuser (no default password in this script):
-# - If ANTIBOT_SUPERUSER_PASSWORD is set in the environment, it is used (use: sudo -E bash … or sudo env ANTIBOT_SUPERUSER_PASSWORD='…' bash …).
-# - Otherwise a strong password is generated and written to /root/antibot_superuser_credentials.txt (mode 600).
-# Optional: ANTIBOT_SUPERUSER_USERNAME (default: admin), ANTIBOT_SUPERUSER_EMAIL (default: admin@localhost).
-SU_USER="${ANTIBOT_SUPERUSER_USERNAME:-admin}"
-SU_EMAIL="${ANTIBOT_SUPERUSER_EMAIL:-admin@localhost}"
+echo "=========================================="
+echo " antibot bootstrap"
+echo " Repo URL:     ${REPO_URL}"
+echo " Install path: ${INSTALL_DIR}  (fixed — same path uninstall.sh removes)"
+echo "=========================================="
 
-# PostgreSQL (Debian/Ubuntu: packages postgresql + service postgresql)
-PG_DB_NAME="antibot"
-PG_DB_USER="antibot"
-PG_DB_HOST="127.0.0.1"
-PG_DB_PORT="5432"
+# Never run from inside INSTALL_DIR: rm -rf would delete the script mid-flight.
+case "$(pwd -P)/" in
+  "${INSTALL_DIR}/"*)
+    echo "ERROR: Do not run install.sh from inside ${INSTALL_DIR}."
+    echo "Use: curl -fsSL …/install.sh | sudo bash   OR   cd ~ && sudo bash /path/to/install.sh"
+    exit 1
+    ;;
+esac
 
-echo "[1/9] تثبيت المتطلبات..."
-sudo apt update
-sudo apt install -y python3 python3-venv python3-pip git openssl postgresql postgresql-contrib redis-server
+echo "[0/2] Stopping previous service and removing old ${INSTALL_DIR}..."
+systemctl stop "${SERVICE_NAME}" 2>/dev/null || true
+systemctl disable "${SERVICE_NAME}" 2>/dev/null || true
+rm -f "/etc/systemd/system/${SERVICE_NAME}.service"
+systemctl daemon-reload
 
-echo "[2/9] Redis..."
-sudo systemctl enable redis-server
-sudo systemctl start redis-server
+rm -rf "${INSTALL_DIR}"
+mkdir -p "$(dirname "${INSTALL_DIR}")"
 
-echo "[3/9] تنظيف ثم استنساخ المشروع..."
-sudo systemctl stop "${SERVICE_NAME}" 2>/dev/null || true
-sudo systemctl disable "${SERVICE_NAME}" 2>/dev/null || true
-sudo rm -f /etc/systemd/system/${SERVICE_NAME}.service
-sudo systemctl daemon-reload
-sudo rm -rf "${INSTALL_DIR}"
-sudo git clone "${REPO_URL}" "${INSTALL_DIR}"
-
-echo "[4/9] إنشاء وتحديث venv..."
-python3 -m venv "${VENV_PATH}"
-"${VENV_PATH}/bin/pip" install --upgrade pip
-[ -f "${INSTALL_DIR}/requirements.txt" ] && \
-  "${VENV_PATH}/bin/pip" install -r "${INSTALL_DIR}/requirements.txt"
-
-echo "[5/9] PostgreSQL + ملف .env..."
-sudo systemctl enable postgresql
-sudo systemctl start postgresql
-
-PG_PASSWORD="$(openssl rand -hex 32)"
-
-if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${PG_DB_USER}'" | grep -q 1; then
-  sudo -u postgres psql -v ON_ERROR_STOP=1 -c "CREATE USER ${PG_DB_USER} WITH PASSWORD '${PG_PASSWORD}';"
-else
-  sudo -u postgres psql -v ON_ERROR_STOP=1 -c "ALTER USER ${PG_DB_USER} WITH PASSWORD '${PG_PASSWORD}';"
+echo "[1/2] git clone → ${INSTALL_DIR}"
+if ! git clone --depth 1 "${REPO_URL}" "${INSTALL_DIR}"; then
+  echo "ERROR: git clone failed. Check network and ANTIBOT_REPO_URL."
+  exit 1
 fi
 
-if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${PG_DB_NAME}'" | grep -q 1; then
-  sudo -u postgres psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${PG_DB_NAME} OWNER ${PG_DB_USER};"
+INNER="${INSTALL_DIR}/scripts/install-inner.sh"
+if [ ! -f "${INNER}" ]; then
+  echo "ERROR: Missing ${INNER} after clone."
+  exit 1
 fi
 
-sudo -u postgres psql -v ON_ERROR_STOP=1 -c "GRANT ALL PRIVILEGES ON DATABASE ${PG_DB_NAME} TO ${PG_DB_USER};"
-sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${PG_DB_NAME}" -c "GRANT ALL ON SCHEMA public TO ${PG_DB_USER};" || true
-sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${PG_DB_NAME}" -c "GRANT CREATE ON SCHEMA public TO ${PG_DB_USER};" || true
-sudo -u postgres psql -d "${PG_DB_NAME}" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ${PG_DB_USER};" 2>/dev/null || true
-sudo -u postgres psql -d "${PG_DB_NAME}" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO ${PG_DB_USER};" 2>/dev/null || true
+chmod +x "${INNER}"
 
-ENV_FILE="${INSTALL_DIR}/.env"
-DJANGO_SECRET_VALUE="$(openssl rand -hex 48)"
-umask 077
-cat > "${ENV_FILE}" <<ENVEOF
-# Generated by install.sh — edit ALLOWED_HOSTS for your public hostname/IP.
-DJANGO_ENV=production
-DJANGO_SECRET_KEY=${DJANGO_SECRET_VALUE}
-ALLOWED_HOSTS=127.0.0.1,localhost
-REDIS_URL=redis://127.0.0.1:6379/1
-DB_NAME=${PG_DB_NAME}
-DB_USER=${PG_DB_USER}
-DB_PASSWORD=${PG_PASSWORD}
-DB_HOST=${PG_DB_HOST}
-DB_PORT=${PG_DB_PORT}
-ENVEOF
-chmod 600 "${ENV_FILE}" || true
-echo "[DB] Wrote ${ENV_FILE} (PostgreSQL database=${PG_DB_NAME} user=${PG_DB_USER})."
-
-if [ -n "${ANTIBOT_SUPERUSER_PASSWORD:-}" ]; then
-  SU_PASS="${ANTIBOT_SUPERUSER_PASSWORD}"
-  echo "[auth] Using Django superuser password from environment (ANTIBOT_SUPERUSER_PASSWORD)."
-else
-  SU_PASS="$(openssl rand -base64 32 | tr -d '\n')"
-  CREDS_FILE="/root/antibot_superuser_credentials.txt"
-  umask 077
-  {
-    echo "# Generated by install.sh — delete after storing credentials securely."
-    echo "ANTIBOT_SUPERUSER_USERNAME=${SU_USER}"
-    echo "ANTIBOT_SUPERUSER_PASSWORD=${SU_PASS}"
-    echo "ANTIBOT_SUPERUSER_EMAIL=${SU_EMAIL}"
-  } > "${CREDS_FILE}"
-  chmod 600 "${CREDS_FILE}" || true
-  echo "[auth] Generated Django superuser password; read with: sudo cat ${CREDS_FILE}"
-fi
-
-echo "[6/9] migrate + superuser..."
-cd "${INSTALL_DIR}"
-"${VENV_PATH}/bin/python" "${INSTALL_DIR}/manage.py" migrate
-DJANGO_SUPERUSER_USERNAME="${SU_USER}" \
-DJANGO_SUPERUSER_EMAIL="${SU_EMAIL}" \
-DJANGO_SUPERUSER_PASSWORD="${SU_PASS}" \
-"${VENV_PATH}/bin/python" "${INSTALL_DIR}/manage.py" createsuperuser --noinput || true
-
-echo "[اختياري] collectstatic (يتخطى عند غياب STATIC_ROOT)..."
-"${VENV_PATH}/bin/python" "${INSTALL_DIR}/manage.py" collectstatic --noinput || \
-  echo "تخطّي collectstatic — غالباً STATIC_ROOT غير مُعرّف، وهذا طبيعي."
-
-echo "[7/9] إنشاء خدمة systemd (Gunicorn)..."
-sudo tee /etc/systemd/system/${SERVICE_NAME}.service >/dev/null <<EOF
-[Unit]
-Description=${SERVICE_NAME} Django (Gunicorn)
-After=network.target postgresql.service redis-server.service
-Wants=postgresql.service redis-server.service
-
-[Service]
-User=$(whoami)
-WorkingDirectory=${INSTALL_DIR}
-Environment=PATH=${VENV_PATH}/bin
-EnvironmentFile=-${INSTALL_DIR}/.env
-ExecStart=${VENV_PATH}/bin/gunicorn --bind ${BIND_ADDR} --workers 2 --timeout 120 analytics_project.wsgi:application
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable --now ${SERVICE_NAME}
-
-echo "[8/9] إعداد cron للباك اب التلقائي..."
-CRON_CMD="*/10 * * * * cd ${INSTALL_DIR} && set -a && . ${INSTALL_DIR}/.env && set +a && ${VENV_PATH}/bin/python manage.py run_telegram_backup >> ${INSTALL_DIR}/backup.log 2>&1"
-
-(crontab -l 2>/dev/null | grep -v "run_telegram_backup"; echo "$CRON_CMD") | crontab -
-
-echo "Cron job added:"
-crontab -l
-
-echo "[9/9] الحالة:"
-systemctl status ${SERVICE_NAME} --no-pager || true
-BASH
-
-# 2) شغّل السكربت الجديد
-sudo chmod +x /opt/antibot/install.sh
-bash /opt/antibot/install.sh
+echo "[2/2] Running install-inner.sh..."
+export ANTIBOT_INSTALL_DIR="${INSTALL_DIR}"
+exec bash "${INNER}"
