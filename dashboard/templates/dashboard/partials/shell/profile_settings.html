@@ -1,18 +1,18 @@
 <span class="hidden" data-page-title="Profile Settings"></span>
-<div class="mx-auto w-full max-w-4xl text-sm">
+<div class="min-w-0 w-full text-sm">
   <header class="mb-6 border-b border-zinc-700/50 pb-4">
     <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
-      <div>
+      <div class="min-w-0 flex-1">
         <h1 class="text-base font-semibold tracking-tight text-white sm:text-lg">👤 Profile Settings</h1>
-        <p class="mt-1.5 max-w-xl text-xs leading-relaxed text-zinc-500 sm:text-[13px]">Update your account information</p>
+        <p class="mt-1.5 max-w-3xl text-xs leading-relaxed text-zinc-500 sm:text-[13px]">Update your account information</p>
       </div>
     </div>
   </header>
 
   {% include "dashboard/partials/messages.html" %}
 
-  <div class="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
-    <div class="space-y-4 lg:col-span-2">
+  <div class="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start lg:gap-8">
+    <div class="min-w-0 space-y-4 lg:col-span-9">
       <!-- Profile Form -->
       <section class="overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 shadow-lg shadow-black/20 ring-1 ring-zinc-700/30">
         <div class="border-b border-zinc-700/50 bg-zinc-900/25 px-4 py-3 sm:px-5">
@@ -25,7 +25,7 @@
           <input type="hidden" name="action" value="profile">
 
           <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 p-3 sm:p-4">
-            <div class="space-y-4">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-x-6 md:gap-y-4">
               <div class="space-y-1.5">
                 <label class="block text-xs font-medium text-zinc-400" for="id-profile-username">Username</label>
                 <input id="id-profile-username"
@@ -46,7 +46,7 @@
                        class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
               </div>
 
-              <div class="space-y-1.5">
+              <div class="space-y-1.5 md:col-span-2">
                 <label class="block text-xs font-medium text-zinc-400" for="id-profile-avatar">Avatar</label>
                 <input id="id-profile-avatar"
                        type="file"
@@ -121,7 +121,7 @@
           <input type="hidden" name="action" value="password">
 
           <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 p-3 sm:p-4">
-            <div class="space-y-4">
+            <div class="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:gap-x-6 xl:gap-y-4">
               <div class="space-y-1.5">
                 <label class="block text-xs font-medium text-zinc-400" for="id-pw-old">Old Password</label>
                 <input id="id-pw-old"
@@ -140,7 +140,7 @@
                        class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
               </div>
 
-              <div class="space-y-1.5">
+              <div class="space-y-1.5 xl:col-span-2">
                 <label class="block text-xs font-medium text-zinc-400" for="id-pw-confirm">Confirm Password</label>
                 <input id="id-pw-confirm"
                        type="password"
@@ -163,8 +163,8 @@
     </div>
 
     <!-- Profile Preview -->
-    <aside class="h-fit lg:sticky lg:top-4">
-      <div class="overflow-hidden rounded-lg border border-zinc-700/50 bg-zinc-800/60 shadow-lg shadow-black/20 ring-1 ring-zinc-700/30">
+    <aside class="h-fit min-w-0 lg:sticky lg:top-4 lg:col-span-3">
+      <div class="overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 shadow-lg shadow-black/20 ring-1 ring-zinc-700/30">
         <div class="border-b border-zinc-700/50 bg-zinc-900/25 px-4 py-3">
           <h2 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:text-[11px]">🖼️ Profile Preview</h2>
         </div>
