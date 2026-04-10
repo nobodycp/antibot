@@ -15,7 +15,7 @@ def visitor_logs_queryset(user: AbstractUser):
 
 
 def rejected_logs_queryset(user: AbstractUser):
-    qs = RejectedVisitor.objects.exclude(reason="Subnet")
+    qs = RejectedVisitor.objects.all()
     if not user.is_superuser:
         qs = qs.filter(owner=user)
     return qs

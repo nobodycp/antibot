@@ -27,8 +27,7 @@ def build_dashboard_alerts(*, visitors_today, denied_today, user=None):
             'text': f"IP {item.ip_address} repeated {item.count} times."
         })
 
-    # Match tracker.helpers.ownership.rejected_logs_queryset (exclude subnet denials).
-    repeated_denied_qs = RejectedVisitor.objects.exclude(reason="Subnet")
+    repeated_denied_qs = RejectedVisitor.objects.all()
     if user is not None and not user.is_superuser:
         repeated_denied_qs = repeated_denied_qs.filter(owner=user)
     repeated_denied = (
