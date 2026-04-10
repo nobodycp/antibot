@@ -1,19 +1,20 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
-
 from core.decorators import superuser_required
 
 from ..helpers.logs_views_helper import (
     apply_country_code_filter,
     apply_visitor_like_fields_search,
     list_search_q,
-    logs_list_page_context,
-    logs_partial_context,
-    paginated_page,
     visitor_logs_search_q,
 )
 from ..models import AllowedCountry, RejectedVisitor, Visitor
+from .list_flow import (
+    logs_after_post_htmx_or_redirect,
+    logs_render_full_page,
+    logs_render_partial,
+    logs_render_table,
+)
 
 
 @superuser_required
@@ -44,57 +45,47 @@ def allowed_country_view(request):
         else:
             messages.error(request, "Invalid action.")
 
-        if request.headers.get("HX-Request"):
-            q = list_search_q(request)
-            queryset = apply_country_code_filter(
-                AllowedCountry.objects.all().order_by("code"), q
-            )
-            page_obj = paginated_page(request, queryset, force_first_page=True)
-            return render(
-                request,
-                "tracker/partials/allowed_country_partial.html",
-                logs_partial_context("tracker/allowed_countries", page_obj, q, request),
-            )
+        return logs_after_post_htmx_or_redirect(
+            request,
+            get_q=list_search_q,
+            ordered_qs=AllowedCountry.objects.all().order_by("code"),
+            apply_filter=apply_country_code_filter,
+            list_key="allowed_countries",
+            partial_template="tracker/partials/allowed_country_partial.html",
+            redirect_to="tracker:allowed_country",
+        )
 
-        return redirect('tracker:allowed_country')
-
-    q = list_search_q(request)
-    queryset = apply_country_code_filter(
-        AllowedCountry.objects.all().order_by("code"), q
-    )
-    page_obj = paginated_page(request, queryset)
-    return render(
+    return logs_render_full_page(
         request,
-        "tracker/allowed_country.html",
-        logs_list_page_context("tracker/allowed_countries", page_obj, q),
+        get_q=list_search_q,
+        ordered_qs=AllowedCountry.objects.all().order_by("code"),
+        apply_filter=apply_country_code_filter,
+        list_key="allowed_countries",
+        template="tracker/allowed_country.html",
     )
 
 
 @superuser_required
 def allowed_country_partial(request):
-    q = list_search_q(request)
-    queryset = apply_country_code_filter(
-        AllowedCountry.objects.all().order_by("code"), q
-    )
-    page_obj = paginated_page(request, queryset)
-    return render(
+    return logs_render_partial(
         request,
-        "tracker/partials/allowed_country_partial.html",
-        logs_partial_context("tracker/allowed_countries", page_obj, q, request),
+        get_q=list_search_q,
+        ordered_qs=AllowedCountry.objects.all().order_by("code"),
+        apply_filter=apply_country_code_filter,
+        list_key="allowed_countries",
+        partial_template="tracker/partials/allowed_country_partial.html",
     )
 
 
 @superuser_required
 def allowed_country_table(request):
-    q = list_search_q(request)
-    queryset = apply_country_code_filter(
-        AllowedCountry.objects.all().order_by("code"), q
-    )
-    page_obj = paginated_page(request, queryset)
-    return render(
+    return logs_render_table(
         request,
-        "tracker/partials/allowed_country_table.html",
-        logs_list_page_context("tracker/allowed_countries", page_obj, q),
+        get_q=list_search_q,
+        ordered_qs=AllowedCountry.objects.all().order_by("code"),
+        apply_filter=apply_country_code_filter,
+        list_key="allowed_countries",
+        table_template="tracker/partials/allowed_country_table.html",
     )
 
 
@@ -119,57 +110,47 @@ def allowed_logs_view(request):
         else:
             messages.error(request, "Invalid action.")
 
-        if request.headers.get("HX-Request"):
-            q = visitor_logs_search_q(request)
-            queryset = apply_visitor_like_fields_search(
-                Visitor.objects.all().order_by("-timestamp"), q
-            )
-            page_obj = paginated_page(request, queryset, force_first_page=True)
-            return render(
-                request,
-                "tracker/partials/allowed_logs_partial.html",
-                logs_partial_context("logs", page_obj, q, request),
-            )
+        return logs_after_post_htmx_or_redirect(
+            request,
+            get_q=visitor_logs_search_q,
+            ordered_qs=Visitor.objects.all().order_by("-timestamp"),
+            apply_filter=apply_visitor_like_fields_search,
+            list_key="logs",
+            partial_template="tracker/partials/allowed_logs_partial.html",
+            redirect_to="tracker:allowed_logs",
+        )
 
-        return redirect('tracker:allowed_logs')
-
-    q = visitor_logs_search_q(request)
-    queryset = apply_visitor_like_fields_search(
-        Visitor.objects.all().order_by("-timestamp"), q
-    )
-    page_obj = paginated_page(request, queryset)
-    return render(
+    return logs_render_full_page(
         request,
-        "tracker/allowed_logs.html",
-        logs_list_page_context("logs", page_obj, q),
+        get_q=visitor_logs_search_q,
+        ordered_qs=Visitor.objects.all().order_by("-timestamp"),
+        apply_filter=apply_visitor_like_fields_search,
+        list_key="logs",
+        template="tracker/allowed_logs.html",
     )
 
 
 @login_required
 def allowed_logs_partial(request):
-    q = visitor_logs_search_q(request)
-    queryset = apply_visitor_like_fields_search(
-        Visitor.objects.all().order_by("-timestamp"), q
-    )
-    page_obj = paginated_page(request, queryset)
-    return render(
+    return logs_render_partial(
         request,
-        "tracker/partials/allowed_logs_partial.html",
-        logs_partial_context("logs", page_obj, q, request),
+        get_q=visitor_logs_search_q,
+        ordered_qs=Visitor.objects.all().order_by("-timestamp"),
+        apply_filter=apply_visitor_like_fields_search,
+        list_key="logs",
+        partial_template="tracker/partials/allowed_logs_partial.html",
     )
 
 
 @login_required
 def allowed_logs_table(request):
-    q = visitor_logs_search_q(request)
-    queryset = apply_visitor_like_fields_search(
-        Visitor.objects.all().order_by("-timestamp"), q
-    )
-    page_obj = paginated_page(request, queryset)
-    return render(
+    return logs_render_table(
         request,
-        "tracker/partials/allowed_logs_table.html",
-        logs_list_page_context("logs", page_obj, q),
+        get_q=visitor_logs_search_q,
+        ordered_qs=Visitor.objects.all().order_by("-timestamp"),
+        apply_filter=apply_visitor_like_fields_search,
+        list_key="logs",
+        table_template="tracker/partials/allowed_logs_table.html",
     )
 
 
@@ -194,59 +175,49 @@ def denied_logs_view(request):
         else:
             messages.error(request, "Invalid action.")
 
-        if request.headers.get("HX-Request"):
-            q = visitor_logs_search_q(request)
-            queryset = apply_visitor_like_fields_search(
-                RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp"),
-                q,
-            )
-            page_obj = paginated_page(request, queryset, per_page=10, force_first_page=True)
-            return render(
-                request,
-                "tracker/partials/denied_logs_partial.html",
-                logs_partial_context("logs", page_obj, q, request),
-            )
+        return logs_after_post_htmx_or_redirect(
+            request,
+            get_q=visitor_logs_search_q,
+            ordered_qs=RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp"),
+            apply_filter=apply_visitor_like_fields_search,
+            list_key="logs",
+            partial_template="tracker/partials/denied_logs_partial.html",
+            redirect_to="tracker:denied_logs",
+            per_page=10,
+        )
 
-        return redirect('tracker:denied_logs')
-
-    q = visitor_logs_search_q(request)
-    queryset = apply_visitor_like_fields_search(
-        RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp"),
-        q,
-    )
-    page_obj = paginated_page(request, queryset, per_page=10)
-    return render(
+    return logs_render_full_page(
         request,
-        "tracker/denied_logs.html",
-        logs_list_page_context("logs", page_obj, q),
+        get_q=visitor_logs_search_q,
+        ordered_qs=RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp"),
+        apply_filter=apply_visitor_like_fields_search,
+        list_key="logs",
+        template="tracker/denied_logs.html",
+        per_page=10,
     )
 
 
 @superuser_required
 def denied_logs_partial(request):
-    q = visitor_logs_search_q(request)
-    queryset = apply_visitor_like_fields_search(
-        RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp"),
-        q,
-    )
-    page_obj = paginated_page(request, queryset, per_page=10)
-    return render(
+    return logs_render_partial(
         request,
-        "tracker/partials/denied_logs_partial.html",
-        logs_partial_context("logs", page_obj, q, request),
+        get_q=visitor_logs_search_q,
+        ordered_qs=RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp"),
+        apply_filter=apply_visitor_like_fields_search,
+        list_key="logs",
+        partial_template="tracker/partials/denied_logs_partial.html",
+        per_page=10,
     )
 
 
 @superuser_required
 def denied_logs_table(request):
-    q = visitor_logs_search_q(request)
-    queryset = apply_visitor_like_fields_search(
-        RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp"),
-        q,
-    )
-    page_obj = paginated_page(request, queryset, per_page=10)
-    return render(
+    return logs_render_table(
         request,
-        "tracker/partials/denied_logs_table.html",
-        logs_list_page_context("logs", page_obj, q),
+        get_q=visitor_logs_search_q,
+        ordered_qs=RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp"),
+        apply_filter=apply_visitor_like_fields_search,
+        list_key="logs",
+        table_template="tracker/partials/denied_logs_table.html",
+        per_page=10,
     )

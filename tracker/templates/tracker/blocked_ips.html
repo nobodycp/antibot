@@ -4,16 +4,7 @@
 
 {% block content %}
 <div class="w-full px-6 text-sm">
-  <h1 class="text-base font-semibold mb-4 text-white border-b border-zinc-700 pb-1 flex items-center justify-between">
-    <span>🚫 Blocked IPs Management</span>
-    <span class="text-xs font-normal text-zinc-400">
-      {% if page_obj %}
-        Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
-      {% else %}
-        Total: {{ blocked_ips|length }}
-      {% endif %}
-    </span>
-  </h1>
+  {% include "tracker/partials/includes/tracker_page_heading.html" with heading_title="🚫 Blocked IPs Management" heading_items=blocked_ips %}
 
   <!-- Controls Row -->
   <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
@@ -52,13 +43,8 @@
     </div>
 
     <!-- Search Bar -->
-    <input type="text" name="q" placeholder="Search IP..."
-       hx-get="{% url 'tracker:blocked_ips_partial' %}"
-       hx-trigger="keyup changed delay:300ms"
-       hx-target="#blocked-ips-wrapper"
-       hx-swap="outerHTML"
-       hx-vals='{"page":1}'
-       class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs md:ml-auto focus:outline-none focus:ring-1 focus:ring-purple-500" />
+    {% url 'tracker:blocked_ips_partial' as blocked_ips_search_url %}
+    {% include "tracker/partials/includes/tracker_search_input_standalone.html" with search_placeholder="Search IP..." search_url=blocked_ips_search_url search_target_id="blocked-ips-wrapper" search_input_class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs md:ml-auto focus:outline-none focus:ring-1 focus:ring-purple-500" %}
   </div>
 </div>
   <!-- Wrapper for messages + table -->
@@ -72,13 +58,6 @@
       return false;
     }
   }
-  document.addEventListener('htmx:afterSwap', function (e) {
-    if (e.target.id === 'blocked-ips-wrapper') {
-      setTimeout(() => {
-        const msgBox = document.getElementById("htmx-messages");
-        if (msgBox) msgBox.innerHTML = '';
-      }, 3000);
-    }
-  });
 </script>
+{% include "tracker/partials/includes/tracker_clear_messages_script.html" with clear_messages_wrapper_id="blocked-ips-wrapper" %}
 {% endblock %}

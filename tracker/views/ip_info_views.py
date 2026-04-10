@@ -1,17 +1,18 @@
 from django.contrib import messages
-from django.shortcuts import redirect, render
 
 from core.decorators import superuser_required
 
 from ..helpers.logs_views_helper import (
     apply_ip_info_fields_search,
-    logs_list_page_context,
-    logs_partial_context,
-    paginated_page,
     visitor_logs_search_q,
 )
 from ..models import IPInfo
-
+from .list_flow import (
+    logs_after_post_htmx_or_redirect,
+    logs_render_full_page,
+    logs_render_partial,
+    logs_render_table,
+)
 from .utility_views import add_block_rule
 
 
@@ -40,55 +41,49 @@ def ip_info_view(request):
         else:
             messages.error(request, "Invalid action.")
 
-        if request.headers.get("HX-Request"):
-            q = visitor_logs_search_q(request)
-            queryset = apply_ip_info_fields_search(
-                IPInfo.objects.all().order_by("-last_seen"), q
-            )
-            page_obj = paginated_page(request, queryset, per_page=10, force_first_page=True)
-            return render(
-                request,
-                "tracker/partials/ip_info_partial.html",
-                logs_partial_context("ips", page_obj, q, request),
-            )
+        return logs_after_post_htmx_or_redirect(
+            request,
+            get_q=visitor_logs_search_q,
+            ordered_qs=IPInfo.objects.all().order_by("-last_seen"),
+            apply_filter=apply_ip_info_fields_search,
+            list_key="ips",
+            partial_template="tracker/partials/ip_info_partial.html",
+            redirect_to="tracker:ip_info",
+            per_page=10,
+        )
 
-        return redirect('tracker:ip_info')
-
-    q = visitor_logs_search_q(request)
-    queryset = apply_ip_info_fields_search(
-        IPInfo.objects.all().order_by("-last_seen"), q
-    )
-    page_obj = paginated_page(request, queryset, per_page=10)
-    return render(
+    return logs_render_full_page(
         request,
-        "tracker/ip_info.html",
-        logs_list_page_context("ips", page_obj, q),
+        get_q=visitor_logs_search_q,
+        ordered_qs=IPInfo.objects.all().order_by("-last_seen"),
+        apply_filter=apply_ip_info_fields_search,
+        list_key="ips",
+        template="tracker/ip_info.html",
+        per_page=10,
     )
 
 
 @superuser_required
 def ip_info_partial(request):
-    q = visitor_logs_search_q(request)
-    queryset = apply_ip_info_fields_search(
-        IPInfo.objects.all().order_by("-last_seen"), q
-    )
-    page_obj = paginated_page(request, queryset, per_page=10)
-    return render(
+    return logs_render_partial(
         request,
-        "tracker/partials/ip_info_partial.html",
-        logs_partial_context("ips", page_obj, q, request),
+        get_q=visitor_logs_search_q,
+        ordered_qs=IPInfo.objects.all().order_by("-last_seen"),
+        apply_filter=apply_ip_info_fields_search,
+        list_key="ips",
+        partial_template="tracker/partials/ip_info_partial.html",
+        per_page=10,
     )
 
 
 @superuser_required
 def ip_info_table(request):
-    q = visitor_logs_search_q(request)
-    queryset = apply_ip_info_fields_search(
-        IPInfo.objects.all().order_by("-last_seen"), q
-    )
-    page_obj = paginated_page(request, queryset, per_page=10)
-    return render(
+    return logs_render_table(
         request,
-        "tracker/partials/ip_info_table.html",
-        logs_list_page_context("ips", page_obj, q),
+        get_q=visitor_logs_search_q,
+        ordered_qs=IPInfo.objects.all().order_by("-last_seen"),
+        apply_filter=apply_ip_info_fields_search,
+        list_key="ips",
+        table_template="tracker/partials/ip_info_table.html",
+        per_page=10,
     )

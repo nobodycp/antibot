@@ -49,9 +49,11 @@ def add_block_rule(request):
 
         # HTMX Response
         if request.headers.get("HX-Request"):
-            return render(request, "dashboard/partials/messages.html", {
-                "messages": messages.get_messages(request)
-            })
+            return render(
+                request,
+                "core/partials/messages_list.html",
+                {"messages": messages.get_messages(request)},
+            )
 
         return redirect('tracker:denied_logs')
 ######################################################################

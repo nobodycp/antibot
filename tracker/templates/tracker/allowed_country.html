@@ -4,16 +4,7 @@
 
 {% block content %}
 <div class="w-full px-6 text-sm">
-  <h1 class="text-base font-semibold mb-4 text-white border-b border-zinc-700 pb-1 flex items-center justify-between">
-    <span>🌍 Allowed Countries Management</span>
-    <span class="text-xs font-normal text-zinc-400">
-      {% if page_obj %}
-        Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
-      {% else %}
-        Total: {{ allowed_countries|length }}
-      {% endif %}
-    </span>
-  </h1>
+  {% include "tracker/partials/includes/tracker_page_heading.html" with heading_title="🌍 Allowed Countries Management" heading_items=allowed_countries %}
 
   <!-- Controls Row -->
 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
@@ -64,27 +55,12 @@
   </div>
 
   <!-- Search -->
-<input type="text" name="q" placeholder="Search Country Code..."
-       hx-get="{% url 'tracker:allowed_country_partial' %}"
-       hx-trigger="keyup changed delay:300ms"
-       hx-target="#allowed-country-wrapper"
-       hx-swap="outerHTML"
-       hx-vals='{"page":1}'
-       class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs md:ml-auto focus:outline-none focus:ring-1 focus:ring-purple-500" />
+{% url 'tracker:allowed_country_partial' as allowed_country_search_url %}
+{% include "tracker/partials/includes/tracker_search_input_standalone.html" with search_placeholder="Search Country Code..." search_url=allowed_country_search_url search_target_id="allowed-country-wrapper" search_input_class="px-3 py-1 bg-zinc-800 border border-zinc-600 rounded text-xs text-white w-full md:max-w-xs md:ml-auto focus:outline-none focus:ring-1 focus:ring-purple-500" %}
 </div>
   <!-- Wrapper -->
   {% include 'tracker/partials/allowed_country_partial.html' %}
 </div>
 
-<script>
-  document.addEventListener('htmx:afterSwap', function (e) {
-    if (e.target.id === 'allowed-country-wrapper') {
-      setTimeout(() => {
-        const msgBox = document.getElementById("htmx-messages");
-        if (msgBox) msgBox.innerHTML = '';
-      }, 3000);
-    }
-  });
-  }
-</script>
+{% include "tracker/partials/includes/tracker_clear_messages_script.html" with clear_messages_wrapper_id="allowed-country-wrapper" %}
 {% endblock %}

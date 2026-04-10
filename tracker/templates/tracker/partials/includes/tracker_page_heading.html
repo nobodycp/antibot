@@ -1,0 +1,14 @@
+<h1 class="text-base font-semibold mb-4 text-white border-b border-zinc-700 pb-1 flex items-center justify-between">
+  <span>{{ heading_title }}</span>
+  <span class="text-xs font-normal text-zinc-400">
+    {% if heading_simple_total %}
+      Total: {{ heading_items|length }}
+    {% else %}
+      {% if page_obj %}
+        Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+      {% else %}
+        Total: {{ heading_items|length }}
+      {% endif %}
+    {% endif %}
+  </span>
+</h1>

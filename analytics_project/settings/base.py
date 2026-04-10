@@ -76,6 +76,19 @@ DATABASES = {
     }
 }
 
+# Used by tracker IP enrichment (visitor_context_service). Override backend in production if needed.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'analytics-default-cache',
+    }
+}
+
+# TTL in seconds for cached external IP API enrichment (default 6 hours).
+TRACKER_IP_CONTEXT_CACHE_TIMEOUT = int(
+    os.environ.get('TRACKER_IP_CONTEXT_CACHE_TIMEOUT', '21600')
+)
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',

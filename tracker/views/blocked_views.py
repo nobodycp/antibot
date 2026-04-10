@@ -1,18 +1,8 @@
 import ipaddress
 
 from django.contrib import messages
-from django.shortcuts import redirect, render
-
 from core.decorators import superuser_required
 
-from ..helpers.blocked_views_helper import (
-    apply_search_filter,
-    blocked_list_page_context,
-    blocked_partial_context,
-    blocked_table_only_context,
-    list_search_q,
-    paginated_page,
-)
 from ..models import (
     BlockedBrowser,
     BlockedHostname,
@@ -20,6 +10,12 @@ from ..models import (
     BlockedISP,
     BlockedOS,
     BlockedSubnet,
+)
+from .list_flow import (
+    blocked_after_post_htmx_or_redirect,
+    blocked_render_full_page,
+    blocked_render_partial,
+    blocked_render_table,
 )
 
 
@@ -62,49 +58,44 @@ def blocked_subnets_view(request):
         else:
             messages.error(request, "Invalid action.")
 
-        if request.headers.get("HX-Request"):
-            q = list_search_q(request)
-            qs = apply_search_filter(BlockedSubnet.objects.all().order_by('-id'), q, "cidr")
-            page_obj = paginated_page(request, qs, force_first_page=True)
-            return render(
-                request,
-                "tracker/partials/blocked_subnets_partial.html",
-                blocked_partial_context("blocked_subnets", page_obj, q, request),
-            )
+        return blocked_after_post_htmx_or_redirect(
+            request,
+            ordered_qs=BlockedSubnet.objects.all().order_by('-id'),
+            search_field="cidr",
+            list_key="blocked_subnets",
+            partial_template="tracker/partials/blocked_subnets_partial.html",
+            redirect_to="tracker:blocked_subnets",
+        )
 
-        return redirect('tracker:blocked_subnets')
-
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedSubnet.objects.all().order_by('-id'), q, "cidr")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_full_page(
         request,
-        "tracker/blocked_subnets.html",
-        blocked_list_page_context("blocked_subnets", page_obj, q),
+        ordered_qs=BlockedSubnet.objects.all().order_by('-id'),
+        search_field="cidr",
+        list_key="blocked_subnets",
+        template="tracker/blocked_subnets.html",
     )
 
 
 @superuser_required
 def blocked_subnets_partial(request):
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedSubnet.objects.all().order_by('-id'), q, "cidr")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_partial(
         request,
-        "tracker/partials/blocked_subnets_partial.html",
-        blocked_partial_context("blocked_subnets", page_obj, q, request),
+        ordered_qs=BlockedSubnet.objects.all().order_by('-id'),
+        search_field="cidr",
+        list_key="blocked_subnets",
+        partial_template="tracker/partials/blocked_subnets_partial.html",
     )
 
 
 @superuser_required
 def blocked_subnets_table(request):
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedSubnet.objects.all().order_by('-id'), q, "cidr")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_table(
         request,
-        "tracker/partials/blocked_subnets_table.html",
-        blocked_list_page_context("blocked_subnets", page_obj, q),
+        ordered_qs=BlockedSubnet.objects.all().order_by('-id'),
+        search_field="cidr",
+        list_key="blocked_subnets",
+        table_template="tracker/partials/blocked_subnets_table.html",
+        table_only=False,
     )
 
 
@@ -137,49 +128,44 @@ def blocked_ips_view(request):
         else:
             messages.error(request, "Invalid action.")
 
-        if request.headers.get("HX-Request"):
-            q = list_search_q(request)
-            qs = apply_search_filter(BlockedIP.objects.all().order_by('-id'), q, "ip_address")
-            page_obj = paginated_page(request, qs, force_first_page=True)
-            return render(
-                request,
-                "tracker/partials/blocked_ips_partial.html",
-                blocked_partial_context("blocked_ips", page_obj, q, request),
-            )
+        return blocked_after_post_htmx_or_redirect(
+            request,
+            ordered_qs=BlockedIP.objects.all().order_by('-id'),
+            search_field="ip_address",
+            list_key="blocked_ips",
+            partial_template="tracker/partials/blocked_ips_partial.html",
+            redirect_to="tracker:blocked_ips",
+        )
 
-        return redirect('tracker:blocked_ips')
-
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedIP.objects.all().order_by('-id'), q, "ip_address")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_full_page(
         request,
-        "tracker/blocked_ips.html",
-        blocked_list_page_context("blocked_ips", page_obj, q),
+        ordered_qs=BlockedIP.objects.all().order_by('-id'),
+        search_field="ip_address",
+        list_key="blocked_ips",
+        template="tracker/blocked_ips.html",
     )
 
 
 @superuser_required
 def blocked_ips_partial(request):
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedIP.objects.all().order_by('-id'), q, "ip_address")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_partial(
         request,
-        "tracker/partials/blocked_ips_partial.html",
-        blocked_partial_context("blocked_ips", page_obj, q, request),
+        ordered_qs=BlockedIP.objects.all().order_by('-id'),
+        search_field="ip_address",
+        list_key="blocked_ips",
+        partial_template="tracker/partials/blocked_ips_partial.html",
     )
 
 
 @superuser_required
 def blocked_ips_table(request):
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedIP.objects.all().order_by('-id'), q, "ip_address")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_table(
         request,
-        'tracker/partials/blocked_ips_table.html',
-        blocked_list_page_context("blocked_ips", page_obj, q),
+        ordered_qs=BlockedIP.objects.all().order_by('-id'),
+        search_field="ip_address",
+        list_key="blocked_ips",
+        table_template="tracker/partials/blocked_ips_table.html",
+        table_only=False,
     )
 
 
@@ -212,49 +198,45 @@ def blocked_isp_view(request):
         else:
             messages.error(request, "Invalid action.")
 
-        if request.headers.get("HX-Request"):
-            q = list_search_q(request)
-            qs = apply_search_filter(BlockedISP.objects.all().order_by('-id'), q, "isp")
-            page_obj = paginated_page(request, qs, force_first_page=False)
-            return render(
-                request,
-                "tracker/partials/blocked_isp_partial.html",
-                blocked_partial_context("blocked_isps", page_obj, q, request),
-            )
+        return blocked_after_post_htmx_or_redirect(
+            request,
+            ordered_qs=BlockedISP.objects.all().order_by('-id'),
+            search_field="isp",
+            list_key="blocked_isps",
+            partial_template="tracker/partials/blocked_isp_partial.html",
+            redirect_to="tracker:blocked_isp",
+            force_first_page=False,
+        )
 
-        return redirect("tracker:blocked_isp")
-
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedISP.objects.all().order_by('-id'), q, "isp")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_full_page(
         request,
-        "tracker/blocked_isp.html",
-        blocked_list_page_context("blocked_isps", page_obj, q),
+        ordered_qs=BlockedISP.objects.all().order_by('-id'),
+        search_field="isp",
+        list_key="blocked_isps",
+        template="tracker/blocked_isp.html",
     )
 
 
 @superuser_required
 def blocked_isp_partial(request):
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedISP.objects.all().order_by('-id'), q, "isp")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_partial(
         request,
-        "tracker/partials/blocked_isp_partial.html",
-        blocked_partial_context("blocked_isps", page_obj, q, request),
+        ordered_qs=BlockedISP.objects.all().order_by('-id'),
+        search_field="isp",
+        list_key="blocked_isps",
+        partial_template="tracker/partials/blocked_isp_partial.html",
     )
 
 
 @superuser_required
 def blocked_isp_table(request):
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedISP.objects.all().order_by('-id'), q, "isp")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_table(
         request,
-        "tracker/partials/blocked_isp_table.html",
-        blocked_table_only_context("blocked_isps", page_obj, q),
+        ordered_qs=BlockedISP.objects.all().order_by('-id'),
+        search_field="isp",
+        list_key="blocked_isps",
+        table_template="tracker/partials/blocked_isp_table.html",
+        table_only=True,
     )
 
 
@@ -287,49 +269,44 @@ def blocked_browser_view(request):
         else:
             messages.error(request, "Invalid action.")
 
-        if request.headers.get("HX-Request"):
-            q = list_search_q(request)
-            qs = apply_search_filter(BlockedBrowser.objects.all().order_by('-id'), q, "browser")
-            page_obj = paginated_page(request, qs, force_first_page=True)
-            return render(
-                request,
-                "tracker/partials/blocked_browser_partial.html",
-                blocked_partial_context("blocked_browsers", page_obj, q, request),
-            )
+        return blocked_after_post_htmx_or_redirect(
+            request,
+            ordered_qs=BlockedBrowser.objects.all().order_by('-id'),
+            search_field="browser",
+            list_key="blocked_browsers",
+            partial_template="tracker/partials/blocked_browser_partial.html",
+            redirect_to="tracker:blocked_browser",
+        )
 
-        return redirect('tracker:blocked_browser')
-
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedBrowser.objects.all().order_by('-id'), q, "browser")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_full_page(
         request,
-        'tracker/blocked_browser.html',
-        blocked_list_page_context("blocked_browsers", page_obj, q),
+        ordered_qs=BlockedBrowser.objects.all().order_by('-id'),
+        search_field="browser",
+        list_key="blocked_browsers",
+        template="tracker/blocked_browser.html",
     )
 
 
 @superuser_required
 def blocked_browser_partial(request):
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedBrowser.objects.all().order_by('-id'), q, "browser")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_partial(
         request,
-        "tracker/partials/blocked_browser_partial.html",
-        blocked_partial_context("blocked_browsers", page_obj, q, request),
+        ordered_qs=BlockedBrowser.objects.all().order_by('-id'),
+        search_field="browser",
+        list_key="blocked_browsers",
+        partial_template="tracker/partials/blocked_browser_partial.html",
     )
 
 
 @superuser_required
 def blocked_browser_table(request):
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedBrowser.objects.all().order_by('-id'), q, "browser")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_table(
         request,
-        "tracker/partials/blocked_browser_table.html",
-        blocked_list_page_context("blocked_browsers", page_obj, q),
+        ordered_qs=BlockedBrowser.objects.all().order_by('-id'),
+        search_field="browser",
+        list_key="blocked_browsers",
+        table_template="tracker/partials/blocked_browser_table.html",
+        table_only=False,
     )
 
 
@@ -362,49 +339,44 @@ def blocked_os_view(request):
         else:
             messages.error(request, "Invalid action.")
 
-        if request.headers.get("HX-Request"):
-            q = list_search_q(request)
-            qs = apply_search_filter(BlockedOS.objects.all().order_by('-id'), q, "os")
-            page_obj = paginated_page(request, qs, force_first_page=True)
-            return render(
-                request,
-                "tracker/partials/blocked_os_partial.html",
-                blocked_partial_context("blocked_os", page_obj, q, request),
-            )
+        return blocked_after_post_htmx_or_redirect(
+            request,
+            ordered_qs=BlockedOS.objects.all().order_by('-id'),
+            search_field="os",
+            list_key="blocked_os",
+            partial_template="tracker/partials/blocked_os_partial.html",
+            redirect_to="tracker:blocked_os",
+        )
 
-        return redirect('tracker:blocked_os')
-
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedOS.objects.all().order_by('-id'), q, "os")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_full_page(
         request,
-        "tracker/blocked_os.html",
-        blocked_list_page_context("blocked_os", page_obj, q),
+        ordered_qs=BlockedOS.objects.all().order_by('-id'),
+        search_field="os",
+        list_key="blocked_os",
+        template="tracker/blocked_os.html",
     )
 
 
 @superuser_required
 def blocked_os_partial(request):
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedOS.objects.all().order_by('-id'), q, "os")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_partial(
         request,
-        "tracker/partials/blocked_os_partial.html",
-        blocked_partial_context("blocked_os", page_obj, q, request),
+        ordered_qs=BlockedOS.objects.all().order_by('-id'),
+        search_field="os",
+        list_key="blocked_os",
+        partial_template="tracker/partials/blocked_os_partial.html",
     )
 
 
 @superuser_required
 def blocked_os_table(request):
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedOS.objects.all().order_by('-id'), q, "os")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_table(
         request,
-        'tracker/partials/blocked_os_table.html',
-        blocked_list_page_context("blocked_os", page_obj, q),
+        ordered_qs=BlockedOS.objects.all().order_by('-id'),
+        search_field="os",
+        list_key="blocked_os",
+        table_template="tracker/partials/blocked_os_table.html",
+        table_only=False,
     )
 
 
@@ -437,47 +409,42 @@ def blocked_hostname_view(request):
         else:
             messages.error(request, "Invalid action.")
 
-        if request.headers.get("HX-Request"):
-            q = list_search_q(request)
-            qs = apply_search_filter(BlockedHostname.objects.all().order_by('-id'), q, "hostname")
-            page_obj = paginated_page(request, qs, force_first_page=True)
-            return render(
-                request,
-                "tracker/partials/blocked_hostname_partial.html",
-                blocked_partial_context("blocked_hostnames", page_obj, q, request),
-            )
+        return blocked_after_post_htmx_or_redirect(
+            request,
+            ordered_qs=BlockedHostname.objects.all().order_by('-id'),
+            search_field="hostname",
+            list_key="blocked_hostnames",
+            partial_template="tracker/partials/blocked_hostname_partial.html",
+            redirect_to="tracker:blocked_hostname",
+        )
 
-        return redirect('tracker:blocked_hostname')
-
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedHostname.objects.all().order_by('-id'), q, "hostname")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_full_page(
         request,
-        "tracker/blocked_hostname.html",
-        blocked_list_page_context("blocked_hostnames", page_obj, q),
+        ordered_qs=BlockedHostname.objects.all().order_by('-id'),
+        search_field="hostname",
+        list_key="blocked_hostnames",
+        template="tracker/blocked_hostname.html",
     )
 
 
 @superuser_required
 def blocked_hostname_partial(request):
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedHostname.objects.all().order_by('-id'), q, "hostname")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_partial(
         request,
-        "tracker/partials/blocked_hostname_partial.html",
-        blocked_partial_context("blocked_hostnames", page_obj, q, request),
+        ordered_qs=BlockedHostname.objects.all().order_by('-id'),
+        search_field="hostname",
+        list_key="blocked_hostnames",
+        partial_template="tracker/partials/blocked_hostname_partial.html",
     )
 
 
 @superuser_required
 def blocked_hostname_table(request):
-    q = list_search_q(request)
-    qs = apply_search_filter(BlockedHostname.objects.all().order_by('-id'), q, "hostname")
-    page_obj = paginated_page(request, qs)
-    return render(
+    return blocked_render_table(
         request,
-        "tracker/partials/blocked_hostname_table.html",
-        blocked_list_page_context("blocked_hostnames", page_obj, q),
+        ordered_qs=BlockedHostname.objects.all().order_by('-id'),
+        search_field="hostname",
+        list_key="blocked_hostnames",
+        table_template="tracker/partials/blocked_hostname_table.html",
+        table_only=False,
     )

@@ -1,6 +1,13 @@
+"""
+Evaluate whether a visitor should be allowed based on IP, enriched context, and blocklists.
+
+Decision order is fixed; changing the order would change API behavior.
+"""
+from __future__ import annotations
+
 import ipaddress
 from dataclasses import dataclass
-from typing import Optional
+from typing import Iterable, Optional
 
 from django.db.models import Q
 
@@ -37,36 +44,81 @@ class VisitorDecision:
         return _API_REASONS[self.reason]
 
 
-def evaluate_visitor_decision(ip: str, ctx: VisitorContext, allowed_codes) -> VisitorDecision:
+def _deny_reason_subnet(ip: str) -> Optional[str]:
     try:
         ip_obj = ipaddress.ip_address(ip)
-        for cidr in BlockedSubnet.objects.values_list('cidr', flat=True):
-            try:
-                if ip_obj in ipaddress.ip_network(cidr, strict=False):
-                    return VisitorDecision(allowed=False, reason="Subnet")
-            except ValueError:
-                continue
     except ValueError:
-        pass
+        return None
+    for cidr in BlockedSubnet.objects.values_list("cidr", flat=True):
+        try:
+            if ip_obj in ipaddress.ip_network(cidr, strict=False):
+                return "Subnet"
+        except ValueError:
+            continue
+    return None
 
+
+def _deny_reason_ip(ip: str) -> Optional[str]:
     if BlockedIP.objects.filter(ip_address=ip).exists():
-        return VisitorDecision(allowed=False, reason="IP")
+        return "IP"
+    return None
 
+
+def _deny_reason_isp(ctx: VisitorContext) -> Optional[str]:
     if BlockedISP.objects.filter(isp__iexact=ctx.isp).exists():
-        return VisitorDecision(allowed=False, reason="ISP")
+        return "ISP"
+    return None
 
+
+def _deny_reason_os(ctx: VisitorContext) -> Optional[str]:
     if BlockedOS.objects.filter(os__iexact=ctx.os.strip()).exists():
-        return VisitorDecision(allowed=False, reason="OS")
+        return "OS"
+    return None
 
+
+def _deny_reason_browser(ctx: VisitorContext) -> Optional[str]:
     if BlockedBrowser.objects.filter(browser__iexact=ctx.browser.strip()).exists():
-        return VisitorDecision(allowed=False, reason="Browser")
+        return "Browser"
+    return None
 
+
+def _deny_reason_country(ctx: VisitorContext, allowed_codes: Iterable[str]) -> Optional[str]:
     if ctx.country_code not in allowed_codes:
-        return VisitorDecision(allowed=False, reason="Country")
+        return "Country"
+    return None
 
-    if ctx.hostname and BlockedHostname.objects.filter(
-            Q(hostname__icontains=ctx.hostname) | Q(hostname__in=ctx.hostname.split('.'))
+
+def _deny_reason_hostname(ctx: VisitorContext) -> Optional[str]:
+    if not ctx.hostname:
+        return None
+    if BlockedHostname.objects.filter(
+        Q(hostname__icontains=ctx.hostname) | Q(hostname__in=ctx.hostname.split("."))
     ).exists():
-        return VisitorDecision(allowed=False, reason="Hostname")
+        return "Hostname"
+    return None
 
+
+def evaluate_visitor_decision(ip: str, ctx: VisitorContext, allowed_codes) -> VisitorDecision:
+    """Return allowed/denied; denial reasons follow fixed precedence (subnet → … → hostname)."""
+    reason = _deny_reason_subnet(ip)
+    if reason is not None:
+        return VisitorDecision(allowed=False, reason=reason)
+    reason = _deny_reason_ip(ip)
+    if reason is not None:
+        return VisitorDecision(allowed=False, reason=reason)
+    reason = _deny_reason_isp(ctx)
+    if reason is not None:
+        return VisitorDecision(allowed=False, reason=reason)
+    reason = _deny_reason_os(ctx)
+    if reason is not None:
+        return VisitorDecision(allowed=False, reason=reason)
+    reason = _deny_reason_browser(ctx)
+    if reason is not None:
+        return VisitorDecision(allowed=False, reason=reason)
+    reason = _deny_reason_country(ctx, allowed_codes)
+    if reason is not None:
+        return VisitorDecision(allowed=False, reason=reason)
+    reason = _deny_reason_hostname(ctx)
+    if reason is not None:
+        return VisitorDecision(allowed=False, reason=reason)
     return VisitorDecision(allowed=True, reason=None)

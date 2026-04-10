@@ -1,14 +1,12 @@
-from django.contrib import messages
-from django.core.paginator import Paginator
 from django.db.models import Q
 
-
-def list_search_q(request) -> str:
-    return (request.GET.get("q") or "").strip()
-
-
-def visitor_logs_search_q(request) -> str:
-    return (request.GET.get("q") or request.GET.get("search") or "").strip()
+from .list_helpers import (
+    list_partial_context,
+    list_page_context,
+    list_search_q,
+    paginated_page,
+    visitor_logs_search_q,
+)
 
 
 def apply_country_code_filter(queryset, q: str):
@@ -41,22 +39,21 @@ def apply_ip_info_fields_search(queryset, q: str):
     )
 
 
-def paginated_page(request, queryset, *, per_page=20, force_first_page: bool = False):
-    paginator = Paginator(queryset, per_page)
-    if force_first_page:
-        return paginator.get_page(1)
-    return paginator.get_page(request.GET.get("page"))
-
-
 def logs_list_page_context(list_key: str, page_obj, q: str) -> dict:
-    return {
-        list_key: page_obj.object_list,
-        "page_obj": page_obj,
-        "q": q,
-    }
+    return list_page_context(list_key, page_obj, q)
 
 
 def logs_partial_context(list_key: str, page_obj, q: str, request) -> dict:
-    ctx = logs_list_page_context(list_key, page_obj, q)
-    ctx["messages"] = messages.get_messages(request)
-    return ctx
+    return list_partial_context(list_key, page_obj, q, request)
+
+
+__all__ = [
+    "apply_country_code_filter",
+    "apply_ip_info_fields_search",
+    "apply_visitor_like_fields_search",
+    "list_search_q",
+    "logs_list_page_context",
+    "logs_partial_context",
+    "paginated_page",
+    "visitor_logs_search_q",
+]

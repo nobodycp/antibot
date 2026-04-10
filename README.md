@@ -79,6 +79,28 @@ Settings load from `analytics_project.settings` (default **dev**). Put secrets i
 
 ---
 
+## Tracker: services, caching, and templates
+
+### Visitor pipeline (API `/tracker/api/log/`)
+
+1. **`visitor_context_service`** — Parses User-Agent, reverse DNS, then calls external IP APIs (ipwho.is, api.ipapi.is, ipinfo.io) to build a `VisitorContext`.
+2. **`visitor_decision_service`** — Applies subnet/IP/ISP/OS/browser/country/hostname rules and allowed countries.
+3. **`visitor_persistence_service`** — On allow: `Visitor`, `IPInfo`, `IPLog`; on deny: `RejectedVisitor`.
+
+### IP enrichment cache
+
+- Successful API enrichment is stored in Django’s cache so repeat lookups for the same IP skip HTTP calls until the entry expires.
+- **Cache key:** `ip_context_<ip>` (e.g. `ip_context_203.0.113.10`).
+- **Default TTL:** 6 hours (`21600` seconds), configurable via the **`TRACKER_IP_CONTEXT_CACHE_TIMEOUT`** environment variable (seconds).
+- **Failures** (network/JSON errors) are **not** cached; the next request retries the APIs.
+- **`CACHES`** is defined in `analytics_project/settings/base.py` with a **LocMem** backend suitable for single-process dev. For multiple app processes or servers, point `CACHES` at Redis or Memcached so all workers share the same cache.
+
+### Tracker UI templates
+
+- List and management pages under `tracker/templates/tracker/` reuse shared partials in `tracker/templates/tracker/partials/includes/` (headings, search inputs, table chrome, pagination, HTMX message-clear scripts) so behavior and layout stay aligned across blocked lists, logs, allowed countries, and IP info.
+
+---
+
 ## Endpoints overview
 
 Paths assume the app is mounted at the site root (e.g. `https://example.com`). Adjust for your deployment.
@@ -132,11 +154,11 @@ curl -s -X POST http://127.0.0.1:8000/tracker/api/log/ \
 |------|-------------|
 | `/tracker/blocked-ips/` | Blocked IPs |
 | `/tracker/blocked-subnets/` | Blocked subnets |
-| `/tracker/blocked-isp/` | Blocked ISPs |
-| `/tracker/blocked-browser/` | Blocked browsers |
+| `/tracker/blocked-isps/` | Blocked ISPs |
+| `/tracker/blocked-browsers/` | Blocked browsers |
 | `/tracker/blocked-os/` | Blocked OSes |
-| `/tracker/blocked-hostname/` | Blocked hostnames |
-| `/tracker/allowed-country/` | Allowed countries |
+| `/tracker/blocked-hostnames/` | Blocked hostnames |
+| `/tracker/allowed-countries/` | Allowed countries |
 | `/tracker/allowed-logs/` | Allowed visit log |
 | `/tracker/denied-logs/` | Denied visit log (+ add block rule) |
 | `/tracker/ip-info/` | IP info (+ add block rule) |
