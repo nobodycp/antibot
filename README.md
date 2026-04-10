@@ -27,7 +27,7 @@ A **Django** app for visitor monitoring and blocking rules (IP, subnets, ISP, br
 
 ## Server install (recommended) — `install.sh`
 
-**Single deploy directory (default `/opt/antibot`).** The bootstrap **`install.sh`** at the repo root **only** `git clone`s into that path and runs **`scripts/install-inner.sh`**. You do **not** need a second copy like **`~/antibot`** on the server for production — use **`curl | sudo bash`** or run **`install.sh`** from **`/tmp`** or your home after downloading it once.
+**Single deploy directory (default `/opt/antibot`).** There is **one installer file**: **`install.sh`**. It `git clone`s into that path, then runs **`install.sh --inner`** from the cloned copy (same script). The **curl URL** points to that same file — **username, password, and login URLs** are printed at the end of **`install.sh`**. You do **not** need a second copy like **`~/antibot`** for production — use **`curl | sudo bash`** or run **`install.sh`** from **`/tmp`** or your home.
 
 | Path | Role |
 |------|------|
@@ -64,15 +64,16 @@ sudo bash antibot-bootstrap/install.sh
 sudo ANTIBOT_INSTALL_DIR=/srv/antibot ANTIBOT_REPO_URL=https://github.com/you/antibot.git bash install.sh
 ```
 
-**What runs after the clone (`scripts/install-inner.sh`)**
+**What runs after the clone (still `install.sh`, invoked as `install.sh --inner`)**
 
 1. Installs **python3**, **venv**, **git**, **curl**, **openssl**, **postgresql**, **postgresql-contrib**, **redis-server**; enables **`redis-server`**.
 2. Creates **`env/`** venv and **`pip install -r requirements.txt`** (includes **Gunicorn**).
-3. PostgreSQL role/database **`antibot`**; writes **`${INSTALL_DIR}/.env`** (**`DJANGO_SECRET_KEY`**, **`DB_*`**, **`REDIS_URL`**, **`ALLOWED_HOSTS`** auto-detect unless **`ANTIBOT_ALLOWED_HOSTS`** / **`ANTIBOT_EXTRA_ALLOWED_HOSTS`** — same rules as before).
+3. PostgreSQL role/database **`antibot`**; writes **`${INSTALL_DIR}/.env`** (**`DJANGO_SECRET_KEY`**, **`DB_*`**, **`REDIS_URL`**, **`ALLOWED_HOSTS`** auto-detect unless **`ANTIBOT_ALLOWED_HOSTS`** / **`ANTIBOT_EXTRA_ALLOWED_HOSTS`**).
 4. **`migrate`**, **`createsuperuser --noinput`** (password: **`ANTIBOT_SUPERUSER_PASSWORD`** or generated → **`/root/antibot_superuser_credentials.txt`**).
 5. **`collectstatic`**, **systemd** **Gunicorn** on **`0.0.0.0:8000`**, **cron** for **`run_telegram_backup`**.
+6. Prints **LOGIN CREDENTIALS** (username, password, URLs) **twice** in the terminal — scroll up if needed.
 
-After install, the app listens on **`http://<server>:8000`** (all interfaces). For a quick LAN check that is fine; for the public internet, put **Nginx** in front (HTTPS on **443**, proxy to **`127.0.0.1:8000`**) and follow the production section below. Open the **dashboard** at `/dashboard/` and sign in at `/accounts/login/` using the superuser credentials from your chosen method above.
+After install, the app listens on **`http://<server>:8000`**. For the public internet, put **Nginx** in front — see the production section below.
 
 **Rerun behavior:** If the superuser **already exists** in PostgreSQL, **`createsuperuser --noinput`** fails and is ignored — the **existing password is not changed**. To rotate the superuser password, use Django’s admin or `changepassword`. The installer still regenerates **`/opt/antibot/.env`** (and rotates the **database user** password to match); it does **not** rotate the Django superuser unless you supply **`ANTIBOT_SUPERUSER_PASSWORD`** on a run where the user does not yet exist, or you manage passwords outside the script.
 
