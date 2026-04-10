@@ -71,7 +71,7 @@ sudo ANTIBOT_INSTALL_DIR=/srv/antibot ANTIBOT_REPO_URL=https://github.com/you/an
 3. PostgreSQL role/database **`antibot`**; writes **`${INSTALL_DIR}/.env`** (**`DJANGO_SECRET_KEY`**, **`DB_*`**, **`REDIS_URL`**, **`ALLOWED_HOSTS`** auto-detect unless **`ANTIBOT_ALLOWED_HOSTS`** / **`ANTIBOT_EXTRA_ALLOWED_HOSTS`**).
 4. **`migrate`**, **`createsuperuser --noinput`** (password: **`ANTIBOT_SUPERUSER_PASSWORD`** or generated → **`/root/antibot_superuser_credentials.txt`**).
 5. **`collectstatic`**, **systemd** **Gunicorn** on **`0.0.0.0:8000`**, **cron** for **`run_telegram_backup`**.
-6. Prints **LOGIN CREDENTIALS** (username, password, URLs) **twice** in the terminal — scroll up if needed.
+6. Prints **LOGIN CREDENTIALS** once at the end (username, password, **Login/Dashboard URLs use an IPv4 address**, not the server hostname).
 
 After install, the app listens on **`http://<server>:8000`**. For the public internet, put **Nginx** in front — see the production section below.
 

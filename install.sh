@@ -112,27 +112,33 @@ if [ "${1:-}" = "--inner" ]; then
 
   _antibot_print_access_info() {
     local _port="${BIND_ADDR##*:}"
-    local _host=""
+    local _url_ip="" _last_public="" _first_private="" _h _oa _ob _oc _od
     local IFS=,
-    local _h
     for _h in ${ALLOWED_HOSTS_VALUE}; do
       _h="$(echo "${_h}" | tr -d '[:space:]')"
-      [ -z "${_h}" ] && continue
-      if [ "${_h}" != "127.0.0.1" ] && [ "${_h}" != "localhost" ]; then
-        _host="${_h}"
-        break
+      [[ "${_h}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]] || continue
+      [ "${_h}" = "127.0.0.1" ] && continue
+      IFS=. read -r _oa _ob _oc _od <<< "${_h}" || continue
+      if [ "${_oa}" = "10" ] || { [ "${_oa}" = "172" ] && [ "${_ob}" -ge 16 ] && [ "${_ob}" -le 31 ]; } \
+        || { [ "${_oa}" = "192" ] && [ "${_ob}" = "168" ]; }; then
+        [ -z "${_first_private}" ] && _first_private="${_h}"
+      else
+        _last_public="${_h}"
       fi
     done
-    [ -z "${_host}" ] && _host="127.0.0.1"
+    _url_ip="${_last_public:-${_first_private}}"
+    if [ -z "${_url_ip}" ] && command -v ip >/dev/null 2>&1; then
+      _url_ip="$(ip -4 route get 8.8.8.8 2>/dev/null | awk '{ for (i = 1; i < NF; i++) if ($i == "src") { print $(i + 1); exit } }')"
+    fi
+    [ -z "${_url_ip}" ] && _url_ip="127.0.0.1"
     echo ""
     echo "══════════════════════════════════════════════════════════════"
     echo "  LOGIN CREDENTIALS (save this output)"
     echo "══════════════════════════════════════════════════════════════"
     echo "  Username:       ${SU_USER}"
     echo "  Password:       ${SU_PASS}"
-    echo "  Browser host:   ${_host}  (port ${_port})"
-    echo "  Login URL:      http://${_host}:${_port}/accounts/login/"
-    echo "  Dashboard URL:  http://${_host}:${_port}/dashboard/"
+    echo "  Login URL:      http://${_url_ip}:${_port}/accounts/login/"
+    echo "  Dashboard URL:  http://${_url_ip}:${_port}/dashboard/"
     echo "  Local URL:      http://127.0.0.1:${_port}/accounts/login/"
     echo "  ALLOWED_HOSTS:  ${ALLOWED_HOSTS_VALUE}"
     echo "══════════════════════════════════════════════════════════════"
@@ -188,9 +194,6 @@ ENVEOF
   echo "[collectstatic] Collecting static files..."
   "${VENV_PATH}/bin/python" "${INSTALL_DIR}/manage.py" collectstatic --noinput || \
     echo "[warn] collectstatic failed — check logs and STATIC_ROOT in settings."
-
-  _antibot_print_access_info
-  echo "[hint] Access details will be printed again after the service starts."
 
   echo "[6/8] Creating systemd unit (Gunicorn)..."
   sudo tee /etc/systemd/system/${SERVICE_NAME}.service >/dev/null <<EOF
