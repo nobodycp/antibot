@@ -1,4 +1,5 @@
 # 1) اكتب سكربت جديد مكان القديم
+sudo mkdir -p /opt/antibot
 sudo tee /opt/antibot/install.sh >/dev/null <<'BASH'
 #!/usr/bin/env bash
 set -e
