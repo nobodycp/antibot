@@ -1,5 +1,10 @@
-<div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-4 gap-3">
-
+<div
+  hx-get="/dashboard/home/stats/"
+  hx-trigger="every 10s"
+  hx-target="this"
+  hx-swap="outerHTML"
+  class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-4 gap-3"
+>
   <div class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2">
     <div class="text-[10px] text-zinc-500 uppercase tracking-wide">Total Visitors</div>
     <div class="text-sm font-bold text-white mt-1">{{ total_visitors }}</div>
@@ -19,5 +24,4 @@
     <div class="text-[10px] text-zinc-500 uppercase tracking-wide">Live Last Minute</div>
     <div class="text-sm font-bold text-green-400 mt-1">{{ live_last_minute }}</div>
   </div>
-
 </div>

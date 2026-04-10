@@ -14,20 +14,20 @@
 
   <!-- 1) Stats -->
   <div
-    hx-get="/dashboard/home/stats/"
-    hx-trigger="load, every 10s"
-    hx-target="this"
-    hx-swap="outerHTML"
-  >
-    <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-4 text-zinc-400 text-xs">
-      Loading stats...
-    </div>
+  hx-get="/dashboard/home/stats/"
+  hx-trigger="load"
+  hx-target="this"
+  hx-swap="outerHTML"
+>
+  <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-4 text-zinc-400 text-xs">
+    Loading stats...
   </div>
+</div>
 
   <!-- 2) Secondary Stats -->
   <div
     hx-get="/dashboard/home/secondary-stats/"
-    hx-trigger="load, every 10s"
+    hx-trigger="load"
     hx-target="this"
     hx-swap="outerHTML"
   >
@@ -39,7 +39,7 @@
   <!-- 3) Latest Logs -->
   <div
     hx-get="/dashboard/home/latest-logs/"
-    hx-trigger="load, every 10s"
+    hx-trigger="load"
     hx-target="this"
     hx-swap="outerHTML"
   >
@@ -51,7 +51,7 @@
   <!-- 4) Alerts -->
   <div
     hx-get="/dashboard/home/alerts/"
-    hx-trigger="load, every 10s"
+    hx-trigger="load"
     hx-target="this"
     hx-swap="outerHTML"
   >
@@ -63,7 +63,7 @@
   <!-- 5) Top IPs -->
   <div
     hx-get="/dashboard/home/top-ips/"
-    hx-trigger="load, every 10s"
+    hx-trigger="load"
     hx-target="this"
     hx-swap="outerHTML"
   >

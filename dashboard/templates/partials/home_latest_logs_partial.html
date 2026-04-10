@@ -1,5 +1,12 @@
 {% load humanize %}
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+
+<div
+  hx-get="/dashboard/home/latest-logs/"
+  hx-trigger="every 10s"
+  hx-target="this"
+  hx-swap="outerHTML"
+  class="grid grid-cols-1 xl:grid-cols-2 gap-4"
+>
   <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-4">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-sm font-semibold text-white">Latest Allowed Logs</h2>
