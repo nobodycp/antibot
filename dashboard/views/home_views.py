@@ -9,6 +9,11 @@ from ..helpers.dashboard_views_helper import (
     top_countries_queryset,
     top_isps_queryset,
 )
+from tracker.helpers.ownership import (
+    ip_log_queryset,
+    rejected_logs_queryset,
+    visitor_logs_queryset,
+)
 from tracker.models import (
     AllowedCountry,
     BlockedBrowser,
@@ -17,9 +22,6 @@ from tracker.models import (
     BlockedISP,
     BlockedOS,
     BlockedSubnet,
-    IPLog,
-    RejectedVisitor,
-    Visitor,
 )
 
 
@@ -28,9 +30,13 @@ def dashboard_home(request):
     now = timezone.now()
     today_start = start_of_today(now)
     minute_ago = minute_ago_cutoff(now)
+    user = request.user
 
-    total_visitors = Visitor.objects.count()
-    total_denied = RejectedVisitor.objects.count()
+    vqs = visitor_logs_queryset(user)
+    rqs = rejected_logs_queryset(user)
+
+    total_visitors = vqs.count()
+    total_denied = rqs.count()
     total_allowed = total_visitors
     total_blocked_ips = BlockedIP.objects.count()
     total_blocked_isps = BlockedISP.objects.count()
@@ -40,24 +46,25 @@ def dashboard_home(request):
     total_blocked_hostnames = BlockedHostname.objects.count()
     total_allowed_countries = AllowedCountry.objects.count()
 
-    visitors_today = Visitor.objects.filter(timestamp__gte=today_start).count()
-    denied_today = RejectedVisitor.objects.filter(timestamp__gte=today_start).count()
-    unique_ips_today = Visitor.objects.filter(timestamp__gte=today_start).values('ip_address').distinct().count()
-    live_last_minute = Visitor.objects.filter(timestamp__gte=minute_ago).count()
-
-    latest_allowed = Visitor.objects.order_by('-timestamp')[:10]
-    latest_denied = RejectedVisitor.objects.order_by('-timestamp')[:10]
-
-    top_ips = (
-        IPLog.objects.order_by('-count', '-last_seen')[:10]
+    visitors_today = vqs.filter(timestamp__gte=today_start).count()
+    denied_today = rqs.filter(timestamp__gte=today_start).count()
+    unique_ips_today = (
+        vqs.filter(timestamp__gte=today_start).values("ip_address").distinct().count()
     )
+    live_last_minute = vqs.filter(timestamp__gte=minute_ago).count()
 
-    top_countries = top_countries_queryset()
-    top_isps = top_isps_queryset()
+    latest_allowed = vqs.order_by("-timestamp")[:10]
+    latest_denied = rqs.order_by("-timestamp")[:10]
+
+    top_ips = ip_log_queryset(user).order_by("-count", "-last_seen")[:10]
+
+    top_countries = top_countries_queryset(user)
+    top_isps = top_isps_queryset(user)
 
     alerts = build_dashboard_alerts(
         visitors_today=visitors_today,
         denied_today=denied_today,
+        user=user,
     )
 
     context = {
@@ -90,11 +97,14 @@ def dashboard_home(request):
 def home_stats_partial(request):
     now = timezone.now()
     minute_ago = minute_ago_cutoff(now)
+    user = request.user
+    vqs = visitor_logs_queryset(user)
+    rqs = rejected_logs_queryset(user)
 
-    total_visitors = Visitor.objects.count()
-    total_denied = RejectedVisitor.objects.count()
+    total_visitors = vqs.count()
+    total_denied = rqs.count()
     total_blocked_ips = BlockedIP.objects.count()
-    live_last_minute = Visitor.objects.filter(timestamp__gte=minute_ago).count()
+    live_last_minute = vqs.filter(timestamp__gte=minute_ago).count()
 
     return render(request, 'dashboard/partials/home_stats_partial.html', {
         'total_visitors': total_visitors,
@@ -108,10 +118,15 @@ def home_stats_partial(request):
 def home_secondary_stats_partial(request):
     now = timezone.now()
     today_start = start_of_today(now)
+    user = request.user
+    vqs = visitor_logs_queryset(user)
+    rqs = rejected_logs_queryset(user)
 
-    visitors_today = Visitor.objects.filter(timestamp__gte=today_start).count()
-    denied_today = RejectedVisitor.objects.filter(timestamp__gte=today_start).count()
-    unique_ips_today = Visitor.objects.filter(timestamp__gte=today_start).values('ip_address').distinct().count()
+    visitors_today = vqs.filter(timestamp__gte=today_start).count()
+    denied_today = rqs.filter(timestamp__gte=today_start).count()
+    unique_ips_today = (
+        vqs.filter(timestamp__gte=today_start).values("ip_address").distinct().count()
+    )
     total_blocked_isps = BlockedISP.objects.count()
     total_blocked_subnets = BlockedSubnet.objects.count()
 
@@ -129,18 +144,22 @@ def home_secondary_stats_partial(request):
 def home_alerts_partial(request):
     now = timezone.now()
     today_start = start_of_today(now)
+    user = request.user
+    vqs = visitor_logs_queryset(user)
+    rqs = rejected_logs_queryset(user)
 
     total_blocked_browsers = BlockedBrowser.objects.count()
     total_blocked_os = BlockedOS.objects.count()
     total_blocked_hostnames = BlockedHostname.objects.count()
     total_allowed_countries = AllowedCountry.objects.count()
 
-    visitors_today = Visitor.objects.filter(timestamp__gte=today_start).count()
-    denied_today = RejectedVisitor.objects.filter(timestamp__gte=today_start).count()
+    visitors_today = vqs.filter(timestamp__gte=today_start).count()
+    denied_today = rqs.filter(timestamp__gte=today_start).count()
 
     alerts = build_dashboard_alerts(
         visitors_today=visitors_today,
         denied_today=denied_today,
+        user=user,
     )
 
     context = {
@@ -156,8 +175,9 @@ def home_alerts_partial(request):
 
 @login_required
 def home_latest_logs_partial(request):
-    latest_allowed = Visitor.objects.order_by('-timestamp')[:10]
-    latest_denied = RejectedVisitor.objects.order_by('-timestamp')[:10]
+    user = request.user
+    latest_allowed = visitor_logs_queryset(user).order_by('-timestamp')[:10]
+    latest_denied = rejected_logs_queryset(user).order_by('-timestamp')[:10]
 
     context = {
         'latest_allowed': latest_allowed,
@@ -168,10 +188,11 @@ def home_latest_logs_partial(request):
 
 @login_required
 def home_top_ips_partial(request):
-    top_ips = IPLog.objects.order_by('-count', '-last_seen')[:10]
+    user = request.user
+    top_ips = ip_log_queryset(user).order_by('-count', '-last_seen')[:10]
 
-    top_countries = top_countries_queryset()
-    top_isps = top_isps_queryset()
+    top_countries = top_countries_queryset(user)
+    top_isps = top_isps_queryset(user)
 
     context = {
         'top_ips': top_ips,

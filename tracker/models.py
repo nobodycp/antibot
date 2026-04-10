@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -54,6 +55,13 @@ class AllowedCountry(models.Model):
         return self.code.upper()
 
 class Visitor(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="visitor_logs",
+    )
     ip_address = models.GenericIPAddressField()
     b_subnet = models.CharField(max_length=64, blank=True, default="")
     hostname = models.CharField(max_length=255, blank=True, null=True)
@@ -70,6 +78,13 @@ class Visitor(models.Model):
         return f'{self.ip_address} - {self.timestamp}'
 
 class RejectedVisitor(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="rejected_visitor_logs",
+    )
     timestamp = models.DateTimeField(auto_now_add=True)
     ip_address = models.GenericIPAddressField()
     b_subnet = models.CharField(max_length=64, blank=True, default="")
@@ -85,16 +100,38 @@ class RejectedVisitor(models.Model):
         return f"{self.ip_address} - {self.reason}"
 
 class IPLog(models.Model):
-    ip_address = models.GenericIPAddressField(unique=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="ip_hit_logs",
+    )
+    ip_address = models.GenericIPAddressField()
     count = models.PositiveIntegerField(default=1)
     last_seen = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "ip_address"],
+                name="tracker_iplog_owner_ip_uniq",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.ip_address} ({self.count})"
 
 
 class IPInfo(models.Model):
-    ip_address = models.GenericIPAddressField(unique=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="ip_info_rows",
+    )
+    ip_address = models.GenericIPAddressField()
     # 2
     isp = models.CharField(max_length=255, blank=True, default="")
     # 3
@@ -112,8 +149,15 @@ class IPInfo(models.Model):
     # 1 (وقت الدخول/آخر ظهور - منها بنحسب "كم مضى")
     first_seen = models.DateTimeField(auto_now_add=True)
     last_seen = models.DateTimeField(auto_now=True)
+
     class Meta:
         verbose_name_plural = "IP Info"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "ip_address"],
+                name="tracker_ipinfo_owner_ip_uniq",
+            ),
+        ]
 
     def __str__(self):
         return self.ip_address

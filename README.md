@@ -14,7 +14,7 @@ A **Django** app for visitor monitoring and blocking rules (IP, subnets, ISP, br
 | **Dashboard** | Stats, user management, profile settings, and optional Telegram backups. |
 | **Utilities** | File uploads, Google Safe Browsing checks, and redirect inspection. |
 
-**Main integration point for external apps:** `POST /tracker/api/log/` — send `ip` and `useragent` in JSON; responses indicate allow (`201`) or deny (`403`) with a readable reason.
+**Main integration point for external apps:** `POST /tracker/api/log/` — send header **`X-API-Key`** with the **per-user key** shown on **Dashboard → Profile settings** (each user gets a key when their account is created). JSON body: `ip`, `useragent`. Responses: allow (`201`) or deny (`403`) with a readable reason. Missing or wrong key returns `403` with `{"error": "..."}`.
 
 ---
 
@@ -109,13 +109,14 @@ Paths assume the app is mounted at the site root (e.g. `https://example.com`). A
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/tracker/api/log/` | JSON body: `ip`, `useragent`. Returns `access_granted` or `access_denied` with a reason on deny. |
+| `POST` | `/tracker/api/log/` | Header `X-API-Key` required (user’s key from profile settings). JSON: `ip`, `useragent`. Returns `access_granted` or `access_denied` with a reason on deny. |
 
 **Example request**
 
 ```bash
 curl -s -X POST http://127.0.0.1:8000/tracker/api/log/ \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_USER_API_KEY_FROM_PROFILE_SETTINGS" \
   -d '{"ip":"203.0.113.10","useragent":"Mozilla/5.0 ..."}'
 ```
 

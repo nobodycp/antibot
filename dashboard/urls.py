@@ -13,7 +13,7 @@ from .views.home_views import (
     home_stats_partial,
     home_top_ips_partial,
 )
-from .views.profile_views import profile_settings_view
+from .views.profile_views import profile_settings_view, regenerate_api_key_view
 from .views.user_views import add_user, delete_user, edit_user, users_management
 
 app_name = 'dashboard'
@@ -31,6 +31,11 @@ urlpatterns = [
     path("users/delete/<int:user_id>/", delete_user, name="delete_user"),
     path("users/edit/<int:user_id>/", edit_user, name="edit_user"),
     path("profile-settings/", profile_settings_view, name="profile_settings"),
+    path(
+        "profile-settings/regenerate-api-key/",
+        regenerate_api_key_view,
+        name="regenerate_api_key",
+    ),
     path("telegram-backup-settings/", telegram_backup_settings_view, name="telegram_backup_settings"),
     path("telegram-test/", telegram_test_backup, name="telegram_test"),
     path("telegram-send-db-backup/", telegram_send_db_backup, name="telegram_send_db_backup"),

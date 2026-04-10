@@ -5,6 +5,8 @@ Views call these after a decision; no decision logic lives here.
 """
 from __future__ import annotations
 
+from django.contrib.auth.models import AbstractUser
+
 from ..models import (
     IPInfo,
     IPLog,
@@ -28,9 +30,12 @@ def _ipinfo_defaults(ctx: VisitorContext) -> dict:
     }
 
 
-def persist_rejected_visitor(ip: str, ctx: VisitorContext, reason: str) -> None:
+def persist_rejected_visitor(
+    ip: str, ctx: VisitorContext, reason: str, *, owner: AbstractUser
+) -> None:
     """Record a denied visit with the raw block reason code (e.g. \"IP\", \"Country\")."""
     RejectedVisitor.objects.create(
+        owner=owner,
         ip_address=ip,
         b_subnet=ctx.b_subnet,
         hostname=ctx.hostname,
@@ -42,9 +47,12 @@ def persist_rejected_visitor(ip: str, ctx: VisitorContext, reason: str) -> None:
     )
 
 
-def persist_allowed_visitor(ip: str, user_agent_str: str, ctx: VisitorContext) -> None:
+def persist_allowed_visitor(
+    ip: str, user_agent_str: str, ctx: VisitorContext, *, owner: AbstractUser
+) -> None:
     """Insert Visitor row, upsert IPInfo from context, bump IPLog counter."""
     Visitor.objects.create(
+        owner=owner,
         ip_address=ip,
         b_subnet=ctx.b_subnet,
         # hostname=ctx.hostname,
@@ -57,10 +65,15 @@ def persist_allowed_visitor(ip: str, user_agent_str: str, ctx: VisitorContext) -
 
     IPInfo.objects.update_or_create(
         ip_address=ip,
+        owner=owner,
         defaults=_ipinfo_defaults(ctx),
     )
 
-    ip_log, created = IPLog.objects.get_or_create(ip_address=ip)
+    ip_log, created = IPLog.objects.get_or_create(
+        ip_address=ip,
+        owner=owner,
+        defaults={"count": 1},
+    )
     if not created:
         ip_log.count += 1
         ip_log.save()

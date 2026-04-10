@@ -116,7 +116,6 @@
             Allowed
           </a>
 
-          {% if request.user.is_superuser %}
           <a href="/tracker/denied-logs/" class="{% if request.path == '/tracker/denied-logs/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
             <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -131,7 +130,6 @@
             </svg>
             IP Info
           </a>
-          {% endif %}
         </div>
       </div>
 

@@ -1,5 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect
+
 from core.decorators import superuser_required
 
 from ..helpers.logs_views_helper import (
@@ -8,6 +10,7 @@ from ..helpers.logs_views_helper import (
     list_search_q,
     visitor_logs_search_q,
 )
+from ..helpers.ownership import rejected_logs_queryset, visitor_logs_queryset
 from ..models import AllowedCountry, RejectedVisitor, Visitor
 from .list_flow import (
     logs_after_post_htmx_or_redirect,
@@ -92,20 +95,27 @@ def allowed_country_table(request):
 ######################################################################
 @login_required
 def allowed_logs_view(request):
+    base_qs = visitor_logs_queryset(request.user).order_by("-timestamp")
     if request.method == 'POST':
         delete_id = request.POST.get('delete_id')
         delete_all = request.POST.get('delete_all')
 
         if delete_id:
             try:
-                log = Visitor.objects.get(id=delete_id)
+                log = base_qs.get(id=delete_id)
                 ip = log.ip_address
-                Visitor.objects.filter(ip_address=ip).delete()
+                if request.user.is_superuser:
+                    Visitor.objects.filter(ip_address=ip).delete()
+                else:
+                    Visitor.objects.filter(ip_address=ip, owner=request.user).delete()
                 messages.error(request, f"🗑️ Deleted all logs for IP: {ip}")
             except Visitor.DoesNotExist:
                 messages.error(request, "Log not found.")
         elif delete_all:
-            Visitor.objects.all().delete()
+            if request.user.is_superuser:
+                Visitor.objects.all().delete()
+            else:
+                Visitor.objects.filter(owner=request.user).delete()
             messages.success(request, "✅ All allowed logs have been deleted.")
         else:
             messages.error(request, "Invalid action.")
@@ -113,7 +123,7 @@ def allowed_logs_view(request):
         return logs_after_post_htmx_or_redirect(
             request,
             get_q=visitor_logs_search_q,
-            ordered_qs=Visitor.objects.all().order_by("-timestamp"),
+            ordered_qs=visitor_logs_queryset(request.user).order_by("-timestamp"),
             apply_filter=apply_visitor_like_fields_search,
             list_key="logs",
             partial_template="tracker/partials/allowed_logs_partial.html",
@@ -123,7 +133,7 @@ def allowed_logs_view(request):
     return logs_render_full_page(
         request,
         get_q=visitor_logs_search_q,
-        ordered_qs=Visitor.objects.all().order_by("-timestamp"),
+        ordered_qs=base_qs,
         apply_filter=apply_visitor_like_fields_search,
         list_key="logs",
         template="tracker/allowed_logs.html",
@@ -135,7 +145,7 @@ def allowed_logs_partial(request):
     return logs_render_partial(
         request,
         get_q=visitor_logs_search_q,
-        ordered_qs=Visitor.objects.all().order_by("-timestamp"),
+        ordered_qs=visitor_logs_queryset(request.user).order_by("-timestamp"),
         apply_filter=apply_visitor_like_fields_search,
         list_key="logs",
         partial_template="tracker/partials/allowed_logs_partial.html",
@@ -147,7 +157,7 @@ def allowed_logs_table(request):
     return logs_render_table(
         request,
         get_q=visitor_logs_search_q,
-        ordered_qs=Visitor.objects.all().order_by("-timestamp"),
+        ordered_qs=visitor_logs_queryset(request.user).order_by("-timestamp"),
         apply_filter=apply_visitor_like_fields_search,
         list_key="logs",
         table_template="tracker/partials/allowed_logs_table.html",
@@ -155,22 +165,29 @@ def allowed_logs_table(request):
 
 
 ######################################################################
-@superuser_required
+@login_required
 def denied_logs_view(request):
+    base_qs = rejected_logs_queryset(request.user).order_by("-timestamp")
     if request.method == 'POST':
         delete_id = request.POST.get('delete_id')
         delete_all = request.POST.get('delete_all')
 
         if delete_id:
             try:
-                log = RejectedVisitor.objects.get(id=delete_id)
+                log = base_qs.get(id=delete_id)
                 ip = log.ip_address
-                RejectedVisitor.objects.filter(ip_address=ip).delete()
+                if request.user.is_superuser:
+                    RejectedVisitor.objects.filter(ip_address=ip).delete()
+                else:
+                    RejectedVisitor.objects.filter(ip_address=ip, owner=request.user).delete()
                 messages.success(request, f"🗑️ Deleted all logs for IP: {ip}")
             except RejectedVisitor.DoesNotExist:
                 messages.error(request, "Log not found.")
         elif delete_all:
-            RejectedVisitor.objects.all().delete()
+            if request.user.is_superuser:
+                RejectedVisitor.objects.all().delete()
+            else:
+                RejectedVisitor.objects.filter(owner=request.user).delete()
             messages.success(request, "✅ All denied logs have been deleted.")
         else:
             messages.error(request, "Invalid action.")
@@ -178,7 +195,7 @@ def denied_logs_view(request):
         return logs_after_post_htmx_or_redirect(
             request,
             get_q=visitor_logs_search_q,
-            ordered_qs=RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp"),
+            ordered_qs=rejected_logs_queryset(request.user).order_by("-timestamp"),
             apply_filter=apply_visitor_like_fields_search,
             list_key="logs",
             partial_template="tracker/partials/denied_logs_partial.html",
@@ -189,7 +206,7 @@ def denied_logs_view(request):
     return logs_render_full_page(
         request,
         get_q=visitor_logs_search_q,
-        ordered_qs=RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp"),
+        ordered_qs=base_qs,
         apply_filter=apply_visitor_like_fields_search,
         list_key="logs",
         template="tracker/denied_logs.html",
@@ -197,12 +214,12 @@ def denied_logs_view(request):
     )
 
 
-@superuser_required
+@login_required
 def denied_logs_partial(request):
     return logs_render_partial(
         request,
         get_q=visitor_logs_search_q,
-        ordered_qs=RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp"),
+        ordered_qs=rejected_logs_queryset(request.user).order_by("-timestamp"),
         apply_filter=apply_visitor_like_fields_search,
         list_key="logs",
         partial_template="tracker/partials/denied_logs_partial.html",
@@ -210,12 +227,12 @@ def denied_logs_partial(request):
     )
 
 
-@superuser_required
+@login_required
 def denied_logs_table(request):
     return logs_render_table(
         request,
         get_q=visitor_logs_search_q,
-        ordered_qs=RejectedVisitor.objects.exclude(reason="Subnet").order_by("-timestamp"),
+        ordered_qs=rejected_logs_queryset(request.user).order_by("-timestamp"),
         apply_filter=apply_visitor_like_fields_search,
         list_key="logs",
         table_template="tracker/partials/denied_logs_table.html",

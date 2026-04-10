@@ -10,7 +10,7 @@
   <!-- Controls Row -->
   <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
     <div class="flex items-center gap-2">
-      <!-- Delete All -->
+      <!-- Delete All (scoped to your logs unless superuser) -->
       <form method="post" class="flex items-center gap-2"
             hx-post="{% url 'tracker:allowed_logs' %}" hx-target="#allowed-logs-wrapper" hx-swap="outerHTML">
         {% csrf_token %}

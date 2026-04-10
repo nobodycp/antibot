@@ -1,16 +1,23 @@
+import secrets
+
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
+from django.views.decorators.http import require_POST
 
 from ..forms import ProfilePasswordForm, ProfileUpdateForm
-from ..models import UserProfile
+from ..models import UserAPIKey, UserProfile
 
 
 @login_required
 def profile_settings_view(request):
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    user_api_key, _ = UserAPIKey.objects.get_or_create(
+        user=request.user,
+        defaults={"api_key": secrets.token_urlsafe(32)},
+    )
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -73,5 +80,29 @@ def profile_settings_view(request):
             return redirect("dashboard:profile_settings")
 
     return render(request, "dashboard/profile_settings.html", {
-        "profile": profile
+        "profile": profile,
+        "user_api_key": user_api_key,
     })
+
+
+@login_required
+@require_POST
+def regenerate_api_key_view(request):
+    """Rotate the logged-in user's tracker API key only (POST)."""
+    row, created = UserAPIKey.objects.get_or_create(
+        user=request.user,
+        defaults={"api_key": secrets.token_urlsafe(32)},
+    )
+    if not created:
+        row.regenerate()
+    if created:
+        messages.success(
+            request,
+            "Your tracker API key is ready. Copy it from the field below and use it as the X-API-Key header.",
+        )
+    else:
+        messages.success(
+            request,
+            "Your tracker API key has been regenerated. Update any clients; the previous key no longer works.",
+        )
+    return redirect("dashboard:profile_settings")

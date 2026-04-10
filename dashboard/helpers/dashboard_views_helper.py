@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.db.models import Count
 from django.shortcuts import redirect
 
+from tracker.helpers.ownership import ip_log_queryset
 from tracker.models import IPLog, RejectedVisitor, Visitor
 
 
@@ -15,18 +16,22 @@ def minute_ago_cutoff(now, minutes=1):
     return now - timedelta(minutes=minutes)
 
 
-def build_dashboard_alerts(*, visitors_today, denied_today):
+def build_dashboard_alerts(*, visitors_today, denied_today, user=None):
     alerts = []
 
-    repeated_ips = IPLog.objects.filter(count__gte=10).order_by('-count')[:5]
+    repeated_ips_qs = ip_log_queryset(user) if user is not None else IPLog.objects.all()
+    repeated_ips = repeated_ips_qs.filter(count__gte=10).order_by("-count")[:5]
     for item in repeated_ips:
         alerts.append({
             'type': 'danger',
             'text': f"IP {item.ip_address} repeated {item.count} times."
         })
 
+    repeated_denied_qs = RejectedVisitor.objects.all()
+    if user is not None and not user.is_superuser:
+        repeated_denied_qs = repeated_denied_qs.filter(owner=user)
     repeated_denied = (
-        RejectedVisitor.objects.values('ip_address')
+        repeated_denied_qs.values('ip_address')
         .annotate(total=Count('id'))
         .order_by('-total')[:5]
     )
@@ -52,21 +57,23 @@ def build_dashboard_alerts(*, visitors_today, denied_today):
     return alerts
 
 
-def top_countries_queryset():
+def top_countries_queryset(user=None):
+    qs = Visitor.objects.exclude(country__isnull=True).exclude(country__exact='')
+    if user is not None and not user.is_superuser:
+        qs = qs.filter(owner=user)
     return (
-        Visitor.objects.exclude(country__isnull=True)
-        .exclude(country__exact='')
-        .values('country')
+        qs.values('country')
         .annotate(total=Count('id'))
         .order_by('-total')[:10]
     )
 
 
-def top_isps_queryset():
+def top_isps_queryset(user=None):
+    qs = Visitor.objects.exclude(isp__isnull=True).exclude(isp__exact='')
+    if user is not None and not user.is_superuser:
+        qs = qs.filter(owner=user)
     return (
-        Visitor.objects.exclude(isp__isnull=True)
-        .exclude(isp__exact='')
-        .values('isp')
+        qs.values('isp')
         .annotate(total=Count('id'))
         .order_by('-total')[:10]
     )

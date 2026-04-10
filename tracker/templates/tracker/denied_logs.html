@@ -32,6 +32,7 @@
       </svg>
     </a>
 
+    {% if request.user.is_superuser %}
     <!-- Add Block Rule -->
     <form method="post" class="flex flex-wrap items-center gap-2"
           hx-post="{% url 'tracker:add_block_rule' %}"
@@ -54,6 +55,7 @@
       <button type="submit"
               class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs">Add</button>
     </form>
+    {% endif %}
   </div>
 
   <!-- Search -->
