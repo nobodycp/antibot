@@ -9,16 +9,16 @@
     <span class="text-xs font-normal text-zinc-400">Telegram Backup Configuration</span>
   </h1>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:items-start">
     <!-- Backup Settings Form -->
     <div class="lg:col-span-2 bg-zinc-800 border border-zinc-700 rounded p-4">
-      <h2 class="text-sm font-semibold text-white mb-4 border-b border-zinc-700 pb-2">
+      <h2 class="text-sm font-semibold text-white mb-2 border-b border-zinc-700 pb-2">
         📦 Telegram Backup Settings
       </h2>
 
-      {% include "dashboard/partials/messages.html" %}
+      <div id="htmx-messages" class="messages-anchor">{% include "core/partials/messages_list.html" %}</div>
 
-      <form method="post" class="space-y-4">
+      <form method="post" class="mt-2 space-y-4">
         {% csrf_token %}
 
         <div>
