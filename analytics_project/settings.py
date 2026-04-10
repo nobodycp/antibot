@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'tracker.apps.TrackerConfig',
     'core',
     'tools',
+    'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [

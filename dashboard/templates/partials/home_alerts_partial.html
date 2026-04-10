@@ -1,0 +1,48 @@
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+  <div class="xl:col-span-2 bg-zinc-800 border border-zinc-700 rounded-lg p-4">
+    <h2 class="text-sm font-semibold text-white mb-4">Alerts</h2>
+
+    <div class="space-y-3">
+      {% for alert in alerts %}
+        <div class="rounded-lg border px-3 py-3 text-xs
+          {% if alert.type == 'danger' %}
+            border-red-800 bg-red-950/30 text-red-300
+          {% elif alert.type == 'warning' %}
+            border-yellow-800 bg-yellow-950/30 text-yellow-300
+          {% else %}
+            border-green-800 bg-green-950/30 text-green-300
+          {% endif %}
+        ">
+          {{ alert.text }}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-4">
+    <h2 class="text-sm font-semibold text-white mb-4">System Summary</h2>
+
+    <div class="space-y-3 text-xs">
+      <div class="flex items-center justify-between border-b border-zinc-700 pb-2">
+        <span class="text-zinc-400">Blocked Browsers</span>
+        <span class="text-white">{{ total_blocked_browsers }}</span>
+      </div>
+      <div class="flex items-center justify-between border-b border-zinc-700 pb-2">
+        <span class="text-zinc-400">Blocked OS</span>
+        <span class="text-white">{{ total_blocked_os }}</span>
+      </div>
+      <div class="flex items-center justify-between border-b border-zinc-700 pb-2">
+        <span class="text-zinc-400">Blocked Hostnames</span>
+        <span class="text-white">{{ total_blocked_hostnames }}</span>
+      </div>
+      <div class="flex items-center justify-between border-b border-zinc-700 pb-2">
+        <span class="text-zinc-400">Allowed Countries</span>
+        <span class="text-white">{{ total_allowed_countries }}</span>
+      </div>
+      <div class="flex items-center justify-between pt-1">
+        <span class="text-zinc-400">Last Update</span>
+        <span class="text-white">{{ last_update|date:"Y-m-d H:i" }}</span>
+      </div>
+    </div>
+  </div>
+</div>

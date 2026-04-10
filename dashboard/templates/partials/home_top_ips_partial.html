@@ -1,0 +1,48 @@
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+  <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-4">
+    <h2 class="text-sm font-semibold text-white mb-4">Top IPs</h2>
+    <div class="space-y-2">
+      {% for row in top_ips %}
+        <div class="flex items-center justify-between text-xs border-b border-zinc-700/60 pb-2">
+          <span class="text-zinc-300 break-all">{{ row.ip_address }}</span>
+          <span class="text-white font-semibold">{{ row.count }}</span>
+        </div>
+      {% empty %}
+        <div class="text-zinc-500 text-xs">No IP data found.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-4">
+    <h2 class="text-sm font-semibold text-white mb-4">Top Countries</h2>
+    <div class="space-y-2">
+      {% for row in top_countries %}
+        <div class="flex items-center justify-between text-xs border-b border-zinc-700/60 pb-2">
+          <span class="flex items-center gap-2">
+  <img src="https://flagcdn.com/16x12/{{ row.country|lower }}.png"
+       class="w-4 h-3 rounded-sm"
+       alt="{{ row.country }}">
+  {{ row.country }}
+</span>
+          <span class="text-white font-semibold">{{ row.total }}</span>
+        </div>
+      {% empty %}
+        <div class="text-zinc-500 text-xs">No country data found.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-4">
+    <h2 class="text-sm font-semibold text-white mb-4">Top ISPs</h2>
+    <div class="space-y-2">
+      {% for row in top_isps %}
+        <div class="flex items-center justify-between text-xs border-b border-zinc-700/60 pb-2 gap-3">
+          <span class="text-zinc-300 break-words">{{ row.isp }}</span>
+          <span class="text-white font-semibold">{{ row.total }}</span>
+        </div>
+      {% empty %}
+        <div class="text-zinc-500 text-xs">No ISP data found.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>

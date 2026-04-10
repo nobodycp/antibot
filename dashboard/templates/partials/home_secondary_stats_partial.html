@@ -1,0 +1,28 @@
+<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
+
+  <div class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2">
+    <div class="text-[10px] text-zinc-500 uppercase tracking-wide">Visitors Today</div>
+    <div class="text-sm font-semibold text-white mt-1">{{ visitors_today }}</div>
+  </div>
+
+  <div class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2">
+    <div class="text-[10px] text-zinc-500 uppercase tracking-wide">Denied Today</div>
+    <div class="text-sm font-semibold text-red-400 mt-1">{{ denied_today }}</div>
+  </div>
+
+  <div class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2">
+    <div class="text-[10px] text-zinc-500 uppercase tracking-wide">Unique IPs Today</div>
+    <div class="text-sm font-semibold text-white mt-1">{{ unique_ips_today }}</div>
+  </div>
+
+  <div class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2">
+    <div class="text-[10px] text-zinc-500 uppercase tracking-wide">Blocked ISPs</div>
+    <div class="text-sm font-semibold text-yellow-400 mt-1">{{ total_blocked_isps }}</div>
+  </div>
+
+  <div class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2">
+    <div class="text-[10px] text-zinc-500 uppercase tracking-wide">Blocked Subnets</div>
+    <div class="text-sm font-semibold text-white mt-1">{{ total_blocked_subnets }}</div>
+  </div>
+
+</div>
