@@ -171,6 +171,7 @@ def denied_logs_view(request):
     if request.method == 'POST':
         delete_id = request.POST.get('delete_id')
         delete_all = request.POST.get('delete_all')
+        delete_all_subnet_reason = request.POST.get('delete_all_subnet_reason')
 
         if delete_id:
             try:
@@ -189,6 +190,18 @@ def denied_logs_view(request):
             else:
                 RejectedVisitor.objects.filter(owner=request.user).delete()
             messages.success(request, "✅ All denied logs have been deleted.")
+        elif delete_all_subnet_reason:
+            subnet_qs = RejectedVisitor.objects.filter(reason="Subnet")
+            if not request.user.is_superuser:
+                subnet_qs = subnet_qs.filter(owner=request.user)
+            deleted_count, _ = subnet_qs.delete()
+            if deleted_count:
+                messages.success(
+                    request,
+                    f"🗑️ Deleted {deleted_count} denied log(s) with reason Subnet.",
+                )
+            else:
+                messages.info(request, "ℹ️ No denied logs with reason Subnet to delete.")
         else:
             messages.error(request, "Invalid action.")
 
