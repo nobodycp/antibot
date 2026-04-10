@@ -5,7 +5,7 @@ from __future__ import annotations
 import ipaddress
 from functools import lru_cache
 
-from django.core.cache import cache
+from core.resilient_cache import safe_cache_delete, safe_cache_get, safe_cache_set
 
 from ..models import BlockedSubnet
 
@@ -15,18 +15,18 @@ _CACHE_TTL_SEC = 300
 
 def get_blocked_subnet_cidr_list() -> list[str]:
     """Stable order by primary key; avoids a DB hit on every API request when warm."""
-    cached = cache.get(_CACHE_KEY)
+    cached = safe_cache_get(_CACHE_KEY)
     if isinstance(cached, list):
         return cached
     cidrs = list(
         BlockedSubnet.objects.order_by("id").values_list("cidr", flat=True)
     )
-    cache.set(_CACHE_KEY, cidrs, _CACHE_TTL_SEC)
+    safe_cache_set(_CACHE_KEY, cidrs, _CACHE_TTL_SEC)
     return cidrs
 
 
 def invalidate_blocked_subnet_cidr_cache() -> None:
-    cache.delete(_CACHE_KEY)
+    safe_cache_delete(_CACHE_KEY)
 
 
 @lru_cache(maxsize=64)

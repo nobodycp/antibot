@@ -8,11 +8,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable, Optional
 
-from django.db.models import Q
-
+from ..helpers.blocked_hostname_rules import (
+    get_blocked_hostname_rules_normalized,
+    visitor_hostname_matches_blocked_list,
+)
 from ..models import (
     BlockedBrowser,
-    BlockedHostname,
     BlockedIP,
     BlockedISP,
     BlockedOS,
@@ -80,9 +81,10 @@ def _deny_reason_country(ctx: VisitorContext, allowed_codes: Iterable[str]) -> O
 def _deny_reason_hostname(ctx: VisitorContext) -> Optional[str]:
     if not ctx.hostname:
         return None
-    if BlockedHostname.objects.filter(
-        Q(hostname__icontains=ctx.hostname) | Q(hostname__in=ctx.hostname.split("."))
-    ).exists():
+    rules = get_blocked_hostname_rules_normalized()
+    if not rules:
+        return None
+    if visitor_hostname_matches_blocked_list(ctx.hostname, rules):
         return "Hostname"
     return None
 

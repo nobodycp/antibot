@@ -4,9 +4,7 @@ from django.shortcuts import redirect
 
 from core.decorators import superuser_required
 
-from dashboard.helpers.cached_tracker_counts import invalidate_global_rule_counts_cache
-
-from ..helpers.allowed_country_codes import invalidate_allowed_country_codes_cache
+from ..rule_cache_invalidation import invalidate_tracker_rule_caches
 from ..helpers.logs_views_helper import (
     apply_country_code_filter,
     apply_visitor_like_fields_search,
@@ -34,8 +32,6 @@ def allowed_country_view(request):
             code = code.strip().upper()
             if not AllowedCountry.objects.filter(code=code).exists():
                 AllowedCountry.objects.create(code=code)
-                invalidate_allowed_country_codes_cache()
-                invalidate_global_rule_counts_cache()
                 messages.success(request, f"✅ Country code {code} added.")
             else:
                 messages.warning(request, f"⚠️ {code} already exists.")
@@ -44,15 +40,12 @@ def allowed_country_view(request):
                 obj = AllowedCountry.objects.get(id=delete_id)
                 messages.error(request, f"🗑️ {obj.code} deleted.")
                 obj.delete()
-                invalidate_allowed_country_codes_cache()
-                invalidate_global_rule_counts_cache()
             except AllowedCountry.DoesNotExist:
                 messages.error(request, "❌ Entry not found.")
         elif delete_all:
             count = AllowedCountry.objects.count()
             AllowedCountry.objects.all().delete()
-            invalidate_allowed_country_codes_cache()
-            invalidate_global_rule_counts_cache()
+            invalidate_tracker_rule_caches()
             messages.error(request, f"🧹 Deleted {count} country codes.")
         else:
             messages.error(request, "Invalid action.")

@@ -17,7 +17,12 @@ from dataclasses import asdict, dataclass
 import requests
 import user_agents
 from django.conf import settings
-from django.core.cache import cache
+
+from core.resilient_cache import (
+    safe_cache_delete,
+    safe_cache_get,
+    safe_cache_set,
+)
 
 
 _CONNECT_TIMEOUT_SEC = 3
@@ -151,7 +156,7 @@ def _ip_context_cache_timeout() -> int:
 
 
 def _get_cached_api_enrichment(ip: str) -> _ApiEnrichment | None:
-    raw = cache.get(_ip_enrichment_cache_key(ip))
+    raw = safe_cache_get(_ip_enrichment_cache_key(ip))
     if not isinstance(raw, dict):
         return None
     try:
@@ -161,7 +166,7 @@ def _get_cached_api_enrichment(ip: str) -> _ApiEnrichment | None:
 
 
 def _set_cached_api_enrichment(ip: str, enrichment: _ApiEnrichment) -> None:
-    cache.set(
+    safe_cache_set(
         _ip_enrichment_cache_key(ip),
         asdict(enrichment),
         _ip_context_cache_timeout(),
@@ -177,16 +182,16 @@ def build_visitor_context(ip: str, user_agent_str: str) -> VisitorContext:
     api = _get_cached_api_enrichment(ip)
     if api is None:
         fail_key = _enrichment_failure_cache_key(ip)
-        if cache.get(fail_key):
+        if safe_cache_get(fail_key):
             api = _empty_api_enrichment()
         else:
             try:
                 api = _load_api_enrichment(ip)
             except Exception:
-                cache.set(fail_key, 1, _ENRICHMENT_FAILURE_TTL_SEC)
+                safe_cache_set(fail_key, 1, _ENRICHMENT_FAILURE_TTL_SEC)
                 api = _empty_api_enrichment()
             else:
-                cache.delete(fail_key)
+                safe_cache_delete(fail_key)
                 _set_cached_api_enrichment(ip, api)
 
     return VisitorContext(

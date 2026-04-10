@@ -1,11 +1,16 @@
 import hashlib
 import time
 
-from django.core.cache import cache
+from dashboard.api_key_crypto import (
+    HIDDEN_API_KEY_PREFIX,
+    api_key_hmac_digest,
+    legacy_api_key_sha256_digest,
+)
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.resilient_cache import safe_cache_add, safe_cache_incr
 from dashboard.models import UserAPIKey
 
 from ..helpers.api_log_input import normalize_client_ip, normalize_user_agent
@@ -29,24 +34,28 @@ def _raw_api_key_from_request(request):
     ).strip()
 
 
-def _api_key_lookup_digest(raw: str) -> str:
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
-
-
 def _resolve_api_user(request):
     sent = _raw_api_key_from_request(request)
     if not sent:
         return None, ""
-    digest = _api_key_lookup_digest(sent)
+    hmac_digest = api_key_hmac_digest(sent)
+    legacy_digest = legacy_api_key_sha256_digest(sent)
     row = (
         UserAPIKey.objects.select_related("user")
-        .filter(api_key_lookup_hash=digest)
+        .filter(api_key_lookup_hash=hmac_digest)
         .first()
     )
     if row is None:
         row = (
             UserAPIKey.objects.select_related("user")
+            .filter(api_key_lookup_hash=legacy_digest)
+            .first()
+        )
+    if row is None:
+        row = (
+            UserAPIKey.objects.select_related("user")
             .filter(api_key=sent)
+            .exclude(api_key__startswith=HIDDEN_API_KEY_PREFIX)
             .first()
         )
     if row is None:
@@ -55,22 +64,31 @@ def _resolve_api_user(request):
 
 
 def _log_api_rate_limit_allows(raw_api_key: str) -> bool:
-    """Fixed window: up to _LOG_API_RATE_LIMIT POSTs per key per _LOG_API_RATE_WINDOW_SEC."""
+    """Fixed window: up to _LOG_API_RATE_LIMIT POSTs per key per _LOG_API_RATE_WINDOW_SEC.
+
+    If the cache backend is unavailable, requests are allowed (rate limit degraded).
+    """
     window = int(time.time()) // _LOG_API_RATE_WINDOW_SEC
     digest = hashlib.sha256(raw_api_key.encode("utf-8")).hexdigest()[:32]
     cache_key = f"tracker:log_api:rl:{digest}:{window}"
     ttl = _LOG_API_RATE_WINDOW_SEC + 5
     try:
-        n = cache.incr(cache_key)
+        n = safe_cache_incr(cache_key)
     except ValueError:
-        # Key missing: create counter (add is atomic on supported backends).
-        if cache.add(cache_key, 1, ttl):
-            n = 1
-        else:
-            try:
-                n = cache.incr(cache_key)
-            except ValueError:
-                n = 1
+        pass
+    else:
+        if n is not None:
+            return n <= _LOG_API_RATE_LIMIT
+        return True
+
+    if safe_cache_add(cache_key, 1, ttl):
+        return True
+    try:
+        n = safe_cache_incr(cache_key)
+    except ValueError:
+        return True
+    if n is None:
+        return True
     return n <= _LOG_API_RATE_LIMIT
 
 

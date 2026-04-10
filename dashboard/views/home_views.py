@@ -3,10 +3,9 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from ..helpers.cached_tracker_counts import get_cached_global_rule_counts
+from ..helpers.cached_user_dashboard_counts import get_cached_user_log_counts
 from ..helpers.dashboard_views_helper import (
     build_dashboard_alerts,
-    minute_ago_cutoff,
-    start_of_today,
     top_countries_queryset,
     top_isps_queryset,
 )
@@ -20,24 +19,21 @@ from tracker.helpers.ownership import (
 @login_required
 def dashboard_home(request):
     now = timezone.now()
-    today_start = start_of_today(now)
-    minute_ago = minute_ago_cutoff(now)
     user = request.user
 
-    vqs = visitor_logs_queryset(user)
-    rqs = rejected_logs_queryset(user)
-
-    total_visitors = vqs.count()
-    total_denied = rqs.count()
+    log_counts = get_cached_user_log_counts(user, now)
+    total_visitors = log_counts["total_visitors"]
+    total_denied = log_counts["total_denied"]
     total_allowed = total_visitors
     global_counts = get_cached_global_rule_counts()
 
-    visitors_today = vqs.filter(timestamp__gte=today_start).count()
-    denied_today = rqs.filter(timestamp__gte=today_start).count()
-    unique_ips_today = (
-        vqs.filter(timestamp__gte=today_start).values("ip_address").distinct().count()
-    )
-    live_last_minute = vqs.filter(timestamp__gte=minute_ago).count()
+    visitors_today = log_counts["visitors_today"]
+    denied_today = log_counts["denied_today"]
+    unique_ips_today = log_counts["unique_ips_today"]
+    live_last_minute = log_counts["live_last_minute"]
+
+    vqs = visitor_logs_queryset(user)
+    rqs = rejected_logs_queryset(user)
 
     latest_allowed = vqs.order_by("-timestamp")[:10]
     latest_denied = rqs.order_by("-timestamp")[:10]
@@ -76,15 +72,12 @@ def dashboard_home(request):
 @login_required
 def home_stats_partial(request):
     now = timezone.now()
-    minute_ago = minute_ago_cutoff(now)
     user = request.user
-    vqs = visitor_logs_queryset(user)
-    rqs = rejected_logs_queryset(user)
-
-    total_visitors = vqs.count()
-    total_denied = rqs.count()
+    log_counts = get_cached_user_log_counts(user, now)
+    total_visitors = log_counts["total_visitors"]
+    total_denied = log_counts["total_denied"]
     total_blocked_ips = get_cached_global_rule_counts()["total_blocked_ips"]
-    live_last_minute = vqs.filter(timestamp__gte=minute_ago).count()
+    live_last_minute = log_counts["live_last_minute"]
 
     return render(request, 'dashboard/partials/home_stats_partial.html', {
         'total_visitors': total_visitors,
@@ -97,16 +90,11 @@ def home_stats_partial(request):
 @login_required
 def home_secondary_stats_partial(request):
     now = timezone.now()
-    today_start = start_of_today(now)
     user = request.user
-    vqs = visitor_logs_queryset(user)
-    rqs = rejected_logs_queryset(user)
-
-    visitors_today = vqs.filter(timestamp__gte=today_start).count()
-    denied_today = rqs.filter(timestamp__gte=today_start).count()
-    unique_ips_today = (
-        vqs.filter(timestamp__gte=today_start).values("ip_address").distinct().count()
-    )
+    log_counts = get_cached_user_log_counts(user, now)
+    visitors_today = log_counts["visitors_today"]
+    denied_today = log_counts["denied_today"]
+    unique_ips_today = log_counts["unique_ips_today"]
     global_rule_counts = get_cached_global_rule_counts()
 
     context = {
@@ -122,15 +110,12 @@ def home_secondary_stats_partial(request):
 @login_required
 def home_alerts_partial(request):
     now = timezone.now()
-    today_start = start_of_today(now)
     user = request.user
-    vqs = visitor_logs_queryset(user)
-    rqs = rejected_logs_queryset(user)
-
+    log_counts = get_cached_user_log_counts(user, now)
     global_rule_counts = get_cached_global_rule_counts()
 
-    visitors_today = vqs.filter(timestamp__gte=today_start).count()
-    denied_today = rqs.filter(timestamp__gte=today_start).count()
+    visitors_today = log_counts["visitors_today"]
+    denied_today = log_counts["denied_today"]
 
     alerts = build_dashboard_alerts(
         visitors_today=visitors_today,

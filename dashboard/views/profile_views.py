@@ -8,6 +8,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from ..forms import ProfilePasswordForm, ProfileUpdateForm
+from ..api_key_crypto import is_hidden_api_key_storage
 from ..models import UserAPIKey, UserProfile
 
 
@@ -79,9 +80,12 @@ def profile_settings_view(request):
             messages.success(request, "Password changed successfully.")
             return redirect("dashboard:profile_settings")
 
+    reveal_once = request.session.pop("api_key_reveal_once", None)
     return render(request, "dashboard/profile_settings.html", {
         "profile": profile,
         "user_api_key": user_api_key,
+        "api_key_reveal_once": reveal_once,
+        "api_key_is_hidden": is_hidden_api_key_storage(user_api_key.api_key),
     })
 
 
@@ -94,7 +98,8 @@ def regenerate_api_key_view(request):
         defaults={"api_key": secrets.token_urlsafe(32)},
     )
     if not created:
-        row.regenerate()
+        raw = row.regenerate()
+        request.session["api_key_reveal_once"] = raw
     if created:
         messages.success(
             request,

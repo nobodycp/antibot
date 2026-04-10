@@ -3,9 +3,7 @@ import ipaddress
 from django.contrib import messages
 from core.decorators import superuser_required
 
-from dashboard.helpers.cached_tracker_counts import invalidate_global_rule_counts_cache
-
-from ..helpers.blocked_subnet_rules import invalidate_blocked_subnet_cidr_cache
+from ..rule_cache_invalidation import invalidate_tracker_rule_caches
 from ..models import (
     BlockedBrowser,
     BlockedHostname,
@@ -42,8 +40,6 @@ def blocked_subnets_view(request):
             else:
                 if not BlockedSubnet.objects.filter(cidr=cidr_norm).exists():
                     BlockedSubnet.objects.create(cidr=cidr_norm)
-                    invalidate_blocked_subnet_cidr_cache()
-                    invalidate_global_rule_counts_cache()
                     messages.success(request, f"✅ Subnet {cidr_norm} added successfully.")
                 else:
                     messages.warning(request, f"⚠️ Subnet {cidr_norm} already exists.")
@@ -53,16 +49,13 @@ def blocked_subnets_view(request):
                 obj = BlockedSubnet.objects.get(id=delete_id)
                 messages.error(request, f"🗑️ Subnet {obj.cidr} deleted.")
                 obj.delete()
-                invalidate_blocked_subnet_cidr_cache()
-                invalidate_global_rule_counts_cache()
             except BlockedSubnet.DoesNotExist:
                 messages.error(request, "❌ Subnet not found.")
 
         elif delete_all:
             count = BlockedSubnet.objects.count()
             BlockedSubnet.objects.all().delete()
-            invalidate_blocked_subnet_cidr_cache()
-            invalidate_global_rule_counts_cache()
+            invalidate_tracker_rule_caches()
             messages.error(request, f"🧹 Deleted {count} Subnet(s).")
         else:
             messages.error(request, "Invalid action.")
@@ -133,6 +126,7 @@ def blocked_ips_view(request):
         elif delete_all:
             count = BlockedIP.objects.count()
             BlockedIP.objects.all().delete()
+            invalidate_tracker_rule_caches()
             messages.error(request, f"🧹 Deleted {count} IP(s).")
         else:
             messages.error(request, "Invalid action.")
@@ -203,6 +197,7 @@ def blocked_isp_view(request):
         elif delete_all:
             count = BlockedISP.objects.count()
             BlockedISP.objects.all().delete()
+            invalidate_tracker_rule_caches()
             messages.error(request, f"🧹 Deleted {count} ISP(s).")
         else:
             messages.error(request, "Invalid action.")
@@ -274,6 +269,7 @@ def blocked_browser_view(request):
         elif delete_all:
             count = BlockedBrowser.objects.count()
             BlockedBrowser.objects.all().delete()
+            invalidate_tracker_rule_caches()
             messages.error(request, f"🧹 Deleted {count} browser(s).")
         else:
             messages.error(request, "Invalid action.")
@@ -344,6 +340,7 @@ def blocked_os_view(request):
         elif delete_all:
             count = BlockedOS.objects.count()
             BlockedOS.objects.all().delete()
+            invalidate_tracker_rule_caches()
             messages.error(request, f"🧹 Deleted {count} OS entries.")
         else:
             messages.error(request, "Invalid action.")
@@ -414,6 +411,7 @@ def blocked_hostname_view(request):
         elif delete_all:
             count = BlockedHostname.objects.count()
             BlockedHostname.objects.all().delete()
+            invalidate_tracker_rule_caches()
             messages.error(request, f"🧹 Deleted {count} hostname(s).")
         else:
             messages.error(request, "Invalid action.")

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from django.core.cache import cache
+from core.resilient_cache import safe_cache_delete, safe_cache_get, safe_cache_set
 
 _CACHE_KEY = "dashboard:global_tracker_counts_v1"
 _CACHE_TTL_SEC = 30
 
 
 def get_cached_global_rule_counts() -> dict[str, int]:
-    cached = cache.get(_CACHE_KEY)
+    cached = safe_cache_get(_CACHE_KEY)
     if cached is not None:
         return cached
     from tracker.models import (
@@ -31,9 +31,9 @@ def get_cached_global_rule_counts() -> dict[str, int]:
         "total_blocked_hostnames": BlockedHostname.objects.count(),
         "total_allowed_countries": AllowedCountry.objects.count(),
     }
-    cache.set(_CACHE_KEY, data, _CACHE_TTL_SEC)
+    safe_cache_set(_CACHE_KEY, data, _CACHE_TTL_SEC)
     return data
 
 
 def invalidate_global_rule_counts_cache() -> None:
-    cache.delete(_CACHE_KEY)
+    safe_cache_delete(_CACHE_KEY)
