@@ -1,6 +1,6 @@
 <tbody id="country-table-body">
   {% for country in allowed_countries %}
-  <tr class="border-b border-zinc-700 hover:bg-zinc-700/30">
+  <tr class="border-b border-zinc-700/40 odd:bg-zinc-900/20 even:bg-zinc-800/15 hover:!bg-zinc-700/35 transition-colors">
     <td class="px-2 py-1.5 text-zinc-200 font-mono text-xs flex items-center gap-2">
       {% if country.code %}
         <img src="https://flagcdn.com/24x18/{{ country.code|lower }}.png" alt="{{ country.code }} flag"

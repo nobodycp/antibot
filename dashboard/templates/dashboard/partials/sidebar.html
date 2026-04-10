@@ -27,9 +27,9 @@
       <div x-data="{ open: '{% if '/tracker/blocked-ips/' in request.path or '/tracker/blocked-subnets/' in request.path or '/tracker/blocked-isps/' in request.path or '/tracker/blocked-browsers/' in request.path or '/tracker/blocked-os/' in request.path or '/tracker/allowed-countries/' in request.path or '/tracker/blocked-hostnames/' in request.path or '/tracker/dinger-ip/' in request.path %}true{% else %}false{% endif %}' == 'true' }">
         <button type="button" @click="open = !open" class="group flex min-h-[2rem] w-full items-center justify-between rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 transition-all duration-150 hover:bg-zinc-800/90 hover:text-zinc-100 sm:text-sm">
           <span class="flex items-center gap-2">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m2 0a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
+            <span class="shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="nav_block_rules" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Block Rules
           </span>
           <svg :class="{'rotate-90': open}" class="h-3.5 w-3.5 shrink-0 transform text-zinc-500 transition-transform duration-200 ease-out group-hover:text-zinc-400 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -39,59 +39,58 @@
 
         <div x-show="open" class="mt-0.5 space-y-px rounded-md bg-zinc-900/30 py-1 pl-0.5 pr-0.5">
           <a href="/tracker/blocked-subnets/" data-nav-tier="sub" hx-get="/tracker/blocked-subnets/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-subnets/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zm13.5-13.5A2.25 2.25 0 0119.5 3.75H18a2.25 2.25 0 00-2.25 2.25V10.5A2.25 2.25 0 0018 12.75h2.25A2.25 2.25 0 0021 10.5V6zm0 13.5a2.25 2.25 0 00-2.25-2.25H18a2.25 2.25 0 00-2.25 2.25V18A2.25 2.25 0 0018 20.25h2.25A2.25 2.25 0 0021 18v-2.25z" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tracker/blocked-subnets/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_subnet" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Subnet
           </a>
 
           <a href="/tracker/blocked-ips/" data-nav-tier="sub" hx-get="/tracker/blocked-ips/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-ips/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tracker/blocked-ips/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_ip" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             IP
           </a>
 
           <a href="/tracker/blocked-isps/" data-nav-tier="sub" hx-get="/tracker/blocked-isps/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-isps/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008H17.25v-.008zm0 3h.008v.008H17.25v-.008zm0 3h.008v.008H17.25v-.008z" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tracker/blocked-isps/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_isp" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             ISP
           </a>
 
           <a href="/tracker/blocked-browsers/" data-nav-tier="sub" hx-get="/tracker/blocked-browsers/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-browsers/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tracker/blocked-browsers/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_browser" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Browser
           </a>
 
           <a href="/tracker/blocked-os/" data-nav-tier="sub" hx-get="/tracker/blocked-os/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-os/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8 21h8M12 17v4m-5-4h10a1 1 0 001-1V5a1 1 0 00-1-1H7a1 1 0 00-1 1v11a1 1 0 001 1z" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tracker/blocked-os/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_os" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             OS
           </a>
 
           <a href="/tracker/blocked-hostnames/" data-nav-tier="sub" hx-get="/tracker/blocked-hostnames/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-hostnames/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M3 12h18M3 17h18" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tracker/blocked-hostnames/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_hostname" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Hostname
           </a>
 
           <a href="/tracker/allowed-countries/" data-nav-tier="sub" hx-get="/tracker/allowed-countries/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/allowed-countries/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tracker/allowed-countries/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="allowed_country" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Country
           </a>
 
           <a href="/tracker/dinger-ip/" data-nav-tier="sub" hx-get="/tracker/dinger-ip/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/dinger-ip/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tracker/dinger-ip/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="dinger_ip" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Dingers IP
           </a>
         </div>
@@ -102,9 +101,9 @@
       <div x-data="{ open: '{% if '/tracker/allowed-logs/' in request.path or '/tracker/denied-logs/' in request.path or '/tracker/ip-info/' in request.path %}true{% else %}false{% endif %}' == 'true' }">
         <button type="button" @click="open = !open" class="group flex min-h-[2rem] w-full items-center justify-between rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 transition-all duration-150 hover:bg-zinc-800/90 hover:text-zinc-100 sm:text-sm">
           <span class="flex items-center gap-2">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h18" />
-            </svg>
+            <span class="shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="nav_logs" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Logs
           </span>
           <svg :class="{'rotate-90': open}" class="h-3.5 w-3.5 shrink-0 transform text-zinc-500 transition-transform duration-200 ease-out group-hover:text-zinc-400 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -114,24 +113,23 @@
 
         <div x-show="open" class="mt-0.5 space-y-px rounded-md bg-zinc-900/30 py-1 pl-0.5 pr-0.5">
           <a href="/tracker/allowed-logs/" data-nav-tier="sub" hx-get="/tracker/allowed-logs/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/allowed-logs/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tracker/allowed-logs/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="log_allowed" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Allowed
           </a>
 
           <a href="/tracker/denied-logs/" data-nav-tier="sub" hx-get="/tracker/denied-logs/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/denied-logs/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m-4.5 0l4.5-4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tracker/denied-logs/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="log_denied" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Denied
           </a>
 
           <a href="/tracker/ip-info/" data-nav-tier="sub" hx-get="/tracker/ip-info/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/ip-info/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tracker/ip-info/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="ip_info" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             IP Info
           </a>
         </div>
@@ -142,9 +140,9 @@
       <div x-data="{ open: '{% if '/tools/upload-files/' in request.path or '/tools/google-safe-check/' in request.path or '/tools/redirect-check/' in request.path %}true{% else %}false{% endif %}' == 'true' }">
         <button type="button" @click="open = !open" class="group flex min-h-[2rem] w-full items-center justify-between rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 transition-all duration-150 hover:bg-zinc-800/90 hover:text-zinc-100 sm:text-sm">
           <span class="flex items-center gap-2">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v16h16V4H4zm4 4h8v8H8V8z" />
-            </svg>
+            <span class="shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="nav_tools" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Tools
           </span>
           <svg :class="{'rotate-90': open}" class="h-3.5 w-3.5 shrink-0 transform text-zinc-500 transition-transform duration-200 ease-out group-hover:text-zinc-400 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -154,23 +152,23 @@
 
         <div x-show="open" class="mt-0.5 space-y-px rounded-md bg-zinc-900/30 py-1 pl-0.5 pr-0.5">
           <a href="/tools/upload-files/" data-nav-tier="sub" hx-get="/tools/upload-files/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tools/upload-files/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75a3.375 3.375 0 00-3.375 3.375v1.5c0 .621-.504 1.125-1.125 1.125H3.375A3.375 3.375 0 000 11.625v2.625m19.5 0h-19.5m19.5 0a1.125 1.125 0 01-1.125 1.125H2.625a1.125 1.125 0 01-1.125-1.125m19.5 0v1.125c0 .621-.504 1.125-1.125 1.125H2.625a1.125 1.125 0 01-1.125-1.125v-1.125" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tools/upload-files/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_files" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Files
           </a>
 
           <a href="/tools/google-safe-check/" data-nav-tier="sub" hx-get="/tools/google-safe-check/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tools/google-safe-check/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tools/google-safe-check/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_safe" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Safe Browser Checker
           </a>
 
           <a href="/tools/redirect-check/" data-nav-tier="sub" hx-get="/tools/redirect-check/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tools/redirect-check/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            </svg>
+            <span class="shrink-0 {% if request.path == '/tools/redirect-check/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_redirect" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Redirect Check
           </a>
         </div>

@@ -1,13 +1,6 @@
 <span class="hidden" data-page-title="Profile Settings"></span>
 <div class="min-w-0 w-full text-sm">
-  <header class="mb-6 border-b border-zinc-700/50 pb-4">
-    <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
-      <div class="min-w-0 flex-1">
-        <h1 class="text-base font-semibold tracking-tight text-white sm:text-lg">👤 Profile Settings</h1>
-        <p class="mt-1.5 max-w-3xl text-xs leading-relaxed text-zinc-500 sm:text-[13px]">Update your account information</p>
-      </div>
-    </div>
-  </header>
+  {% include "dashboard/partials/includes/dashboard_page_header.html" with header_title="Profile Settings" header_icon="profile_user" header_subtitle="Update your account information" header_hide_stats=True %}
 
   {% include "dashboard/partials/messages.html" %}
 

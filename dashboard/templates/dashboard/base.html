@@ -117,6 +117,18 @@
                 "hover:text-zinc-200"
               );
             }
+            // Icon sits in a child <span>; <a> text color does not override span.text-green-400 from SSR.
+            var iconWrap = a.querySelector(":scope > span.shrink-0");
+            if (iconWrap) {
+              ["text-green-400", "text-zinc-500", "transition-colors", "group-hover:text-zinc-300"].forEach(function (c) {
+                iconWrap.classList.remove(c);
+              });
+              if (active) {
+                iconWrap.classList.add("text-green-400");
+              } else {
+                iconWrap.classList.add("text-zinc-500", "transition-colors", "group-hover:text-zinc-300");
+              }
+            }
           }
 
           var svg = a.querySelector("svg");
@@ -137,6 +149,7 @@
       window.addEventListener("popstate", function () {
         syncSidebarActive();
       });
+      document.addEventListener("DOMContentLoaded", syncSidebarActive);
     })();
   </script>
 </body>

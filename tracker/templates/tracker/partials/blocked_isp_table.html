@@ -1,6 +1,6 @@
 <tbody id="isp-table-body">
   {% for isp in blocked_isps %}
-  <tr class="border-b border-zinc-700 hover:bg-zinc-700/30">
+  <tr class="border-b border-zinc-700/40 odd:bg-zinc-900/20 even:bg-zinc-800/15 hover:!bg-zinc-700/35 transition-colors">
     <td class="px-2 py-1.5 text-zinc-200 font-mono text-xs">{{ isp.isp }}</td>
     <td class="px-2 py-1.5 text-right">
       <form method="post" class="inline" hx-post="{% url 'tracker:blocked_isp' %}" hx-target="#blocked-isp-wrapper" hx-swap="outerHTML">
