@@ -1,39 +1,42 @@
-<header class="shrink-0 border-b border-zinc-700/80 bg-zinc-800">
-  <div class="flex h-12 items-center justify-between gap-3 px-4 sm:h-[3.25rem] sm:px-6">
+<header class="z-10 shrink-0 border-b border-zinc-700/50 bg-zinc-800/95 shadow-sm shadow-black/20 backdrop-blur-sm">
+  <div class="mx-auto flex h-14 max-w-[1600px] items-stretch justify-between gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
     <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
       <button type="button"
               @click="sidebar = !sidebar"
-              class="inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-600 bg-zinc-900/40 p-2 text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-green-500/40"
+              class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-600/80 bg-zinc-900/50 text-zinc-200 transition-all hover:border-zinc-500 hover:bg-zinc-700/80 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/50"
               aria-label="Toggle sidebar">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
-      <div class="min-w-0 flex-1">
-        <p class="truncate text-sm font-semibold leading-tight text-zinc-100">Antibot</p>
-        <p class="truncate text-[10px] leading-tight text-zinc-500 sm:text-[11px]">Dashboard</p>
+      <div class="hidden h-7 w-px shrink-0 bg-zinc-600/50 sm:block" aria-hidden="true"></div>
+      <div class="min-w-0 flex-1 py-1">
+        <p class="truncate text-sm font-semibold tracking-tight text-zinc-100">Antibot</p>
+        <p class="truncate text-[11px] leading-snug text-zinc-500">Dashboard</p>
       </div>
       <button type="button"
-              class="shrink-0 rounded-md border border-zinc-600/80 bg-zinc-900/30 px-2.5 py-1.5 text-[11px] font-medium text-zinc-400 transition-colors hover:border-zinc-500 hover:bg-zinc-700/60 hover:text-zinc-200">
+              class="shrink-0 rounded-lg border border-zinc-600/70 bg-zinc-900/40 px-3 py-1.5 text-[11px] font-medium text-zinc-400 transition-all hover:border-zinc-500 hover:bg-zinc-700/50 hover:text-zinc-200 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/40">
         Quick Shortener
       </button>
     </div>
-    <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+
+    <div class="flex shrink-0 items-center gap-0.5 rounded-xl border border-zinc-700/40 bg-zinc-900/35 py-1 pl-2 pr-1 shadow-inner shadow-black/20 sm:gap-1 sm:pl-3 sm:pr-2">
       {% if request.user.is_authenticated %}
-        <span class="hidden max-w-[7rem] truncate text-xs text-zinc-500 md:inline" title="{{ request.user.username }}">{{ request.user.username }}</span>
+        <span class="hidden max-w-[6.5rem] truncate px-1 text-[11px] font-medium text-zinc-400 md:inline lg:max-w-[9rem]" title="{{ request.user.username }}">{{ request.user.username }}</span>
+        <div class="hidden h-5 w-px bg-zinc-600/40 md:block" aria-hidden="true"></div>
       {% endif %}
       <a href="/accounts/logout/"
-         class="text-xs font-medium text-zinc-400 transition-colors hover:text-zinc-200 sm:text-[13px]">
+         class="rounded-lg px-2.5 py-2 text-[11px] font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40 sm:text-xs sm:py-1.5">
         Logout
       </a>
       <a href="/dashboard/profile-settings/"
-         class="shrink-0 rounded-full ring-2 ring-transparent transition hover:ring-green-500/60 focus:outline-none focus:ring-green-500/50">
+         class="ml-0.5 flex shrink-0 rounded-full p-0.5 ring-2 ring-transparent transition hover:ring-green-500/45 focus:outline-none focus-visible:ring-green-500/60">
         {% if request.user.is_authenticated and request.user.profile.avatar %}
           <img src="{{ request.user.profile.avatar.url }}"
                alt=""
-               class="h-8 w-8 rounded-full border border-zinc-600 object-cover">
+               class="h-8 w-8 rounded-full border border-zinc-600 object-cover shadow-sm">
         {% else %}
-          <div class="h-8 w-8 rounded-full border border-zinc-600 bg-green-600/90" aria-hidden="true"></div>
+          <div class="h-8 w-8 rounded-full border border-zinc-600 bg-gradient-to-br from-green-500 to-green-700 shadow-sm" aria-hidden="true"></div>
         {% endif %}
       </a>
     </div>
