@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   </head>
-<body class="h-full text-white antialiased" x-data="{ sidebar: true }">
+<body class="h-full text-sm text-white antialiased" x-data="{ sidebar: true }">
   <div class="flex h-screen min-h-0">
     <!-- Sidebar -->
     {% include "dashboard/partials/sidebar.html" %}
@@ -19,13 +19,126 @@
       {% include "dashboard/partials/header.html" %}
 
       <!-- Content -->
-      <main class="min-h-0 flex-1 overflow-y-auto scroll-smooth px-4 py-6 sm:px-6 sm:py-7 lg:px-8">
-        {% block content %}{% endblock %}
+      <main class="min-h-0 flex-1 overflow-y-auto scroll-smooth px-3 py-4 sm:px-4 sm:py-5 lg:px-6">
+        <div id="main-content" class="mx-auto w-full max-w-[1360px]">
+          {% block content %}{% endblock %}
+        </div>
         {% block after_content %}{% endblock %}
       </main>
       {% include "dashboard/partials/footer.html" %}
     </div>
   </div>
+  <script>
+    (function () {
+      function normalizePath(path) {
+        if (!path) return "/";
+        if (path.length > 1 && path.endsWith("/")) return path.slice(0, -1);
+        return path;
+      }
+
+      function syncDocumentTitleFromTarget(target) {
+        if (!target || target.id !== "main-content") return;
+        var marker = target.querySelector("[data-page-title]");
+        if (marker) {
+          var title = marker.getAttribute("data-page-title");
+          if (title) document.title = title;
+        }
+      }
+
+      function syncSidebarActive() {
+        var aside = document.querySelector("aside");
+        if (!aside) return;
+        var path = normalizePath(window.location.pathname);
+        aside.querySelectorAll('a[href^="/"]').forEach(function (a) {
+          var raw = a.getAttribute("href");
+          if (!raw) return;
+          var href = normalizePath(raw);
+          var active = href === path;
+          var tier = a.getAttribute("data-nav-tier");
+          var isTop = tier === "top";
+          var isSub = tier === "sub";
+          if (!isTop && !isSub) return;
+
+          if (isTop) {
+            [
+              "border-green-500",
+              "bg-zinc-900/55",
+              "font-medium",
+              "text-green-400",
+              "shadow-sm",
+              "border-transparent",
+              "text-zinc-300",
+              "hover:bg-zinc-800/90",
+              "hover:text-zinc-100",
+            ].forEach(function (c) {
+              a.classList.remove(c);
+            });
+            if (active) {
+              a.classList.add(
+                "border-green-500",
+                "bg-zinc-900/55",
+                "font-medium",
+                "text-green-400",
+                "shadow-sm"
+              );
+            } else {
+              a.classList.add(
+                "border-transparent",
+                "text-zinc-300",
+                "hover:bg-zinc-800/90",
+                "hover:text-zinc-100"
+              );
+            }
+          } else if (isSub) {
+            [
+              "border-green-500",
+              "bg-zinc-800/80",
+              "font-medium",
+              "text-green-400",
+              "border-transparent",
+              "text-zinc-400",
+              "hover:bg-zinc-800/70",
+              "hover:text-zinc-200",
+            ].forEach(function (c) {
+              a.classList.remove(c);
+            });
+            if (active) {
+              a.classList.add(
+                "border-green-500",
+                "bg-zinc-800/80",
+                "font-medium",
+                "text-green-400"
+              );
+            } else {
+              a.classList.add(
+                "border-transparent",
+                "text-zinc-400",
+                "hover:bg-zinc-800/70",
+                "hover:text-zinc-200"
+              );
+            }
+          }
+
+          var svg = a.querySelector("svg");
+          if (svg && isTop) {
+            ["text-green-500/90", "text-zinc-500", "group-hover:text-zinc-300"].forEach(function (c) {
+              svg.classList.remove(c);
+            });
+            if (active) svg.classList.add("text-green-500/90");
+            else svg.classList.add("text-zinc-500", "group-hover:text-zinc-300");
+          }
+        });
+      }
+
+      document.body.addEventListener("htmx:afterSwap", function (e) {
+        syncDocumentTitleFromTarget(e.detail.target);
+        syncSidebarActive();
+      });
+      window.addEventListener("popstate", function () {
+        syncSidebarActive();
+      });
+    })();
+  </script>
 </body>
 
 </html>

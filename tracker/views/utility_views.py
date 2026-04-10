@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 
 from core.decorators import superuser_required
+from core.htmx_navigation import render_page_or_shell
 
 from ..forms import AddBlockRuleForm, DeleteIpLogForm
 from ..models import (
@@ -82,4 +83,9 @@ def dinger_ip_view(request):
         .values('ip_address', 'count', 'last_seen')
         .order_by('-count')
     )
-    return render(request, 'tracker/dinger_ip.html', {'dingers': dingers})
+    return render_page_or_shell(
+        request,
+        full_template="tracker/dinger_ip.html",
+        shell_template="tracker/partials/shell/dinger_ip.html",
+        context={"dingers": dingers},
+    )

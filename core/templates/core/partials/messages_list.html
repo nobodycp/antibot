@@ -1,8 +1,8 @@
 {% if messages %}
-<div class="space-y-2 mb-4 messages-stack" role="status" aria-live="polite">
+<div class="messages-stack mb-3 space-y-1.5" role="status" aria-live="polite">
   {% for message in messages %}
     <div
-      class="message px-3 py-1.5 rounded-md text-xs font-medium border
+      class="message rounded-md border px-2.5 py-1 text-[11px] font-medium sm:text-xs
         {% if message.level_tag == 'success' %}bg-emerald-700 text-white border-emerald-600
         {% elif message.level_tag == 'error' %}bg-red-700 text-white border-red-600
         {% elif message.level_tag == 'warning' %}bg-amber-600 text-white border-amber-500

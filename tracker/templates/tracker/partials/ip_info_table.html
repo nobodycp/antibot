@@ -2,47 +2,47 @@
   {% for row in ips %}
   <tr class="border-b border-zinc-700 hover:bg-zinc-700/30">
     <!-- Time -->
-    <td class="px-3 py-1.5 text-zinc-400 whitespace-nowrap">{{ row.last_seen|timesince }} ago</td>
+    <td class="px-2 py-1.5 text-zinc-400 whitespace-nowrap">{{ row.last_seen|timesince }} ago</td>
 
     <!-- IP -->
-    <td class="px-3 py-1.5 text-zinc-100 font-mono whitespace-nowrap">{{ row.ip_address }}</td>
+    <td class="px-2 py-1.5 text-zinc-100 font-mono whitespace-nowrap">{{ row.ip_address }}</td>
 
     <!-- ISP -->
-    <td class="px-3 py-1.5 text-zinc-100">{{ row.isp|default:"—" }}</td>
+    <td class="px-2 py-1.5 text-zinc-100">{{ row.isp|default:"—" }}</td>
 
     <!-- Subnet -->
-    <td class="px-3 py-1.5 text-zinc-100 font-mono whitespace-nowrap">{{ row.subnet|default:"—" }}</td>
+    <td class="px-2 py-1.5 text-zinc-100 font-mono whitespace-nowrap">{{ row.subnet|default:"—" }}</td>
 
     <!-- AS Type -->
-    <td class="px-3 py-1.5 text-zinc-100 whitespace-nowrap">{{ row.as_type|default:"—" }}</td>
+    <td class="px-2 py-1.5 text-zinc-100 whitespace-nowrap">{{ row.as_type|default:"—" }}</td>
 
     <!-- Flags -->
-    <td class="px-3 py-1.5 whitespace-nowrap">
+    <td class="px-2 py-1.5 whitespace-nowrap">
       {% if row.is_anonymous %}<svg class="w-4 h-4 text-green-400 mx-auto" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>{% else %}<svg class="w-4 h-4 text-red-400 mx-auto" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>{% endif %}
 
     </td>
-    <td class="px-3 py-1.5 whitespace-nowrap">
+    <td class="px-2 py-1.5 whitespace-nowrap">
       {% if row.is_proxy %}<svg class="w-4 h-4 text-green-400 mx-auto" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>{% else %}<svg class="w-4 h-4 text-red-400 mx-auto" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>{% endif %}
 
     </td>
-    <td class="px-3 py-1.5 whitespace-nowrap">
+    <td class="px-2 py-1.5 whitespace-nowrap">
       {% if row.is_hosting %}<svg class="w-4 h-4 text-green-400 mx-auto" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>{% else %}<svg class="w-4 h-4 text-red-400 mx-auto" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>{% endif %}
 
     </td>
-    <td class="px-3 py-1.5 whitespace-nowrap">
+    <td class="px-2 py-1.5 whitespace-nowrap">
       {% if row.is_tor %}<svg class="w-4 h-4 text-green-400 mx-auto" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>{% else %}<svg class="w-4 h-4 text-red-400 mx-auto" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>{% endif %}
 
     </td>
-    <td class="px-3 py-1.5 whitespace-nowrap">
+    <td class="px-2 py-1.5 whitespace-nowrap">
       {% if row.is_vpn %}<svg class="w-4 h-4 text-green-400 mx-auto" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>{% else %}<svg class="w-4 h-4 text-red-400 mx-auto" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>{% endif %}
     </td>
-    <td class="px-3 py-1.5 whitespace-nowrap">
+    <td class="px-2 py-1.5 whitespace-nowrap">
       {% if row.is_satellite %}<svg class="w-4 h-4 text-green-400 mx-auto" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>{% else %}<svg class="w-4 h-4 text-red-400 mx-auto" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>{% endif %}
 
     </td>
 
     <!-- Delete -->
-    <td class="px-3 py-1.5 text-right">
+    <td class="px-2 py-1.5 text-right">
       <form method="post"
             hx-post="{% url 'tracker:ip_info' %}"
             hx-target="#ip-info-wrapper"

@@ -9,6 +9,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from core.decorators import superuser_required
+from core.htmx_navigation import render_page_or_shell
 
 from ..forms import RedirectCheckForm
 from ..models import RedirectCheck
@@ -74,10 +75,13 @@ def redirect_check_view(request):
         form = RedirectCheckForm()
 
     entries = RedirectCheck.objects.all().order_by('-last_checked')
-    return render(request, 'tools/redirect_check.html', {
-        'form': form,
-        'entries': entries
-    })
+    ctx = {'form': form, 'entries': entries}
+    return render_page_or_shell(
+        request,
+        full_template='tools/redirect_check.html',
+        shell_template='tools/partials/shell/redirect_check.html',
+        context=ctx,
+    )
 
 
 @superuser_required

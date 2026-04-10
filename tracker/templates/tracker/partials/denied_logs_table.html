@@ -2,23 +2,23 @@
 <tbody id="logs-table-body">
   {% for log in logs %}
   <tr class="border-b border-zinc-700 hover:bg-zinc-700/30">
-    <td class="px-3 py-1.5 text-zinc-400 whitespace-nowrap">{{ log.timestamp|timesince }} ago</td>
-    <td class="px-3 py-1.5 text-zinc-100 font-mono">{{ log.ip_address }}</td>
+    <td class="px-2 py-1.5 text-zinc-400 whitespace-nowrap">{{ log.timestamp|timesince }} ago</td>
+    <td class="px-2 py-1.5 text-zinc-100 font-mono">{{ log.ip_address }}</td>
 
     <!-- 🔴 Reason -->
-    <td class="px-3 py-1.5 text-red-500 font-bold">{{ log.reason|default:"—" }}</td>
+    <td class="px-2 py-1.5 text-red-500 font-bold">{{ log.reason|default:"—" }}</td>
 
-    <td class="px-3 py-1.5 text-zinc-100">{{ log.isp|default:"—" }}</td>
-<!--    <td class="px-3 py-1.5 text-zinc-100">{{ log.hostname|default:"—" }}</td>-->
+    <td class="px-2 py-1.5 text-zinc-100">{{ log.isp|default:"—" }}</td>
+<!--    <td class="px-2 py-1.5 text-zinc-100">{{ log.hostname|default:"—" }}</td>-->
 
-    <td class="px-3 py-1.5 text-zinc-100">
+    <td class="px-2 py-1.5 text-zinc-100">
       <span class="flex items-center gap-2">
         <img src="/static/icons/os/{{ log.os|icon_name }}.svg" alt="os icon" class="w-4 h-4" />
         <span>{{ log.os }}</span>
       </span>
     </td>
 
-    <td class="px-3 py-1.5 text-zinc-100">
+    <td class="px-2 py-1.5 text-zinc-100">
       <span class="flex items-center gap-2">
         <img src="/static/icons/browsers/{{ log.browser|icon_name }}.svg" alt="browser icon" class="w-4 h-4" />
         <span>{{ log.browser }}</span>
@@ -26,17 +26,17 @@
     </td>
 
     <!-- 🌍 Country -->
-    <td class="px-3 py-1.5 text-zinc-100 flex items-center gap-2">
+    <td class="px-2 py-1.5 text-zinc-100 flex items-center gap-2">
       {% if log.country %}
         <img src="https://flagcdn.com/24x18/{{ log.country|lower }}.png" alt="{{ log.country }} flag"
              class="w-4 h-3 rounded-sm border border-zinc-600" />
       {% endif %}
       <span>{{ log.country }}</span>
     </td>
-    <td class="px-3 py-1.5 text-zinc-100 font-mono text-xs">{{ log.b_subnet }}</td>
+    <td class="px-2 py-1.5 text-zinc-100 font-mono text-xs">{{ log.b_subnet }}</td>
 
     <!-- 🗑️ Delete -->
-    <td class="px-3 py-1.5 text-right">
+    <td class="px-2 py-1.5 text-right">
       <form method="post" hx-post="{% url 'tracker:denied_logs' %}" hx-target="#denied-logs-wrapper" hx-swap="outerHTML">
         {% csrf_token %}
         <input type="hidden" name="delete_id" value="{{ log.id }}">

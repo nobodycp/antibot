@@ -1,5 +1,7 @@
 """Reusable render/redirect patterns for tracker list + HTMX CRUD views."""
 
+from __future__ import annotations
+
 from django.shortcuts import redirect, render
 
 from ..helpers.blocked_views_helper import (
@@ -31,11 +33,19 @@ def blocked_render_full_page(
     search_field: str,
     list_key: str,
     template: str,
+    shell_fragment_template: str | None = None,
 ):
     q = list_search_q(request)
     qs = apply_search_filter(ordered_qs, q, search_field)
     page_obj = paginated_page(request, qs)
-    return render(request, template, blocked_list_page_context(list_key, page_obj, q))
+    ctx = blocked_list_page_context(list_key, page_obj, q)
+    if (
+        request.method == "GET"
+        and htmx_request(request)
+        and shell_fragment_template
+    ):
+        return render(request, shell_fragment_template, ctx)
+    return render(request, template, ctx)
 
 
 def blocked_render_partial(
@@ -109,11 +119,19 @@ def logs_render_full_page(
     list_key: str,
     template: str,
     per_page: int = 20,
+    shell_fragment_template: str | None = None,
 ):
     q = get_q(request)
     queryset = apply_filter(ordered_qs, q)
     page_obj = logs_paginated_page(request, queryset, per_page=per_page)
-    return render(request, template, logs_list_page_context(list_key, page_obj, q))
+    ctx = logs_list_page_context(list_key, page_obj, q)
+    if (
+        request.method == "GET"
+        and htmx_request(request)
+        and shell_fragment_template
+    ):
+        return render(request, shell_fragment_template, ctx)
+    return render(request, template, ctx)
 
 
 def logs_render_partial(

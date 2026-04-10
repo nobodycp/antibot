@@ -7,6 +7,7 @@ from django.core.management import call_command
 from django.shortcuts import redirect, render
 
 from core.decorators import superuser_required
+from core.htmx_navigation import render_page_or_shell
 
 from ..forms import TelegramBackupSettingsForm
 from ..helpers.dashboard_views_helper import redirect_if_telegram_unconfigured
@@ -43,9 +44,12 @@ def telegram_backup_settings_view(request):
         messages.success(request, "✅ Settings saved successfully.")
         return redirect("dashboard:telegram_backup_settings")
 
-    return render(request, "dashboard/backup.html", {
-        "settings_obj": settings_obj
-    })
+    return render_page_or_shell(
+        request,
+        full_template="dashboard/backup.html",
+        shell_template="dashboard/partials/shell/backup.html",
+        context={"settings_obj": settings_obj},
+    )
 
 
 @superuser_required

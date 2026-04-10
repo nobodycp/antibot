@@ -7,6 +7,8 @@ from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
+from core.htmx_navigation import render_page_or_shell
+
 from ..forms import ProfilePasswordForm, ProfileUpdateForm
 from ..api_key_crypto import is_hidden_api_key_storage
 from ..models import UserAPIKey, UserProfile
@@ -81,12 +83,18 @@ def profile_settings_view(request):
             return redirect("dashboard:profile_settings")
 
     reveal_once = request.session.pop("api_key_reveal_once", None)
-    return render(request, "dashboard/profile_settings.html", {
+    ctx = {
         "profile": profile,
         "user_api_key": user_api_key,
         "api_key_reveal_once": reveal_once,
         "api_key_is_hidden": is_hidden_api_key_storage(user_api_key.api_key),
-    })
+    }
+    return render_page_or_shell(
+        request,
+        full_template="dashboard/profile_settings.html",
+        shell_template="dashboard/partials/shell/profile_settings.html",
+        context=ctx,
+    )
 
 
 @login_required

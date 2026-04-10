@@ -1,0 +1,71 @@
+<span class="hidden" data-page-title="Dashboard"></span>
+<div class="w-full px-4 text-xs sm:text-sm space-y-4">
+
+  <div class="flex flex-col gap-2 border-b border-zinc-700 pb-2 md:flex-row md:items-center md:justify-between">
+    <div>
+      <h1 class="text-lg font-bold text-white">Dashboard</h1>
+      <p class="text-zinc-400 text-xs mt-1">Main overview of visitors, denied logs, top activity and alerts.</p>
+    </div>
+  </div>
+
+  <!-- 1) Stats -->
+  <div
+  hx-get="/dashboard/home/stats/"
+  hx-trigger="load"
+  hx-target="this"
+  hx-swap="outerHTML"
+>
+  <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-zinc-400 text-xs">
+    Loading stats...
+  </div>
+</div>
+
+  <!-- 2) Secondary Stats -->
+  <div
+    hx-get="/dashboard/home/secondary-stats/"
+    hx-trigger="load"
+    hx-target="this"
+    hx-swap="outerHTML"
+  >
+    <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-zinc-400 text-xs">
+      Loading secondary stats...
+    </div>
+  </div>
+
+  <!-- 3) Latest Logs -->
+  <div
+    hx-get="/dashboard/home/latest-logs/"
+    hx-trigger="load"
+    hx-target="this"
+    hx-swap="outerHTML"
+  >
+    <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-zinc-400 text-xs">
+      Loading latest logs...
+    </div>
+  </div>
+
+  <!-- 4) Alerts -->
+  <div
+    hx-get="/dashboard/home/alerts/"
+    hx-trigger="load"
+    hx-target="this"
+    hx-swap="outerHTML"
+  >
+    <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-zinc-400 text-xs">
+      Loading alerts...
+    </div>
+  </div>
+
+  <!-- 5) Top IPs -->
+  <div
+    hx-get="/dashboard/home/top-ips/"
+    hx-trigger="load"
+    hx-target="this"
+    hx-swap="outerHTML"
+  >
+    <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-zinc-400 text-xs">
+      Loading top IPs...
+    </div>
+  </div>
+
+</div>

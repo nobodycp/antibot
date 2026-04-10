@@ -1,5 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
+
+from core.htmx_navigation import render_page_or_shell
 from django.utils import timezone
 
 from ..helpers.cached_tracker_counts import get_cached_global_rule_counts
@@ -66,7 +68,12 @@ def dashboard_home(request):
         'alerts': alerts,
         'last_update': now,
     }
-    return render(request, 'dashboard/home.html', context)
+    return render_page_or_shell(
+        request,
+        full_template="dashboard/home.html",
+        shell_template="dashboard/partials/shell/home.html",
+        context=context,
+    )
 
 
 @login_required

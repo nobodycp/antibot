@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.shortcuts import redirect, render
 
 from core.decorators import superuser_required
+from core.htmx_navigation import render_page_or_shell
 
 from ..forms import ArchiveFileForm
 from ..models import ArchiveFile
@@ -40,7 +41,10 @@ def uploader_files_view(request):
         form = ArchiveFileForm()
 
     files = ArchiveFile.objects.all().order_by('-id')
-    return render(request, 'tools/files.html', {
-        'files': files,
-        'form': form
-    })
+    ctx = {'files': files, 'form': form}
+    return render_page_or_shell(
+        request,
+        full_template='tools/files.html',
+        shell_template='tools/partials/shell/files.html',
+        context=ctx,
+    )

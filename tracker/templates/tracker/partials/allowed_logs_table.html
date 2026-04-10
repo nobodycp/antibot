@@ -2,9 +2,9 @@
 <tbody id="logs-table-body">
   {% for log in logs %}
   <tr class="border-b border-zinc-700 hover:bg-zinc-700/30">
-    <td class="px-3 py-1.5 text-zinc-400 whitespace-nowrap">{{ log.timestamp|timesince }} ago</td>
-    <td class="px-3 py-1.5 text-zinc-100 font-mono text-xs">{{ log.ip_address }}</td>
-    <td class="px-3 py-1.5 text-zinc-100 flex items-center gap-2">
+    <td class="px-2 py-1.5 text-zinc-400 whitespace-nowrap">{{ log.timestamp|timesince }} ago</td>
+    <td class="px-2 py-1.5 text-zinc-100 font-mono text-xs">{{ log.ip_address }}</td>
+    <td class="px-2 py-1.5 text-zinc-100 flex items-center gap-2">
       {% if log.country %}
         <img src="https://flagcdn.com/24x18/{{ log.country|lower }}.png"
              alt="{{ log.country }} flag"
@@ -13,11 +13,11 @@
       <span>{{ log.country }}</span>
     </td>
 
-    <td class="px-3 py-1.5 text-zinc-100 text-xs">{{ log.isp|default:"—" }}</td>
+    <td class="px-2 py-1.5 text-zinc-100 text-xs">{{ log.isp|default:"—" }}</td>
 
-    <td class="px-3 py-1.5 text-zinc-100 text-xs">{{ log.hostname|default:"—" }}</td>
+    <td class="px-2 py-1.5 text-zinc-100 text-xs">{{ log.hostname|default:"—" }}</td>
 
-    <td class="px-3 py-1.5 text-zinc-100">
+    <td class="px-2 py-1.5 text-zinc-100">
       <span class="flex items-center gap-2">
         <img src="/static/icons/os/{{ log.os|icon_name }}.svg"
              alt="os icon"
@@ -26,7 +26,7 @@
       </span>
     </td>
 
-    <td class="px-3 py-1.5 text-zinc-100">
+    <td class="px-2 py-1.5 text-zinc-100">
       <span class="flex items-center gap-2">
         <img src="/static/icons/browsers/{{ log.browser|icon_name }}.svg"
              alt="browser icon"
@@ -34,8 +34,8 @@
         <span>{{ log.browser }}</span>
       </span>
     </td>
-    <td class="px-3 py-1.5 text-zinc-100 font-mono text-xs">{{ log.b_subnet }}</td>
-    <td class="px-3 py-1.5 text-right">
+    <td class="px-2 py-1.5 text-zinc-100 font-mono text-xs">{{ log.b_subnet }}</td>
+    <td class="px-2 py-1.5 text-right">
       <form method="post"
             hx-post="{% url 'tracker:allowed_logs' %}"
             hx-target="#allowed-logs-wrapper"
@@ -54,7 +54,7 @@
   </tr>
   {% empty %}
   <tr>
-    <td colspan="9" class="px-3 py-4 text-zinc-400 text-center">No allowed logs found.</td>
+    <td colspan="9" class="px-2 py-3 text-zinc-400 text-center">No allowed logs found.</td>
   </tr>
   {% endfor %}
 </tbody>

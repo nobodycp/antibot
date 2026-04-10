@@ -9,6 +9,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from core.decorators import superuser_required
+from core.htmx_navigation import render_page_or_shell
 
 from ..forms import GoogleSafeCheckForm
 from ..models import GoogleSafeCheck
@@ -68,10 +69,13 @@ def google_safe_check_view(request):
         form = GoogleSafeCheckForm()
 
     links = GoogleSafeCheck.objects.all().order_by('-last_checked')
-    return render(request, 'tools/google_safe_check.html', {
-        'form': form,
-        'links': links
-    })
+    ctx = {'form': form, 'links': links}
+    return render_page_or_shell(
+        request,
+        full_template='tools/google_safe_check.html',
+        shell_template='tools/partials/shell/google_safe_check.html',
+        context=ctx,
+    )
 
 
 @superuser_required

@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, redirect, render
 
 from core.decorators import superuser_required
+from core.htmx_navigation import render_page_or_shell
 
 from ..forms import AddUserForm, EditUserForm
 
@@ -11,7 +12,12 @@ from ..forms import AddUserForm, EditUserForm
 @superuser_required
 def users_management(request):
     users = User.objects.all().order_by("-id").select_related("api_key_row")
-    return render(request, "dashboard/users_management.html", {"users": users})
+    return render_page_or_shell(
+        request,
+        full_template="dashboard/users_management.html",
+        shell_template="dashboard/partials/shell/users_management.html",
+        context={"users": users},
+    )
 
 
 @superuser_required

@@ -75,6 +75,7 @@ def blocked_subnets_view(request):
         search_field="cidr",
         list_key="blocked_subnets",
         template="tracker/blocked_subnets.html",
+        shell_fragment_template="tracker/partials/shell/blocked_subnets.html",
     )
 
 
@@ -146,6 +147,7 @@ def blocked_ips_view(request):
         search_field="ip_address",
         list_key="blocked_ips",
         template="tracker/blocked_ips.html",
+        shell_fragment_template="tracker/partials/shell/blocked_ips.html",
     )
 
 
@@ -218,6 +220,7 @@ def blocked_isp_view(request):
         search_field="isp",
         list_key="blocked_isps",
         template="tracker/blocked_isp.html",
+        shell_fragment_template="tracker/partials/shell/blocked_isp.html",
     )
 
 
@@ -289,6 +292,7 @@ def blocked_browser_view(request):
         search_field="browser",
         list_key="blocked_browsers",
         template="tracker/blocked_browser.html",
+        shell_fragment_template="tracker/partials/shell/blocked_browser.html",
     )
 
 
@@ -360,6 +364,7 @@ def blocked_os_view(request):
         search_field="os",
         list_key="blocked_os",
         template="tracker/blocked_os.html",
+        shell_fragment_template="tracker/partials/shell/blocked_os.html",
     )
 
 
@@ -431,6 +436,7 @@ def blocked_hostname_view(request):
         search_field="hostname",
         list_key="blocked_hostnames",
         template="tracker/blocked_hostname.html",
+        shell_fragment_template="tracker/partials/shell/blocked_hostname.html",
     )
 
 

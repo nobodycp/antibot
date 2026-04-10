@@ -95,6 +95,7 @@ def ip_info_view(request):
         list_key="ips",
         template="tracker/ip_info.html",
         per_page=10,
+        shell_fragment_template="tracker/partials/shell/ip_info.html",
     )
 
 

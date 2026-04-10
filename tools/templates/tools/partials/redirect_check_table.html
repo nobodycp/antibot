@@ -1,10 +1,10 @@
 {% for entry in entries %}
 <tr class="border-b border-zinc-700 hover:bg-zinc-700/30">
-  <td class="px-3 py-1.5 text-blue-400 truncate max-w-xs">
+  <td class="px-2 py-1.5 text-blue-400 truncate max-w-xs">
     <a href="{{ entry.url }}" target="_blank" class="hover:underline">{{ entry.url }}</a>
   </td>
-  <td class="px-3 py-1.5 text-zinc-400">{{ entry.keyword }}</td>
-  <td class="px-3 py-1.5">
+  <td class="px-2 py-1.5 text-zinc-400">{{ entry.keyword }}</td>
+  <td class="px-2 py-1.5">
     {% if entry.status == "working" %}
       <span class="text-green-400">✅ Working</span>
     {% elif entry.status == "not working" %}
@@ -13,8 +13,8 @@
       <span class="text-yellow-400">⚠️ Error</span>
     {% endif %}
   </td>
-  <td class="px-3 py-1.5 text-zinc-400 text-sm">{{ entry.last_checked|date:"Y-m-d H:i" }}</td>
-  <td class="px-3 py-1.5 text-right">
+  <td class="px-2 py-1.5 text-zinc-400 text-sm">{{ entry.last_checked|date:"Y-m-d H:i" }}</td>
+  <td class="px-2 py-1.5 text-right">
     <form method="post" action="{% url 'tools:redirect_check' %}" class="inline">
       {% csrf_token %}
       <input type="hidden" name="delete_id" value="{{ entry.id }}">
@@ -28,6 +28,6 @@
 </tr>
 {% empty %}
 <tr>
-  <td colspan="5" class="px-3 py-4 text-zinc-400 text-center">No redirects checked yet.</td>
+  <td colspan="5" class="px-2 py-3 text-zinc-400 text-center">No redirects checked yet.</td>
 </tr>
 {% endfor %}

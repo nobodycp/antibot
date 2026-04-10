@@ -67,6 +67,7 @@ def allowed_country_view(request):
         apply_filter=apply_country_code_filter,
         list_key="allowed_countries",
         template="tracker/allowed_country.html",
+        shell_fragment_template="tracker/partials/shell/allowed_country.html",
     )
 
 
@@ -139,6 +140,7 @@ def allowed_logs_view(request):
         apply_filter=apply_visitor_like_fields_search,
         list_key="logs",
         template="tracker/allowed_logs.html",
+        shell_fragment_template="tracker/partials/shell/allowed_logs.html",
     )
 
 
@@ -226,6 +228,7 @@ def denied_logs_view(request):
         list_key="logs",
         template="tracker/denied_logs.html",
         per_page=10,
+        shell_fragment_template="tracker/partials/shell/denied_logs.html",
     )
 
 
