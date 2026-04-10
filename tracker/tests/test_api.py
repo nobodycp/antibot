@@ -92,6 +92,46 @@ class LogVisitorAPITests(APITestCase):
         )
         self.assertEqual(r3.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_invalid_ip_returns_400(self, mock_build):
+        url = reverse("tracker:log_visitor")
+        r = self._post(
+            url,
+            {"ip": "not-an-ip", "useragent": "Mozilla/5.0"},
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", r.data)
+        mock_build.assert_not_called()
+
+    def test_ip_non_string_returns_400(self, mock_build):
+        url = reverse("tracker:log_visitor")
+        r = self._post(url, {"ip": 12345, "useragent": "Mozilla/5.0"})
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        mock_build.assert_not_called()
+
+    def test_useragent_non_string_returns_400(self, mock_build):
+        url = reverse("tracker:log_visitor")
+        r = self._post(url, {"ip": "198.51.100.1", "useragent": ["bad"]})
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        mock_build.assert_not_called()
+
+    def test_useragent_only_control_chars_returns_400(self, mock_build):
+        url = reverse("tracker:log_visitor")
+        r = self._post(url, {"ip": "198.51.100.1", "useragent": "\x01\x02\r\n"})
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        mock_build.assert_not_called()
+
+    def test_useragent_truncated_before_context(self, mock_build):
+        mock_build.return_value = _sample_context(country_code="US")
+        AllowedCountry.objects.create(code="US")
+        url = reverse("tracker:log_visitor")
+        long_ua = "A" * 3000
+        r = self._post(url, {"ip": "198.51.100.40", "useragent": long_ua})
+        self.assertEqual(r.status_code, status.HTTP_201_CREATED)
+        mock_build.assert_called_once()
+        called_ip, called_ua = mock_build.call_args[0]
+        self.assertEqual(called_ip, "198.51.100.40")
+        self.assertEqual(len(called_ua), 2048)
+
     def test_blocked_ip_returns_403_and_creates_rejected_visitor(self, mock_build):
         mock_build.return_value = _sample_context()
         ip = "198.51.100.22"

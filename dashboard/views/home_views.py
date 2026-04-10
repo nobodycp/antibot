@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.utils import timezone
 
+from ..helpers.cached_tracker_counts import get_cached_global_rule_counts
 from ..helpers.dashboard_views_helper import (
     build_dashboard_alerts,
     minute_ago_cutoff,
@@ -13,15 +14,6 @@ from tracker.helpers.ownership import (
     ip_log_queryset,
     rejected_logs_queryset,
     visitor_logs_queryset,
-)
-from tracker.models import (
-    AllowedCountry,
-    BlockedBrowser,
-    BlockedHostname,
-    BlockedIP,
-    BlockedISP,
-    BlockedOS,
-    BlockedSubnet,
 )
 
 
@@ -38,13 +30,7 @@ def dashboard_home(request):
     total_visitors = vqs.count()
     total_denied = rqs.count()
     total_allowed = total_visitors
-    total_blocked_ips = BlockedIP.objects.count()
-    total_blocked_isps = BlockedISP.objects.count()
-    total_blocked_browsers = BlockedBrowser.objects.count()
-    total_blocked_os = BlockedOS.objects.count()
-    total_blocked_subnets = BlockedSubnet.objects.count()
-    total_blocked_hostnames = BlockedHostname.objects.count()
-    total_allowed_countries = AllowedCountry.objects.count()
+    global_counts = get_cached_global_rule_counts()
 
     visitors_today = vqs.filter(timestamp__gte=today_start).count()
     denied_today = rqs.filter(timestamp__gte=today_start).count()
@@ -71,13 +57,7 @@ def dashboard_home(request):
         'total_visitors': total_visitors,
         'total_denied': total_denied,
         'total_allowed': total_allowed,
-        'total_blocked_ips': total_blocked_ips,
-        'total_blocked_isps': total_blocked_isps,
-        'total_blocked_browsers': total_blocked_browsers,
-        'total_blocked_os': total_blocked_os,
-        'total_blocked_subnets': total_blocked_subnets,
-        'total_blocked_hostnames': total_blocked_hostnames,
-        'total_allowed_countries': total_allowed_countries,
+        **global_counts,
         'visitors_today': visitors_today,
         'denied_today': denied_today,
         'unique_ips_today': unique_ips_today,
@@ -103,7 +83,7 @@ def home_stats_partial(request):
 
     total_visitors = vqs.count()
     total_denied = rqs.count()
-    total_blocked_ips = BlockedIP.objects.count()
+    total_blocked_ips = get_cached_global_rule_counts()["total_blocked_ips"]
     live_last_minute = vqs.filter(timestamp__gte=minute_ago).count()
 
     return render(request, 'dashboard/partials/home_stats_partial.html', {
@@ -127,15 +107,14 @@ def home_secondary_stats_partial(request):
     unique_ips_today = (
         vqs.filter(timestamp__gte=today_start).values("ip_address").distinct().count()
     )
-    total_blocked_isps = BlockedISP.objects.count()
-    total_blocked_subnets = BlockedSubnet.objects.count()
+    global_rule_counts = get_cached_global_rule_counts()
 
     context = {
         'visitors_today': visitors_today,
         'denied_today': denied_today,
         'unique_ips_today': unique_ips_today,
-        'total_blocked_isps': total_blocked_isps,
-        'total_blocked_subnets': total_blocked_subnets,
+        'total_blocked_isps': global_rule_counts["total_blocked_isps"],
+        'total_blocked_subnets': global_rule_counts["total_blocked_subnets"],
     }
     return render(request, 'dashboard/partials/home_secondary_stats_partial.html', context)
 
@@ -148,10 +127,7 @@ def home_alerts_partial(request):
     vqs = visitor_logs_queryset(user)
     rqs = rejected_logs_queryset(user)
 
-    total_blocked_browsers = BlockedBrowser.objects.count()
-    total_blocked_os = BlockedOS.objects.count()
-    total_blocked_hostnames = BlockedHostname.objects.count()
-    total_allowed_countries = AllowedCountry.objects.count()
+    global_rule_counts = get_cached_global_rule_counts()
 
     visitors_today = vqs.filter(timestamp__gte=today_start).count()
     denied_today = rqs.filter(timestamp__gte=today_start).count()
@@ -164,10 +140,10 @@ def home_alerts_partial(request):
 
     context = {
         'alerts': alerts,
-        'total_blocked_browsers': total_blocked_browsers,
-        'total_blocked_os': total_blocked_os,
-        'total_blocked_hostnames': total_blocked_hostnames,
-        'total_allowed_countries': total_allowed_countries,
+        'total_blocked_browsers': global_rule_counts["total_blocked_browsers"],
+        'total_blocked_os': global_rule_counts["total_blocked_os"],
+        'total_blocked_hostnames': global_rule_counts["total_blocked_hostnames"],
+        'total_allowed_countries': global_rule_counts["total_allowed_countries"],
         'last_update': now,
     }
     return render(request, 'dashboard/partials/home_alerts_partial.html', context)

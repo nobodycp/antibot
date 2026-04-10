@@ -11,12 +11,21 @@ settings); failures are not cached so the next request can retry.
 from __future__ import annotations
 
 import socket
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 
 import requests
 import user_agents
 from django.conf import settings
 from django.core.cache import cache
+
+
+_CONNECT_TIMEOUT_SEC = 3
+_READ_TIMEOUT_SEC = 5
+_REQUEST_TIMEOUT = (_CONNECT_TIMEOUT_SEC, _READ_TIMEOUT_SEC)
+
+# Short-lived negative cache after enrichment failure to protect upstream APIs.
+_ENRICHMENT_FAILURE_TTL_SEC = 60
 
 
 @dataclass
@@ -64,22 +73,37 @@ def _reverse_dns_hostname(ip: str) -> str:
         return ""
 
 
-def _load_api_enrichment(ip: str) -> _ApiEnrichment:
-    """Fetch ISP, geo, subnet, and privacy flags from external APIs.
+def _enrichment_failure_cache_key(ip: str) -> str:
+    return f"tracker:ip_enrich_fail_v1:{ip}"
 
-    Raises on network/JSON errors or unexpected types where the original code
-    would have raised and triggered the caller's fallback block.
-    """
-    response = requests.get(f"https://ipwho.is/{ip}", timeout=10).json()
+
+def _fetch_json(url: str) -> dict:
+    r = requests.get(url, timeout=_REQUEST_TIMEOUT)
+    return r.json()
+
+
+def _load_api_enrichment(ip: str) -> _ApiEnrichment:
+    """Fetch ISP, geo, subnet, and privacy flags from external APIs in parallel."""
+    urls = (
+        f"https://ipwho.is/{ip}",
+        f"https://api.ipapi.is/?q={ip}",
+        f"https://ipinfo.io/api/pricing/samples/{ip}",
+    )
+    results: dict[int, dict] = {}
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        future_map = {pool.submit(_fetch_json, u): i for i, u in enumerate(urls)}
+        for fut in as_completed(future_map):
+            idx = future_map[fut]
+            results[idx] = fut.result()
+
+    response = results[0]
     isp = response.get("connection", {}).get("isp", "") or ""
     country_code = (response.get("country_code", "") or "").upper()
 
-    response3 = requests.get(f"https://api.ipapi.is/?q={ip}", timeout=10).json()
+    response3 = results[1]
     b_subnet = response3.get("asn", {}).get("route", "") or ""
 
-    response2 = requests.get(
-        f"https://ipinfo.io/api/pricing/samples/{ip}", timeout=10
-    ).json()
+    response2 = results[2]
     as_type = response2.get("core", {}).get("sample", {}).get("as", {}).get("type", "") or ""
     is_anonymous = bool(response2.get("core", {}).get("sample", {}).get("is_anonymous", False))
     is_hosting = bool(response2.get("core", {}).get("sample", {}).get("is_hosting", False))
@@ -152,12 +176,18 @@ def build_visitor_context(ip: str, user_agent_str: str) -> VisitorContext:
 
     api = _get_cached_api_enrichment(ip)
     if api is None:
-        try:
-            api = _load_api_enrichment(ip)
-        except Exception:
+        fail_key = _enrichment_failure_cache_key(ip)
+        if cache.get(fail_key):
             api = _empty_api_enrichment()
         else:
-            _set_cached_api_enrichment(ip, api)
+            try:
+                api = _load_api_enrichment(ip)
+            except Exception:
+                cache.set(fail_key, 1, _ENRICHMENT_FAILURE_TTL_SEC)
+                api = _empty_api_enrichment()
+            else:
+                cache.delete(fail_key)
+                _set_cached_api_enrichment(ip, api)
 
     return VisitorContext(
         os=os_str,

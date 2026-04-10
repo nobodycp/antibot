@@ -5,7 +5,6 @@ Decision order is fixed; changing the order would change API behavior.
 """
 from __future__ import annotations
 
-import ipaddress
 from dataclasses import dataclass
 from typing import Iterable, Optional
 
@@ -17,8 +16,8 @@ from ..models import (
     BlockedIP,
     BlockedISP,
     BlockedOS,
-    BlockedSubnet,
 )
+from ..policy.global_policy import subnet_deny_reason_if_blocked
 from .visitor_context_service import VisitorContext
 
 _API_REASONS = {
@@ -45,17 +44,7 @@ class VisitorDecision:
 
 
 def _deny_reason_subnet(ip: str) -> Optional[str]:
-    try:
-        ip_obj = ipaddress.ip_address(ip)
-    except ValueError:
-        return None
-    for cidr in BlockedSubnet.objects.values_list("cidr", flat=True):
-        try:
-            if ip_obj in ipaddress.ip_network(cidr, strict=False):
-                return "Subnet"
-        except ValueError:
-            continue
-    return None
+    return subnet_deny_reason_if_blocked(ip)
 
 
 def _deny_reason_ip(ip: str) -> Optional[str]:

@@ -8,7 +8,8 @@ from rest_framework.views import APIView
 
 from dashboard.models import UserAPIKey
 
-from ..models import AllowedCountry
+from ..helpers.api_log_input import normalize_client_ip, normalize_user_agent
+from ..policy.global_policy import allowed_country_codes
 from ..services.visitor_context_service import build_visitor_context
 from ..services.visitor_decision_service import evaluate_visitor_decision
 from ..services.visitor_persistence_service import (
@@ -28,13 +29,27 @@ def _raw_api_key_from_request(request):
     ).strip()
 
 
+def _api_key_lookup_digest(raw: str) -> str:
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
 def _resolve_api_user(request):
     sent = _raw_api_key_from_request(request)
     if not sent:
         return None, ""
-    try:
-        row = UserAPIKey.objects.select_related("user").get(api_key=sent)
-    except UserAPIKey.DoesNotExist:
+    digest = _api_key_lookup_digest(sent)
+    row = (
+        UserAPIKey.objects.select_related("user")
+        .filter(api_key_lookup_hash=digest)
+        .first()
+    )
+    if row is None:
+        row = (
+            UserAPIKey.objects.select_related("user")
+            .filter(api_key=sent)
+            .first()
+        )
+    if row is None:
         return None, sent
     return row.user, sent
 
@@ -73,12 +88,14 @@ class LogVisitorAPIView(APIView):
         if getattr(request, "_request", None) is not None:
             request._request.api_user = api_user
 
-        allowed_codes = list(AllowedCountry.objects.values_list('code', flat=True))
-        ip = request.data.get('ip')
-        user_agent_str = request.data.get('useragent', '')
+        allowed_codes = allowed_country_codes()
 
-        if not ip or not user_agent_str:
-            return Response({'error': 'Missing ip or useragent'}, status=400)
+        ip, ip_err = normalize_client_ip(request.data.get('ip'))
+        user_agent_str, ua_err = normalize_user_agent(request.data.get('useragent'))
+        if ip_err:
+            return Response({'error': ip_err}, status=400)
+        if ua_err:
+            return Response({'error': ua_err}, status=400)
 
         ctx = build_visitor_context(ip, user_agent_str)
         decision = evaluate_visitor_decision(ip, ctx, allowed_codes)

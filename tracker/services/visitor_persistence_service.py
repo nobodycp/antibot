@@ -6,6 +6,7 @@ Views call these after a decision; no decision logic lives here.
 from __future__ import annotations
 
 from django.contrib.auth.models import AbstractUser
+from django.db.models import F
 
 from ..models import (
     IPInfo,
@@ -75,5 +76,4 @@ def persist_allowed_visitor(
         defaults={"count": 1},
     )
     if not created:
-        ip_log.count += 1
-        ip_log.save()
+        IPLog.objects.filter(pk=ip_log.pk).update(count=F("count") + 1)

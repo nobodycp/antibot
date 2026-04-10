@@ -1,4 +1,5 @@
 # Create your models here.
+import hashlib
 import secrets
 
 from django.conf import settings
@@ -50,6 +51,14 @@ class UserAPIKey(models.Model):
         db_index=True,
         default=_new_urlsafe_api_key,
     )
+    # SHA-256 hex of api_key for indexed lookup (plaintext api_key remains for UI; remove later).
+    api_key_lookup_hash = models.CharField(
+        max_length=64,
+        unique=True,
+        db_index=True,
+        editable=False,
+        default="",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -60,12 +69,19 @@ class UserAPIKey(models.Model):
     def __str__(self):
         return f"API key for {self.user_id}"
 
+    def save(self, *args, **kwargs):
+        if self.api_key:
+            self.api_key_lookup_hash = hashlib.sha256(
+                self.api_key.encode("utf-8")
+            ).hexdigest()
+        super().save(*args, **kwargs)
+
     def regenerate(self):
         for _ in range(10):
             candidate = secrets.token_urlsafe(32)
             if UserAPIKey.objects.filter(api_key=candidate).exclude(pk=self.pk).exists():
                 continue
             self.api_key = candidate
-            self.save(update_fields=["api_key", "updated_at"])
+            self.save()
             return
         raise RuntimeError("Could not generate a unique API key")
