@@ -1,35 +1,35 @@
 # AntiBot
 
-منصة **Django** لمراقبة الزوار، تطبيق قواعد الحظر (IP، شبكات فرعية، ISP، متصفح، نظام تشغيل، hostname)، وتسجيل الزيارات المسموحة والمرفوضة مع لوحة تحكم وواجهة برمجية بسيطة لدمجها مع مواقعك أو بواباتك.
+A **Django** app for visitor monitoring and blocking rules (IP, subnets, ISP, browser, OS, hostname), with allowed/denied visit logs, a web dashboard, and a small HTTP API you can call from your sites or gateways.
 
 ---
 
-## ما الفائدة؟ ولأي سيناريوهات؟
+## What is it for?
 
-| الاستخدام | الوصف |
-|-----------|--------|
-| **حماية من البوتات والزيارات غير المرغوبة** | تقييم الطلب وفق IP ووكيل المستخدم (User-Agent) وقواعدك المخزنة في قاعدة البيانات. |
-| **سياسات دولة مسموحة** | قائمة دول مسموحة (`AllowedCountry`) تُدمج في قرار السماح أو الرفض. |
-| **سجلات وتحليل** | صفحات للزيارات المسموحة/المرفوضة، معلومات IP، وإضافة قواعد حظر من السجلات. |
-| **لوحة تحكم** | إحصائيات، إدارة مستخدمين، إعدادات الملف الشخصي، ونسخ احتياطي عبر Telegram (حسب الإعداد). |
-| **أدوات مساعدة** | رفع ملفات، فحص Google Safe Browsing، وفحص إعادة التوجيه. |
+| Use case | Description |
+|----------|-------------|
+| **Bot and unwanted traffic** | Evaluate each check using IP, User-Agent, and rules stored in the database. |
+| **Allowed countries** | `AllowedCountry` entries feed into allow/deny decisions. |
+| **Logs and analysis** | Pages for allowed/denied traffic, IP details, and adding block rules from logs. |
+| **Dashboard** | Stats, user management, profile settings, and optional Telegram backups. |
+| **Utilities** | File uploads, Google Safe Browsing checks, and redirect inspection. |
 
-**نقطة الدمج الأساسية للموقع الخارجي:** `POST /tracker/api/log/` — ترسل منها عنوان IP وسلسلة User-Agent؛ الاستجابة توضح السماح (`201`) أو الرفض (`403`) مع سبب مقروء.
-
----
-
-## المتطلبات
-
-- **Python 3.9+** (متوافق مع إصدارات Django المستخدمة في `requirements.txt`)
-- **قاعدة بيانات:** SQLite افتراضياً (مناسبة للتطوير؛ للإنتاج يُفضّل PostgreSQL مع تعديل الإعدادات)
+**Main integration point for external apps:** `POST /tracker/api/log/` — send `ip` and `useragent` in JSON; responses indicate allow (`201`) or deny (`403`) with a readable reason.
 
 ---
 
-## التثبيت على الخادم (الموصى به) — `install.sh`
+## Requirements
 
-المستودع يتضمن **`install.sh`** لنشر تلقائي على **Debian/Ubuntu**: تثبيت الحزم، استنساخ المشروع إلى `/opt/antibot`، بيئة افتراضية `env`، `migrate`، مستخدم مشرف، خدمة **systemd** تشغّل `runserver` على `0.0.0.0:8000`، ومهمة **cron** لأمر النسخ الاحتياطي عبر Telegram.
+- **Python 3.9+** (aligned with Django in `requirements.txt`)
+- **Database:** SQLite by default (fine for dev; use PostgreSQL in production with settings changes)
 
-من جهازك (بعد استنساخ المستودع):
+---
+
+## Server install (recommended) — `install.sh`
+
+This repo ships **`install.sh`** for automated deployment on **Debian/Ubuntu**: system packages, clone to `/opt/antibot`, virtualenv at `env`, `migrate`, a superuser, a **systemd** unit running `runserver` on `0.0.0.0:8000`, and a **cron** job for Telegram backup.
+
+From your machine (after cloning the repo):
 
 ```bash
 git clone https://github.com/nobodycp/antibot.git
@@ -37,32 +37,32 @@ cd antibot
 sudo bash install.sh
 ```
 
-(السكربت ينشئ `/opt/antibot` إن لزم قبل كتابة ملف التثبيت الداخلي.)
+The script creates `/opt/antibot` if needed before writing the inner installer.
 
-**ماذا يحدث داخلياً؟**
+**What it does internally**
 
-1. يضمن وجود `/opt/antibot`، يكتب السكربت «الحقيقي» إلى `/opt/antibot/install.sh` ثم ينفّذه.
-2. يوقف خدمة `antibot` القديمة إن وُجدت، **يحذف** مجلد `/opt/antibot` بالكامل، ثم يستنسخ المستودع من جديد (لا تعتمد على تعديلات يدوية داخل `/opt` دون نسخها إلى Git).
-3. ينشئ `venv` في `/opt/antibot/env` ويثبّت `requirements.txt`.
-4. يشغّل `migrate` و`createsuperuser` بقيم افتراضية داخل السكربت (`admin` / `adminpass` — **غيّرها فوراً** من لوحة الإدارة أو من Django).
-5. يفعّل خدمة systemd ويعرض حالة التشغيل.
+1. Ensures `/opt/antibot` exists, writes the real installer to `/opt/antibot/install.sh`, then runs it.
+2. Stops any existing `antibot` service, **wipes** `/opt/antibot`, and clones the repo again (do not rely on uncommitted edits under `/opt` only).
+3. Creates the venv at `/opt/antibot/env` and installs `requirements.txt`.
+4. Runs `migrate` and `createsuperuser` with defaults baked into the script (`admin` / `adminpass` — **change these immediately** via Django admin or the shell).
+5. Enables the systemd service and prints status.
 
-بعدها: **لوحة التحكم** على `http://<عنوان-الخادم>:8000/dashboard/` وتسجيل الدخول على `/accounts/login/`.
+Then open the **dashboard** at `http://<server>:8000/dashboard/` and sign in at `/accounts/login/`.
 
-> للإنتاج الثقيل يُفضّل لاحقاً استبدال `runserver` بـ **Gunicorn/uWSGI** خلف **Nginx** وتعطيل `DEBUG` وضبط `SECRET_KEY` عبر `.env` (انظر `.env.example`).
+> For serious production, prefer **Gunicorn/uWSGI** behind **Nginx**, turn off `DEBUG`, and set `SECRET_KEY` via `.env` (see `.env.example`).
 
 ---
 
-## التطوير المحلي (بدون `install.sh`)
+## Local development (without `install.sh`)
 
-إذا كنت تطوّر على macOS أو Windows، أو لا تريد systemd و`/opt/`:
+Use this on macOS or Windows, or when you do not want systemd and `/opt/`:
 
 ```bash
 git clone https://github.com/nobodycp/antibot.git
 cd antibot
 
 python3 -m venv .venv
-source .venv/bin/activate          # على Windows: .venv\Scripts\activate
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install --upgrade pip
 pip install -r requirements.txt
 
@@ -75,21 +75,21 @@ python manage.py runserver
 - [http://127.0.0.1:8000/dashboard/](http://127.0.0.1:8000/dashboard/)
 - [http://127.0.0.1:8000/accounts/login/](http://127.0.0.1:8000/accounts/login/)
 
-الإعدادات الافتراضية: `analytics_project.settings` (بيئة `dev`). المتغيرات الحساسة في `.env`.
+Settings load from `analytics_project.settings` (default **dev**). Put secrets in `.env`.
 
 ---
 
-## المسارات (Endpoints) — نظرة عامة
+## Endpoints overview
 
-الجذر النسبي هنا يفترض تشغيل المشروع على نطاقك بدون بادئة إضافية (مثل `https://example.com`). استبدل النطاق حسب نشرك.
+Paths assume the app is mounted at the site root (e.g. `https://example.com`). Adjust for your deployment.
 
-### واجهة برمجية (API)
+### API
 
-| الطريقة | المسار | الوصف |
-|--------|--------|--------|
-| `POST` | `/tracker/api/log/` | يرسل JSON: `ip` و `useragent`. يُرجع `access_granted` أو `access_denied` مع سبب عند الرفض. |
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/tracker/api/log/` | JSON body: `ip`, `useragent`. Returns `access_granted` or `access_denied` with a reason on deny. |
 
-**مثال طلب:**
+**Example request**
 
 ```bash
 curl -s -X POST http://127.0.0.1:8000/tracker/api/log/ \
@@ -97,66 +97,66 @@ curl -s -X POST http://127.0.0.1:8000/tracker/api/log/ \
   -d '{"ip":"203.0.113.10","useragent":"Mozilla/5.0 ..."}'
 ```
 
-### المصادقة (Django)
+### Authentication (Django)
 
-| المسار | الوصف |
-|--------|--------|
-| `/accounts/login/` | تسجيل الدخول |
-| `/accounts/logout/` | تسجيل الخروج |
-| `/accounts/password_change/` | تغيير كلمة المرور (للمستخدم المسجّل) |
+| Path | Description |
+|------|-------------|
+| `/accounts/login/` | Login |
+| `/accounts/logout/` | Logout |
+| `/accounts/password_change/` | Password change (authenticated) |
 
-> بقية مسارات `django.contrib.auth.urls` متاحة تحت `/accounts/`.
+> Other `django.contrib.auth.urls` routes live under `/accounts/`.
 
-### لوحة التحكم — `dashboard`
+### Dashboard — `dashboard`
 
-| المسار | الوصف |
-|--------|--------|
-| `/dashboard/` | الصفحة الرئيسية للوحة |
-| `/dashboard/home/stats/` | جزئية إحصائيات (HTMX) |
-| `/dashboard/home/secondary-stats/` | إحصائيات ثانوية |
-| `/dashboard/home/alerts/` | التنبيهات |
-| `/dashboard/home/latest-logs/` | آخر السجلات |
-| `/dashboard/home/top-ips/` | أعلى الـ IPs |
-| `/dashboard/users/` | إدارة المستخدمين |
-| `/dashboard/users/add/` | إضافة مستخدم |
-| `/dashboard/users/edit/<id>/` | تعديل مستخدم |
-| `/dashboard/users/delete/<id>/` | حذف مستخدم |
-| `/dashboard/profile-settings/` | إعدادات الملف الشخصي |
-| `/dashboard/telegram-backup-settings/` | إعداد نسخ Telegram |
-| `/dashboard/telegram-test/` | اختبار Telegram |
-| `/dashboard/telegram-send-db-backup/` | إرسال نسخة قاعدة البيانات |
+| Path | Description |
+|------|-------------|
+| `/dashboard/` | Home |
+| `/dashboard/home/stats/` | Stats partial (HTMX) |
+| `/dashboard/home/secondary-stats/` | Secondary stats |
+| `/dashboard/home/alerts/` | Alerts |
+| `/dashboard/home/latest-logs/` | Latest logs |
+| `/dashboard/home/top-ips/` | Top IPs |
+| `/dashboard/users/` | User management |
+| `/dashboard/users/add/` | Add user |
+| `/dashboard/users/edit/<id>/` | Edit user |
+| `/dashboard/users/delete/<id>/` | Delete user |
+| `/dashboard/profile-settings/` | Profile settings |
+| `/dashboard/telegram-backup-settings/` | Telegram backup settings |
+| `/dashboard/telegram-test/` | Telegram test |
+| `/dashboard/telegram-send-db-backup/` | Send DB backup |
 
-### التتبع والحظر — `tracker`
+### Tracker & blocking — `tracker`
 
-| المسار | الوصف |
-|--------|--------|
-| `/tracker/blocked-ips/` | قواعد حظر عناوين IP |
-| `/tracker/blocked-subnets/` | حظر الشبكات الفرعية |
-| `/tracker/blocked-isp/` | حظر مزوّدي خدمة (ISP) |
-| `/tracker/blocked-browser/` | حظر متصفحات |
-| `/tracker/blocked-os/` | حظر أنظمة تشغيل |
-| `/tracker/blocked-hostname/` | حظر أسماء مضيف (hostname) |
-| `/tracker/allowed-country/` | الدول المسموحة |
-| `/tracker/allowed-logs/` | سجل الزيارات المسموحة |
-| `/tracker/denied-logs/` | سجل الزيارات المرفوضة (+ إضافة قاعدة حظر) |
-| `/tracker/ip-info/` | معلومات وتفاصيل IP (+ إضافة قاعدة حظر) |
-| `/tracker/dinger-ip/` | IPs ذات تكرار زيارة عالٍ (`count > 10`) مع إمكانية حذف السجلات من `IPLog` |
+| Path | Description |
+|------|-------------|
+| `/tracker/blocked-ips/` | Blocked IPs |
+| `/tracker/blocked-subnets/` | Blocked subnets |
+| `/tracker/blocked-isp/` | Blocked ISPs |
+| `/tracker/blocked-browser/` | Blocked browsers |
+| `/tracker/blocked-os/` | Blocked OSes |
+| `/tracker/blocked-hostname/` | Blocked hostnames |
+| `/tracker/allowed-country/` | Allowed countries |
+| `/tracker/allowed-logs/` | Allowed visit log |
+| `/tracker/denied-logs/` | Denied visit log (+ add block rule) |
+| `/tracker/ip-info/` | IP info (+ add block rule) |
+| `/tracker/dinger-ip/` | IPs with high visit counts (`count > 10`); delete rows from `IPLog` |
 
-**جزئيات الجداول (للتحديث عبر HTMX)** — لكل صفحة أعلاه توجد مسارات فرعية مثل `.../table/` و `.../partial/` أو أسماء مشابهة (مثال: `blocked-isps/partial/` لصفحة ISP). تُستخدم من القوالب وليست عادةً نقاط دخول يدوية.
+**Table / partial URLs (HTMX)** — each screen has companion routes such as `.../table/` and `.../partial/` (e.g. `blocked-isps/partial/` for ISP). Templates use these; you rarely open them by hand.
 
-### الأدوات — `tools`
+### Tools — `tools`
 
-| المسار | الوصف |
-|--------|--------|
-| `/tools/upload-files/` | رفع الملفات |
-| `/tools/google-safe-check/` | فحص Google Safe Browsing |
-| `/tools/google-safe-check/partial/` | جدول النتائج (جزئي) |
-| `/tools/redirect-check/` | فحص إعادة التوجيه |
-| `/tools/redirect-check/table/` | جدول إعادة التوجيه (جزئي) |
+| Path | Description |
+|------|-------------|
+| `/tools/upload-files/` | File upload |
+| `/tools/google-safe-check/` | Google Safe Browsing check |
+| `/tools/google-safe-check/partial/` | Results table partial |
+| `/tools/redirect-check/` | Redirect check |
+| `/tools/redirect-check/table/` | Redirect table partial |
 
 ---
 
-## الاختبارات
+## Tests
 
 ```bash
 source .venv/bin/activate
@@ -165,6 +165,6 @@ python manage.py test tracker.tests
 
 ---
 
-## الترخيص والمساهمة
+## License & contributing
 
-راجع ملفات المستودع للترخيص إن وُجدت. للمساهمات: فروع منفصلة وطلبات دمج واضحة تسهّل المراجعة.
+See repository files for a license if one is provided. Contributions: use feature branches and clear pull requests to simplify review.
