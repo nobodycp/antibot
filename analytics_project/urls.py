@@ -1,6 +1,9 @@
-from django.urls import path, include
+import re
+
 from django.conf import settings
 from django.conf.urls.static import static
+from django.urls import include, path, re_path
+from django.views.static import serve
 
 urlpatterns = [
     path('dashboard/', include('dashboard.urls')),  # بدون namespace
@@ -9,7 +12,19 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),          # تسجيل الدخول/الخروج من Django
 ]
 
-# Local dev: DEBUG serves /media/. Production: use Nginx location /media/ → MEDIA_ROOT,
-# or set DJANGO_SERVE_MEDIA=1 so uploads (avatars) are reachable without Nginx media.
-if settings.DEBUG or getattr(settings, "SERVE_MEDIA", False):
+# DEBUG: django.conf.urls.static.static() mounts /media/.
+# Production + DJANGO_SERVE_MEDIA=1: static() is a no-op when DEBUG=False (Django design),
+# so we mount the same URL with django.views.static.serve explicitly.
+_serve_media = getattr(settings, "SERVE_MEDIA", False)
+if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+elif _serve_media:
+    _media_prefix = settings.MEDIA_URL.lstrip("/")
+    if _media_prefix:
+        urlpatterns += [
+            re_path(
+                r"^%s(?P<path>.*)$" % re.escape(_media_prefix),
+                serve,
+                {"document_root": settings.MEDIA_ROOT},
+            ),
+        ]
