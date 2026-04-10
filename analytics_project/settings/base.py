@@ -133,6 +133,16 @@ STATICFILES_DIRS = [
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# When DEBUG is False, Django does not attach /media/ routes unless this is True.
+# Set DJANGO_SERVE_MEDIA=1 in .env if you have no reverse-proxy block for /media/ yet.
+# Prefer serving MEDIA_ROOT with Nginx (see README); use this only for small/simple deploys.
+SERVE_MEDIA = os.environ.get("DJANGO_SERVE_MEDIA", "").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'

@@ -9,5 +9,7 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),          # تسجيل الدخول/الخروج من Django
 ]
 
-if settings.DEBUG:
+# Local dev: DEBUG serves /media/. Production: use Nginx location /media/ → MEDIA_ROOT,
+# or set DJANGO_SERVE_MEDIA=1 so uploads (avatars) are reachable without Nginx media.
+if settings.DEBUG or getattr(settings, "SERVE_MEDIA", False):
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

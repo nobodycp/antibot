@@ -134,7 +134,9 @@ In **`analytics_project/settings/base.py`**:
 - **`MEDIA_URL`** is **`/media/`**; **`MEDIA_ROOT`** is **`media/`** under the project root (e.g. **`/opt/antibot/media`**).
 - The app uses uploaded files (e.g. profile avatars). **Gunicorn does not efficiently serve user uploads** at scale.
 
-**Operator steps:** Add a **`location /media/`** block in Nginx (or equivalent) pointing at **`MEDIA_ROOT`**, with correct permissions so the Nginx worker user can read files the app creates. Ensure the app user can write to **`MEDIA_ROOT`** (e.g. **`www-data`** vs **`antibot`** — align ownership with your chosen layout).
+**Why avatars work locally but 404 on the server:** With **`DEBUG=False`**, Django **does not** register a URL handler for **`/media/`** unless you either (a) add **`location /media/`** in Nginx (recommended), or (b) set **`DJANGO_SERVE_MEDIA=1`** in **`.env`** so the project serves **`MEDIA_ROOT`** through Django (OK for small setups; restart Gunicorn after changing env).
+
+**Operator steps:** Add a **`location /media/`** block in Nginx (or equivalent) pointing at **`MEDIA_ROOT`**, with correct permissions so the Nginx worker user can read files the app creates. Ensure the app user can write to **`MEDIA_ROOT`** (e.g. **`www-data`** vs **`antibot`** — align ownership with your chosen layout). Verify the file exists on disk at **`MEDIA_ROOT/avatars/...`** (same path as in the URL after **`/media/`**).
 
 ### 4) Proxy headers, HTTPS awareness, and Django settings
 
