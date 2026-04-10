@@ -2,15 +2,25 @@ from datetime import timedelta
 
 import requests
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from core.decorators import superuser_required
+
 from ..forms import RedirectCheckForm
 from ..models import RedirectCheck
+
+
+def _refresh_stale_redirect_entries():
+    """Recheck only rows older than one hour (same rule as full page GET)."""
+    one_hour_ago = timezone.now() - timedelta(hours=1)
+    for entry in RedirectCheck.objects.filter(last_checked__lt=one_hour_ago):
+        entry.status = redirect_checker(entry.url, entry.keyword)
+        entry.last_checked = timezone.now()
+        entry.save(update_fields=["status", "last_checked"])
 
 
 def redirect_checker(link, keyword):
@@ -30,13 +40,9 @@ def redirect_checker(link, keyword):
         return "error"
 
 
-@login_required
+@superuser_required
 def redirect_check_view(request):
-    one_hour_ago = timezone.now() - timedelta(hours=1)
-    for entry in RedirectCheck.objects.filter(last_checked__lt=one_hour_ago):
-        entry.status = redirect_checker(entry.url, entry.keyword)
-        entry.last_checked = timezone.now()
-        entry.save()
+    _refresh_stale_redirect_entries()
 
     if request.method == 'POST':
         if 'delete_id' in request.POST:
@@ -74,13 +80,11 @@ def redirect_check_view(request):
     })
 
 
-@login_required
+@superuser_required
 def redirect_check_table_view(request):
+    _refresh_stale_redirect_entries()
+
     entries = RedirectCheck.objects.all().order_by('-last_checked')
-    for entry in entries:
-        entry.status = redirect_checker(entry.url, entry.keyword)
-        entry.last_checked = timezone.now()
-        entry.save(update_fields=['status', 'last_checked'])
 
     context = {
         'entries': entries,

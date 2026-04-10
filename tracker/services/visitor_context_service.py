@@ -70,14 +70,16 @@ def _load_api_enrichment(ip: str) -> _ApiEnrichment:
     Raises on network/JSON errors or unexpected types where the original code
     would have raised and triggered the caller's fallback block.
     """
-    response = requests.get(f"https://ipwho.is/{ip}").json()
+    response = requests.get(f"https://ipwho.is/{ip}", timeout=10).json()
     isp = response.get("connection", {}).get("isp", "") or ""
     country_code = (response.get("country_code", "") or "").upper()
 
     response3 = requests.get(f"https://api.ipapi.is/?q={ip}", timeout=10).json()
     b_subnet = response3.get("asn", {}).get("route", "") or ""
 
-    response2 = requests.get(f"https://ipinfo.io/api/pricing/samples/{ip}").json()
+    response2 = requests.get(
+        f"https://ipinfo.io/api/pricing/samples/{ip}", timeout=10
+    ).json()
     as_type = response2.get("core", {}).get("sample", {}).get("as", {}).get("type", "") or ""
     is_anonymous = bool(response2.get("core", {}).get("sample", {}).get("is_anonymous", False))
     is_hosting = bool(response2.get("core", {}).get("sample", {}).get("is_hosting", False))

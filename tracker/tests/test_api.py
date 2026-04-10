@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -30,6 +31,16 @@ def _sample_context(**overrides):
     return VisitorContext(**base)
 
 
+# LocMem avoids requiring Redis in CI / dev when project default CACHES uses django-redis.
+_API_TEST_CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "tracker-api-tests",
+    }
+}
+
+
+@override_settings(CACHES=_API_TEST_CACHES)
 @patch("tracker.views.api_views.build_visitor_context")
 class LogVisitorAPITests(APITestCase):
     def setUp(self):

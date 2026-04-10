@@ -1,45 +1,15 @@
-import secrets
-
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.models import User
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.shortcuts import get_object_or_404, redirect, render
 
 from core.decorators import superuser_required
 
 from ..forms import AddUserForm, EditUserForm
-from ..models import UserAPIKey, UserProfile
-
-
-@receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        UserProfile.objects.create(user=instance)
-
-
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    UserProfile.objects.get_or_create(user=instance)
-    instance.profile.save()
 
 
 @superuser_required
 def users_management(request):
-    user_ids = list(User.objects.values_list("pk", flat=True))
-    if user_ids:
-        have_key = set(
-            UserAPIKey.objects.filter(user_id__in=user_ids).values_list(
-                "user_id", flat=True
-            )
-        )
-        for uid in user_ids:
-            if uid not in have_key:
-                UserAPIKey.objects.create(
-                    user_id=uid,
-                    api_key=secrets.token_urlsafe(32),
-                )
     users = User.objects.all().order_by("-id").select_related("api_key_row")
     return render(request, "dashboard/users_management.html", {"users": users})
 

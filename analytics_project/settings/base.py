@@ -11,15 +11,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 load_dotenv(BASE_DIR / ".env")
 
-# Last-resort default so the project still starts if .env / env vars are missing (dev parity).
-_SECRET_DEFAULT = (
-    "django-insecure-i-63*bs(d1sg@^!3qc)hb*e&ue#5@yfu3+s--tj8kh^&loz(+u"
-)
-SECRET_KEY = (
-    os.environ.get("DJANGO_SECRET_KEY")
-    or os.environ.get("SECRET_KEY")
-    or _SECRET_DEFAULT
-)
+# Set via DJANGO_SECRET_KEY or SECRET_KEY in the environment (see dev.py / prod.py).
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or os.environ.get("SECRET_KEY") or ""
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -59,7 +52,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'django.template.context_processors.request',
                 'core.context_processors.inject_now',
                 # 'django.template.context_processors.tz',
             ],
@@ -69,18 +61,38 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'analytics_project.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Database: PostgreSQL when DB_NAME is set; otherwise SQLite (local dev / simple deploys).
+_db_name = (os.environ.get("DB_NAME") or "").strip()
+if _db_name:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": _db_name,
+            "USER": os.environ.get("DB_USER", "postgres"),
+            "PASSWORD": os.environ.get("DB_PASSWORD", ""),
+            "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
+            "PORT": os.environ.get("DB_PORT", "5432"),
+            "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "0")),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
-# Used by tracker IP enrichment (visitor_context_service). Override backend in production if needed.
+# Shared default cache: IP enrichment (visitor_context_service), API rate limits, etc.
+# Requires Redis. Set REDIS_URL or use default redis://127.0.0.1:6379/1 (django-redis).
+_redis_url = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1')
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'analytics-default-cache',
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': _redis_url,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
     }
 }
 

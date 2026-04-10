@@ -133,7 +133,8 @@
         </div>
       </div>
 
-      <!-- Tools -->
+      <!-- Tools (superuser only — shared data, same as file upload) -->
+      {% if request.user.is_superuser %}
       <div x-data="{ open: '{% if '/tools/upload-files/' in request.path or '/tools/google-safe-check/' in request.path or '/tools/redirect-check/' in request.path %}true{% else %}false{% endif %}' == 'true' }" class="mt-1">
         <button @click="open = !open" class="flex items-center justify-between w-full px-3 py-2 rounded hover:bg-zinc-700">
           <span class="flex items-center gap-2">
@@ -148,14 +149,12 @@
         </button>
 
         <div x-show="open" class="flex flex-col pl-3 mt-1 space-y-1 text-xs">
-          {% if request.user.is_superuser %}
           <a href="/tools/upload-files/" class="{% if request.path == '/tools/upload-files/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
             <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
             </svg>
             Files
           </a>
-          {% endif %}
 
           <a href="/tools/google-safe-check/" class="{% if request.path == '/tools/google-safe-check/' %}bg-zinc-700 text-green-400{% endif %} flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700">
             <svg class="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -172,6 +171,7 @@
           </a>
         </div>
       </div>
+      {% endif %}
 
       <!-- User -->
       <div x-data="{ open: {% if '/dashboard/profile-settings/' in request.path or '/dashboard/telegram-backup-settings/' in request.path or '/dashboard/users/' in request.path %}true{% else %}false{% endif %} }" class="mt-1">

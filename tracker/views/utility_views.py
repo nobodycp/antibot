@@ -26,19 +26,22 @@ def add_block_rule(request):
             if not block_type or not block_value:
                 messages.error(request, "Both type and value are required.")
             else:
-                model_map = {
-                    'ip': BlockedIP,
-                    'isp': BlockedISP,
-                    'hostname': BlockedHostname,
-                    'os': BlockedOS,
-                    'browser': BlockedBrowser,
-                    'subnet': BlockedSubnet,  # ✅ صح
+                block_rule_model_field = {
+                    "ip": (BlockedIP, "ip_address"),
+                    "isp": (BlockedISP, "isp"),
+                    "hostname": (BlockedHostname, "hostname"),
+                    "os": (BlockedOS, "os"),
+                    "browser": (BlockedBrowser, "browser"),
+                    "subnet": (BlockedSubnet, "cidr"),
                 }
 
-                model = model_map.get(block_type.lower())
-                if model:
-                    if not model.objects.filter(**{model._meta.fields[1].name + "__iexact": block_value}).exists():
-                        model.objects.create(**{model._meta.fields[1].name: block_value})
+                spec = block_rule_model_field.get(block_type.lower())
+                if spec:
+                    model, value_field = spec
+                    if not model.objects.filter(
+                        **{f"{value_field}__iexact": block_value}
+                    ).exists():
+                        model.objects.create(**{value_field: block_value})
                         messages.success(request, f"✅ Block rule added: {block_value}")
                     else:
                         messages.warning(request, f"⚠️ Rule already exists: {block_value}")

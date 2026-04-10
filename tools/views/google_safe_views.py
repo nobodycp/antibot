@@ -2,12 +2,13 @@ from datetime import timedelta
 
 import requests
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.template.context_processors import csrf
 from django.template.loader import render_to_string
 from django.utils import timezone
+
+from core.decorators import superuser_required
 
 from ..forms import GoogleSafeCheckForm
 from ..models import GoogleSafeCheck
@@ -33,7 +34,7 @@ def fetch_google_safe_status(url):
         return "Error"
 
 
-@login_required
+@superuser_required
 def google_safe_check_view(request):
     # ✅ فحص تلقائي للروابط القديمة كل ساعة
     one_hour_ago = timezone.now() - timedelta(hours=1)
@@ -73,7 +74,7 @@ def google_safe_check_view(request):
     })
 
 
-@login_required
+@superuser_required
 def google_safe_check_table_partial(request):
     links = GoogleSafeCheck.objects.all().order_by('-last_checked')
 
