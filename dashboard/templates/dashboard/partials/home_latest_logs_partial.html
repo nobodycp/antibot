@@ -5,28 +5,30 @@
   hx-trigger="every 10s"
   hx-target="this"
   hx-swap="outerHTML"
-  class="grid grid-cols-1 xl:grid-cols-2 gap-4"
+  class="grid grid-cols-1 gap-4 min-h-0 xl:grid-cols-2 xl:items-stretch"
 >
-  <div class="overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 p-3 shadow-lg shadow-black/15 ring-1 ring-zinc-700/30">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-sm font-semibold text-white">Latest Allowed Logs</h2>
-      <a href="/tracker/allowed-logs/" class="text-xs text-blue-400 hover:text-blue-300">View all</a>
+  <div class="table-container table-container--stacked dash-surface dash-table-shell min-h-0 overflow-hidden rounded-xl">
+    <div class="table-container__toolbar">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-sm font-semibold text-white">Latest Allowed Logs</h2>
+        <a href="/tracker/allowed-logs/" class="ds-link-muted shrink-0 text-xs">View all</a>
+      </div>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="min-w-full bg-transparent text-xs">
-        <thead class="border-b border-zinc-700/50 bg-zinc-900/30 text-zinc-400">
+    <div class="table-container__scroll">
+      <table class="table tracker-list-table tracker-list-table--compact min-w-full border-collapse bg-transparent text-left text-zinc-300">
+        <thead class="table-header">
           <tr>
-            <th class="text-left py-2 pr-3">IP</th>
-            <th class="text-left py-2 pr-3">Country</th>
-            <th class="text-left py-2 pr-3">ISP</th>
-            <th class="text-left py-2 pr-3">Time</th>
+            <th class="text-left">IP</th>
+            <th class="text-left">Country</th>
+            <th class="text-left">ISP</th>
+            <th class="text-left">Time</th>
           </tr>
         </thead>
         <tbody>
           {% for row in latest_allowed %}
-            <tr class="border-b border-zinc-700/40 odd:bg-zinc-900/15 even:bg-zinc-800/10 hover:!bg-zinc-700/30 transition-colors">
-              <td class="py-2 pr-3 text-white">{{ row.ip_address }}</td>
+            <tr>
+              <td class="py-2 pr-3 text-white table-cell--mono">{{ row.ip_address }}</td>
               <td class="py-2 pr-3 text-zinc-300">
                 {% if row.country %}
                   <span class="flex items-center gap-2">
@@ -40,7 +42,7 @@
                 {% endif %}
               </td>
               <td class="py-2 pr-3 text-zinc-300">{{ row.isp|default:"-" }}</td>
-              <td class="py-2 pr-3 text-zinc-400">{{ row.timestamp|timesince }} ago</td>
+              <td class="py-2 pr-3 table-cell--muted">{{ row.timestamp|timesince }} ago</td>
             </tr>
           {% empty %}
             <tr>
@@ -52,26 +54,28 @@
     </div>
   </div>
 
-  <div class="overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 p-3 shadow-lg shadow-black/15 ring-1 ring-zinc-700/30">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-sm font-semibold text-white">Latest Denied Logs</h2>
-      <a href="/tracker/denied-logs/" class="text-xs text-blue-400 hover:text-blue-300">View all</a>
+  <div class="table-container table-container--stacked dash-surface dash-table-shell min-h-0 overflow-hidden rounded-xl">
+    <div class="table-container__toolbar">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-sm font-semibold text-white">Latest Denied Logs</h2>
+        <a href="/tracker/denied-logs/" class="ds-link-muted shrink-0 text-xs">View all</a>
+      </div>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="min-w-full bg-transparent text-xs">
-        <thead class="border-b border-zinc-700/50 bg-zinc-900/30 text-zinc-400">
+    <div class="table-container__scroll">
+      <table class="table tracker-list-table tracker-list-table--compact min-w-full border-collapse bg-transparent text-left text-zinc-300">
+        <thead class="table-header">
           <tr>
-            <th class="text-left py-2 pr-3">IP</th>
-            <th class="text-left py-2 pr-3">Reason</th>
-            <th class="text-left py-2 pr-3">Country</th>
-            <th class="text-left py-2 pr-3">Time</th>
+            <th class="text-left">IP</th>
+            <th class="text-left">Reason</th>
+            <th class="text-left">Country</th>
+            <th class="text-left">Time</th>
           </tr>
         </thead>
         <tbody>
           {% for row in latest_denied %}
-            <tr class="border-b border-zinc-700/40 odd:bg-zinc-900/15 even:bg-zinc-800/10 hover:!bg-zinc-700/30 transition-colors">
-              <td class="py-2 pr-3 text-white">{{ row.ip_address }}</td>
+            <tr>
+              <td class="py-2 pr-3 text-white table-cell--mono">{{ row.ip_address }}</td>
               <td class="py-2 pr-3 text-red-300">{{ row.reason|default:"-" }}</td>
               <td class="py-2 pr-3 text-zinc-300">
                 {% if row.country %}
@@ -85,7 +89,7 @@
                   -
                 {% endif %}
               </td>
-              <td class="py-2 pr-3 text-zinc-400">{{ row.timestamp|timesince }} ago</td>
+              <td class="py-2 pr-3 table-cell--muted">{{ row.timestamp|timesince }} ago</td>
             </tr>
           {% empty %}
             <tr>

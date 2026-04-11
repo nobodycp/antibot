@@ -1,91 +1,72 @@
 <span class="hidden" data-page-title="Users Management"></span>
-<div class="min-w-0 w-full text-sm">
-  <header class="dash-page-header mb-6 border-b border-zinc-700/50 pb-4">
-    <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
-      <div class="min-w-0 flex-1">
-        <h1 class="text-base font-semibold tracking-tight text-white sm:text-lg">👤 Users management</h1>
-        <p class="mt-1.5 max-w-3xl text-xs leading-relaxed text-zinc-500 sm:text-[13px]">Manage system users and tracker API keys</p>
-      </div>
-    </div>
-  </header>
+<div class="ds-page">
+  {% include "dashboard/partials/includes/dashboard_page_header.html" with header_title="Users management" header_icon="users_team" header_subtitle="Manage system users and tracker API keys" header_hide_stats=True %}
 
-  <div class="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start lg:gap-8">
-    <div class="min-w-0 space-y-4 lg:col-span-8">
-      <section class="dash-surface overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 shadow-lg shadow-black/20 ring-1 ring-zinc-700/30">
-        <div class="border-b border-zinc-700/50 bg-zinc-900/25 px-4 py-3 sm:px-5">
-          <h2 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:text-[11px]">➕ Add new user</h2>
-          <p class="mt-1 text-xs text-zinc-600">Create staff accounts and assign roles</p>
-        </div>
-        <div class="p-4 sm:p-5">
+  <div class="ds-page-grid">
+    <div class="ds-page-grid__main min-w-0 space-y-4">
+      <section class="dash-panel dash-surface">
+        {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Add user" %}
+        <div class="ds-card__body">
           {% include "dashboard/partials/messages.html" %}
 
-          <form method="post" action="{% url 'dashboard:add_user' %}" class="space-y-4">
+          <form method="post" action="{% url 'dashboard:add_user' %}" class="ds-form-stack">
             {% csrf_token %}
 
-            <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 p-3 sm:p-4">
+            <div class="ds-fieldset">
               <div class="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-3">
-                <div class="space-y-1.5">
-                  <label class="block text-xs font-medium text-zinc-400">Username</label>
-                  <input type="text" name="username" placeholder="Enter username"
-                         class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+                <div class="ds-field">
+                  <label class="ds-label" for="id-add-username">Username</label>
+                  <input id="id-add-username" type="text" name="username" placeholder="Username" class="ds-input">
                 </div>
-                <div class="space-y-1.5">
-                  <label class="block text-xs font-medium text-zinc-400">Email</label>
-                  <input type="email" name="email" placeholder="Enter email"
-                         class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+                <div class="ds-field">
+                  <label class="ds-label" for="id-add-email">Email</label>
+                  <input id="id-add-email" type="email" name="email" placeholder="Email" class="ds-input">
                 </div>
-                <div class="space-y-1.5">
-                  <label class="block text-xs font-medium text-zinc-400">Password</label>
-                  <input type="text" name="password" placeholder="Enter password"
-                         class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+                <div class="ds-field">
+                  <label class="ds-label" for="id-add-password">Password</label>
+                  <input id="id-add-password" type="text" name="password" placeholder="Password" class="ds-input">
                 </div>
               </div>
             </div>
 
             <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-              <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700/40 bg-zinc-900/35 px-3 py-2.5 text-xs text-zinc-300">
-                <input type="checkbox" name="is_superuser" class="rounded border-zinc-600 bg-zinc-950 text-blue-600 focus:ring-green-500/30">
+              <label class="ds-check-row">
+                <input type="checkbox" name="is_superuser" class="ds-checkbox h-4 w-4 shrink-0">
                 Is superuser
               </label>
-              <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700/40 bg-zinc-900/35 px-3 py-2.5 text-xs text-zinc-300">
-                <input type="checkbox" name="is_staff" checked class="rounded border-zinc-600 bg-zinc-950 text-blue-600 focus:ring-green-500/30">
+              <label class="ds-check-row">
+                <input type="checkbox" name="is_staff" checked class="ds-checkbox h-4 w-4 shrink-0">
                 Is staff
               </label>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 border-t border-zinc-700/50 pt-4">
-              <button type="submit"
-                      class="min-h-[2.125rem] rounded-md bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-900/30 transition-all hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 active:scale-[0.99]">
-                Add user
-              </button>
+            <div class="ds-form-actions">
+              <button type="submit" class="ds-btn ds-btn--primary">Add user</button>
             </div>
           </form>
         </div>
       </section>
     </div>
 
-    <div class="min-w-0 lg:col-span-4">
-      <section class="dash-surface overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 shadow-lg shadow-black/20 ring-1 ring-zinc-700/30">
-        <div class="border-b border-zinc-700/50 bg-zinc-900/25 px-4 py-3 sm:px-5">
-          <h2 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:text-[11px]">📊 Session snapshot</h2>
-          <p class="mt-1 text-xs text-zinc-600">Counts and your role</p>
-        </div>
-        <div class="space-y-3 p-4 sm:p-5">
-          <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 px-3 py-2.5">
-            <div class="text-[10px] font-medium uppercase tracking-wide text-zinc-500">Total users</div>
-            <div class="mt-1 text-sm font-semibold text-white">{{ users|length }}</div>
+    <div class="ds-page-grid__side min-w-0 space-y-4">
+      <section class="dash-panel dash-surface">
+        {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Session" %}
+        <div class="ds-card__body space-y-3">
+          <div class="dash-stat-tile">
+            <div class="dash-stat-tile__label">Total users</div>
+            <div class="dash-stat-tile__value">{{ users|length }}</div>
           </div>
-          <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 px-3 py-2.5">
-            <div class="text-[10px] font-medium uppercase tracking-wide text-zinc-500">Current user</div>
-            <div class="mt-1 text-sm font-semibold text-white">{{ request.user.username }}</div>
+          <div class="dash-stat-tile">
+            <div class="dash-stat-tile__label">Current user</div>
+            <div class="dash-stat-tile__value">{{ request.user.username }}</div>
           </div>
-          <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 px-3 py-2.5">
-            <div class="text-[10px] font-medium uppercase tracking-wide text-zinc-500">Role</div>
-            <div class="mt-1 text-sm text-white">
+          <div class="dash-stat-tile">
+            <div class="dash-stat-tile__label">Role</div>
+            <div class="dash-stat-tile__value">
               {% if request.user.is_superuser %}
-                <span class="font-semibold text-emerald-400">Superuser</span>
+                <span class="ds-text-accent">Superuser</span>
               {% else %}
-                <span class="font-semibold text-amber-400">Staff / user</span>
+                <span class="ds-text-warning">Staff / user</span>
               {% endif %}
             </div>
           </div>
@@ -94,116 +75,107 @@
     </div>
   </div>
 
-  <section class="dash-surface mt-6 overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 shadow-lg shadow-black/15 ring-1 ring-zinc-700/30">
-    <div class="border-b border-zinc-700/50 bg-zinc-900/25 px-4 py-3 sm:px-5">
-      <h2 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:text-[11px]">📋 Users list</h2>
-      <p class="mt-1 text-xs text-zinc-600">Edit inline or remove accounts</p>
-    </div>
-    <div class="overflow-x-auto p-2 sm:p-0">
-      <table class="w-full min-w-[56rem] text-left text-xs text-zinc-300 sm:text-sm">
-        <thead class="border-b border-zinc-700/50 bg-zinc-800/80 text-[10px] font-semibold uppercase tracking-wide text-zinc-400 sm:text-[11px]">
+  <section class="dash-panel dash-surface mt-6">
+    {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Users list" %}
+    <div class="table-container dash-surface dash-table-shell overflow-hidden rounded-xl">
+      <div class="table-container__scroll">
+      <table class="table tracker-list-table ds-table min-w-[56rem] text-left text-zinc-300">
+        <thead class="table-header">
           <tr>
-            <th class="px-3 py-2.5 sm:px-4">ID</th>
-            <th class="px-3 py-2.5 sm:px-4">Username</th>
-            <th class="px-3 py-2.5 sm:px-4">Email</th>
-            <th class="px-3 py-2.5 sm:px-4">Superuser</th>
-            <th class="px-3 py-2.5 sm:px-4">Staff</th>
-            <th class="px-3 py-2.5 sm:px-4">Joined</th>
-            <th class="min-w-[12rem] px-3 py-2.5 sm:px-4">Tracker API key</th>
-            <th class="px-3 py-2.5 sm:px-4">Actions</th>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Superuser</th>
+            <th>Staff</th>
+            <th>Joined</th>
+            <th class="min-w-[12rem]">Tracker API key</th>
+            <th class="table-actions">Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for user in users %}
-          <tr class="border-b border-zinc-700/40 odd:bg-zinc-900/15 even:bg-zinc-800/10 align-top hover:!bg-zinc-700/35 transition-colors">
-            <td class="px-3 py-3 text-white sm:px-4">{{ user.id }}</td>
-            <td class="px-3 py-3 text-white sm:px-4">{{ user.username }}</td>
-            <td class="px-3 py-3 sm:px-4">{{ user.email|default:"—" }}</td>
-            <td class="px-3 py-3 sm:px-4">
+          <tr class="align-top">
+            <td class="table-cell--mono ds-text-primary">{{ user.id }}</td>
+            <td class="ds-text-primary">{{ user.username }}</td>
+            <td>{{ user.email|default:"—" }}</td>
+            <td>
               {% if user.is_superuser %}
-                <span class="font-semibold text-emerald-400">Yes</span>
+                <span class="ds-text-accent">Yes</span>
               {% else %}
-                <span class="font-semibold text-red-400">No</span>
+                <span class="ds-text-danger">No</span>
               {% endif %}
             </td>
-            <td class="px-3 py-3 sm:px-4">
+            <td>
               {% if user.is_staff %}
-                <span class="font-semibold text-emerald-400">Yes</span>
+                <span class="ds-text-accent">Yes</span>
               {% else %}
-                <span class="font-semibold text-red-400">No</span>
+                <span class="ds-text-danger">No</span>
               {% endif %}
             </td>
-            <td class="px-3 py-3 sm:px-4">{{ user.date_joined }}</td>
-            <td class="max-w-xs px-3 py-3 sm:px-4">
+            <td class="table-cell--muted">{{ user.date_joined }}</td>
+            <td class="max-w-xs">
               {% if user.api_key_row %}
               <input type="text" readonly value="{{ user.api_key_row.api_key }}"
-                     class="w-full max-w-[16rem] cursor-default rounded-md border border-zinc-600 bg-zinc-950/80 px-2.5 py-1.5 font-mono text-[11px] text-zinc-200 shadow-inner shadow-black/20 focus:outline-none"
+                     class="ds-input ds-input--mono max-w-[16rem]"
                      title="Send as X-API-Key for POST /tracker/api/log/">
-              <p class="mt-1 text-[10px] text-zinc-500">Header <code class="text-zinc-400">X-API-Key</code></p>
+              <p class="mt-1 text-[10px] table-cell--muted">Header <code class="table-cell--muted">X-API-Key</code></p>
               {% else %}
-              <span class="text-zinc-500">—</span>
+              <span class="table-cell--muted">—</span>
               {% endif %}
             </td>
-            <td class="px-3 py-3 sm:px-4">
-              <div class="mb-2 flex flex-wrap gap-2">
+            <td class="table-actions">
+              <div class="mb-2 flex flex-wrap justify-end gap-2">
                 <button type="button" onclick="toggleEditForm('{{ user.id }}')"
-                        class="min-h-[2.125rem] rounded-md bg-amber-600 px-3 text-sm font-semibold text-white shadow-sm shadow-amber-900/25 transition-all hover:bg-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 active:scale-[0.99]">
+                        class="ds-btn ds-btn--warning ds-btn--px3">
                   Edit
                 </button>
                 {% if user.id != request.user.id %}
-                <form method="post" action="{% url 'dashboard:delete_user' user.id %}" style="display:inline;">
+                <form method="post" action="{% url 'dashboard:delete_user' user.id %}" class="inline">
                   {% csrf_token %}
                   <button type="submit" onclick="return confirm('Delete this user?')"
-                          class="min-h-[2.125rem] rounded-md bg-red-600 px-3 text-sm font-semibold text-white shadow-sm shadow-red-900/30 transition-all hover:bg-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 active:scale-[0.99]">
+                          class="ds-btn ds-btn--danger ds-btn--px3">
                     Delete
                   </button>
                 </form>
                 {% else %}
-                <span class="inline-flex min-h-[2.125rem] items-center rounded-md border border-zinc-700/50 bg-zinc-900/50 px-3 text-xs text-zinc-400">You</span>
+                <span class="ds-pill-muted">You</span>
                 {% endif %}
               </div>
 
               <div id="editUser{{ user.id }}" class="mt-2 hidden">
-                <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 p-3 sm:p-4">
-                  <form method="post" action="{% url 'dashboard:edit_user' user.id %}" class="space-y-3">
+                <div class="ds-inset-edit">
+                  <form method="post" action="{% url 'dashboard:edit_user' user.id %}" class="flex flex-col gap-3">
                     {% csrf_token %}
-                    <div class="space-y-1.5">
-                      <label class="block text-xs font-medium text-zinc-400">Username</label>
-                      <input type="text" name="username" value="{{ user.username }}"
-                             class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+                    <div class="ds-field">
+                      <label class="ds-label">Username</label>
+                      <input type="text" name="username" value="{{ user.username }}" class="ds-input">
                     </div>
-                    <div class="space-y-1.5">
-                      <label class="block text-xs font-medium text-zinc-400">Email</label>
-                      <input type="email" name="email" value="{{ user.email }}"
-                             class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+                    <div class="ds-field">
+                      <label class="ds-label">Email</label>
+                      <input type="email" name="email" value="{{ user.email }}" class="ds-input">
                     </div>
-                    <div class="space-y-1.5">
-                      <label class="block text-xs font-medium text-zinc-400">New password (optional)</label>
-                      <input type="text" name="password" placeholder="Leave empty to keep current password"
-                             class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+                    <div class="ds-field">
+                      <label class="ds-label">New password (optional)</label>
+                      <input type="text" name="password" placeholder="Leave empty to keep current password" class="ds-input">
                     </div>
                     {% if user.api_key_row %}
-                    <div class="space-y-1.5">
-                      <label class="block text-xs font-medium text-zinc-400">Tracker API key</label>
-                      <input type="text" readonly value="{{ user.api_key_row.api_key }}"
-                             class="w-full min-h-[2.25rem] cursor-default rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 font-mono text-xs text-zinc-400 shadow-inner shadow-black/20 focus:outline-none">
+                    <div class="ds-field">
+                      <label class="ds-label">Tracker API key</label>
+                      <input type="text" readonly value="{{ user.api_key_row.api_key }}" class="ds-input ds-input--mono">
                     </div>
                     {% endif %}
                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-                      <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700/40 bg-zinc-900/50 px-3 py-2 text-xs text-zinc-300">
-                        <input type="checkbox" name="is_superuser" {% if user.is_superuser %}checked{% endif %} class="rounded border-zinc-600 bg-zinc-950 text-blue-600 focus:ring-green-500/30">
+                      <label class="ds-check-row">
+                        <input type="checkbox" name="is_superuser" {% if user.is_superuser %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
                         Is superuser
                       </label>
-                      <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700/40 bg-zinc-900/50 px-3 py-2 text-xs text-zinc-300">
-                        <input type="checkbox" name="is_staff" {% if user.is_staff %}checked{% endif %} class="rounded border-zinc-600 bg-zinc-950 text-blue-600 focus:ring-green-500/30">
+                      <label class="ds-check-row">
+                        <input type="checkbox" name="is_staff" {% if user.is_staff %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
                         Is staff
                       </label>
                     </div>
                     <div class="pt-1">
-                      <button type="submit"
-                              class="min-h-[2.125rem] rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm shadow-emerald-900/30 transition-all hover:bg-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50 active:scale-[0.99]">
-                        Save changes
-                      </button>
+                      <button type="submit" class="ds-btn ds-btn--success">Save changes</button>
                     </div>
                   </form>
                 </div>
@@ -212,11 +184,12 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="8" class="px-4 py-8 text-center text-sm text-zinc-500">No users found.</td>
+            <td colspan="8" class="py-8 text-center text-sm table-cell--muted">No users found.</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+      </div>
     </div>
   </section>
 </div>

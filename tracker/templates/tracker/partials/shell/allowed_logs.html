@@ -1,6 +1,6 @@
 <span class="hidden" data-page-title="Allowed Logs"></span>
-<div class="min-w-0 w-full px-4 text-sm">
-  {% include "dashboard/partials/includes/dashboard_page_header.html" with header_title="Allowed Logs" header_icon="log_allowed" heading_items=logs heading_simple_total=True %}
+<div class="min-w-0 w-full space-y-5 text-sm">
+  {% include "dashboard/partials/includes/dashboard_page_header.html" with header_title="Allowed Logs" header_icon="log_allowed" heading_items=logs page_obj=page_obj %}
 
   {% include "tracker/partials/includes/tracker_shell_actions_card_open.html" %}
   <div class="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 justify-between">
@@ -23,13 +23,9 @@
 
       <!-- Refresh -->
       <div class="relative group">
-        <a href="#" hx-get="{% url 'tracker:allowed_logs_table' %}" hx-target="#logs-table-body" hx-swap="outerHTML"
-           class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-blue-400 transition-colors hover:bg-zinc-900/80 hover:text-blue-300">
-          <svg title="Refresh" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none"
-               viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M4 4v6h6M20 20v-6h-6M4 20l16-16" />
-          </svg>
+        <a href="#" hx-get="{% url 'tracker:allowed_logs_partial' %}" hx-target="#allowed-logs-wrapper" hx-swap="outerHTML"
+           class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-900/80 hover:text-zinc-200" title="Refresh">
+          {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="action_refresh" icon_size_class="h-4 w-4" %}
         </a>
       </div>
     </div>
@@ -40,14 +36,8 @@
   </div>
   {% include "tracker/partials/includes/tracker_shell_actions_card_close.html" %}
 
-  <!-- Auto-load partial on first visit only -->
-  <div id="allowed-logs-wrapper"
-       hx-get="{% url 'tracker:allowed_logs_partial' %}"
-       hx-trigger="load"
-       hx-target="#allowed-logs-wrapper"
-       hx-swap="outerHTML">
-    <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 px-3 py-2 text-[11px] text-zinc-500">Loading logs...</div>
-  </div>
+  {# Same markup as allowed_logs_partial: no hx-trigger=load (unreliable after HTMX main-content swap). #}
+  {% include "tracker/partials/allowed_logs_partial.html" %}
 </div>
 
 <!-- Clear messages after swap -->

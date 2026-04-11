@@ -1,6 +1,6 @@
 <tbody id="ip-info-table-body">
   {% for row in ips %}
-  <tr class="border-b border-zinc-700/40 odd:bg-zinc-900/20 even:bg-zinc-800/15 hover:!bg-zinc-700/35 transition-colors">
+  <tr>
     <!-- Time -->
     <td class="px-2 py-1.5 text-zinc-400 whitespace-nowrap">{{ row.last_seen|timesince }} ago</td>
 
@@ -42,7 +42,7 @@
     </td>
 
     <!-- Delete -->
-    <td class="px-2 py-1.5 text-right">
+    <td class="table-actions px-2 py-1.5">
       <form method="post"
             hx-post="{% url 'tracker:ip_info' %}"
             hx-target="#ip-info-wrapper"

@@ -1,11 +1,14 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-zinc-900">
+<html lang="en" class="dash-app-root h-full">
   <head>
     <meta charset="UTF-8" />
     <title>{% block title %}Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'dashboard/css/design-system.css' %}" />
     <link rel="stylesheet" href="{% static 'dashboard/css/motion.css' %}" />
     <script src="https://cdn.tailwindcss.com"></script>
+    {# Tailwind يحقن &lt;style&gt; هنا؛ إعادة تحميل design-system بعده تضمن تتالي الجداول فوق preflight. #}
+    <link rel="stylesheet" href="{% static 'dashboard/css/design-system.css' %}" />
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   </head>
@@ -15,13 +18,13 @@
     {% include "dashboard/partials/sidebar.html" %}
 
     <!-- Main section -->
-    <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-900">
+    <div class="dash-app-main flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 
       <!-- Header -->
       {% include "dashboard/partials/header.html" %}
 
       <!-- Content -->
-      <main class="min-h-0 flex-1 overflow-y-auto scroll-smooth px-3 py-4 sm:px-4 sm:py-5 lg:px-6">
+      <main class="dash-main-scroll min-h-0 flex-1 overflow-y-auto scroll-smooth px-3 py-4 sm:px-4 sm:py-5 lg:px-6">
         <div id="main-content" class="mx-auto w-full max-w-[1360px]">
           {% block content %}{% endblock %}
         </div>
@@ -71,11 +74,16 @@
           var raw = a.getAttribute("href");
           if (!raw) return;
           var href = normalizePath(raw);
-          var active = href === path;
           var tier = a.getAttribute("data-nav-tier");
           var isTop = tier === "top";
           var isSub = tier === "sub";
           if (!isTop && !isSub) return;
+
+          var active = href === path;
+          /* Sub-routes (e.g. /dashboard/users/add/) still highlight the matching nav item */
+          if (isSub && !active && href.length > 1 && path.indexOf(href + "/") === 0) {
+            active = true;
+          }
 
           if (isTop) {
             [
@@ -146,6 +154,19 @@
               } else {
                 iconWrap.classList.add("text-zinc-500", "transition-colors", "group-hover:text-zinc-300");
               }
+            } else {
+              /* User section: icon is a direct <svg>, not wrapped in span.shrink-0 */
+              var svgSub = a.querySelector(":scope > svg");
+              if (svgSub) {
+                ["text-green-500/90", "text-green-400", "text-zinc-500", "transition-colors", "group-hover:text-zinc-300"].forEach(function (c) {
+                  svgSub.classList.remove(c);
+                });
+                if (active) {
+                  svgSub.classList.add("text-green-500/90");
+                } else {
+                  svgSub.classList.add("text-zinc-500", "transition-colors", "group-hover:text-zinc-300");
+                }
+              }
             }
           }
 
@@ -161,8 +182,12 @@
       }
 
       document.body.addEventListener("htmx:afterSwap", function (e) {
-        syncDocumentTitleFromTarget(e.detail.target);
+        var t = e.detail.target;
+        syncDocumentTitleFromTarget(t);
         syncSidebarActive();
+        if (t && t.id === "main-content" && window.htmx) {
+          htmx.process(t);
+        }
       });
       document.body.addEventListener("htmx:afterSettle", function (e) {
         dashAnimateSwapTarget(e.detail.target);

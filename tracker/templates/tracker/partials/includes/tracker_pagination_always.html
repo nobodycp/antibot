@@ -1,18 +1,18 @@
   <!-- Pagination -->
-  <div class="mt-3 flex gap-1.5 text-[11px] sm:text-xs">
+  <div class="ds-pagination mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
     {% if page_obj.has_previous %}
       <a href="{% url partial_view_name %}?page={{ page_obj.previous_page_number }}"
          hx-get="{% url partial_view_name %}?page={{ page_obj.previous_page_number }}"
          hx-target="#{{ wrapper_id }}" hx-swap="outerHTML"
-         class="text-blue-400 hover:underline">← Prev</a>
+         class="ds-pagination__link">← Prev</a>
     {% endif %}
 
-    <span class="text-zinc-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <span class="ds-pagination__meta tabular-nums">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
 
     {% if page_obj.has_next %}
       <a href="{% url partial_view_name %}?page={{ page_obj.next_page_number }}"
          hx-get="{% url partial_view_name %}?page={{ page_obj.next_page_number }}"
          hx-target="#{{ wrapper_id }}" hx-swap="outerHTML"
-         class="text-blue-400 hover:underline">Next →</a>
+         class="ds-pagination__link">Next →</a>
     {% endif %}
   </div>

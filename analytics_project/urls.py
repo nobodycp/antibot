@@ -2,6 +2,7 @@ import re
 
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path, re_path
 from django.views.static import serve
 
@@ -17,6 +18,8 @@ urlpatterns = [
 # so we mount the same URL with django.views.static.serve explicitly.
 _serve_media = getattr(settings, "SERVE_MEDIA", False)
 if settings.DEBUG:
+    # خدمة /static/ من مجلدات التطبيقات (مثل dashboard/static/...) عبر staticfiles.
+    urlpatterns += staticfiles_urlpatterns()
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 elif _serve_media:
     _media_prefix = settings.MEDIA_URL.lstrip("/")

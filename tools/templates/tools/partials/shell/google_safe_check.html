@@ -1,5 +1,5 @@
 <span class="hidden" data-page-title="Google Safe Check"></span>
-<div class="min-w-0 w-full px-4 text-sm">
+<div class="min-w-0 w-full space-y-5 text-sm">
   {% include "dashboard/partials/includes/dashboard_page_header.html" with header_title="Google Safe Check" header_icon="tool_safe" header_subtitle="Monitor URLs against Google Safe Browsing" heading_simple_total=True heading_items=links %}
 
   {% include "tracker/partials/includes/tracker_shell_actions_card_open.html" %}
@@ -10,10 +10,10 @@
         <input type="url" name="url" placeholder="Enter website URL" required
                class="h-8 min-h-0 min-w-[10rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-2.5 py-1 text-xs leading-tight text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-1 focus:ring-green-500/30" />
         <button type="submit"
-                class="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-blue-600 px-3 text-xs font-semibold text-white shadow-sm shadow-blue-900/30 transition-all hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 active:scale-[0.99]">Add</button>
+                class="ds-btn ds-btn--primary ds-btn--sm ds-btn--px3">Add</button>
       </form>
       <div class="relative group">
-        <a href="" class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-blue-400 transition-colors hover:bg-zinc-900/80 hover:text-blue-300" title="Refresh">
+        <a href="" class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-900/80 hover:text-zinc-200" title="Refresh">
           {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="action_refresh" icon_size_class="h-4 w-4" %}
         </a>
       </div>
@@ -27,23 +27,25 @@
 
   <form style="display: none;">{% csrf_token %}</form>
 
-  <div class="dash-surface overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 shadow-lg shadow-black/15 ring-1 ring-zinc-700/30">
-    <table class="w-full bg-transparent text-[11px] leading-snug sm:text-xs">
-      <thead class="border-b border-zinc-700/50 bg-zinc-900/35 text-left text-[10px] font-semibold uppercase tracking-wide text-zinc-400 sm:text-[11px]">
+  <div class="table-container dash-surface dash-table-shell overflow-hidden rounded-xl">
+    <div class="table-container__scroll">
+      <table class="table tracker-list-table min-w-full border-collapse bg-transparent text-left text-zinc-300">
+        <thead class="table-header">
         <tr>
-          <th class="px-3 py-2.5 sm:px-4">URL</th>
-          <th class="px-3 py-2.5 sm:px-4">Status</th>
-          <th class="px-3 py-2.5 sm:px-4">Last checked</th>
-          <th class="px-3 py-2.5 sm:px-4 text-right">Delete</th>
+          <th class="px-3 py-2">URL</th>
+          <th class="px-3 py-2">Status</th>
+          <th class="px-3 py-2">Last checked</th>
+          <th class="table-actions px-3 py-2">Delete</th>
         </tr>
-      </thead>
-      <tbody id="safe-check-table"
-             hx-get="{% url 'tools:google_safe_check_table' %}"
-             hx-trigger="load,every 600s"
-             hx-swap="outerHTML">
-        <tr><td colspan="4" class="px-4 py-6 text-center text-sm text-zinc-500">Loading…</td></tr>
-      </tbody>
-    </table>
+        </thead>
+        <tbody id="safe-check-table"
+               hx-get="{% url 'tools:google_safe_check_table' %}"
+               hx-trigger="load,every 600s"
+               hx-swap="outerHTML">
+          <tr><td colspan="4" class="px-4 py-6 text-center text-sm text-zinc-500">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 

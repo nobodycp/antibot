@@ -1,0 +1,7 @@
+{# Reusable card header. Vars: kicker (required). Optional subtitle only if show_subtitle=True #}
+<div class="ds-card__head">
+  <h2 class="ds-kicker">{{ kicker }}</h2>
+  {% if subtitle and show_subtitle %}
+    <p class="ds-subtitle">{{ subtitle }}</p>
+  {% endif %}
+</div>

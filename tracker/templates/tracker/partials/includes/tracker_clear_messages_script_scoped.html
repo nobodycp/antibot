@@ -1,10 +1,10 @@
 <script>
   document.addEventListener('htmx:afterSwap', function (e) {
-    if (e.target.id === '{{ clear_messages_wrapper_id }}') {
-      setTimeout(() => {
-        const msgBox = e.target.querySelector("#htmx-messages");
-        if (msgBox) msgBox.innerHTML = '';
-      }, 3000);
-    }
+    var target = e.detail.target;
+    if (!target || target.id !== '{{ clear_messages_wrapper_id }}') return;
+    setTimeout(function () {
+      var msgBox = target.querySelector('#htmx-messages');
+      if (msgBox) msgBox.innerHTML = '';
+    }, 3000);
   });
 </script>

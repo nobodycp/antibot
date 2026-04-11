@@ -1,5 +1,5 @@
 <template x-if="sidebar">
-  <aside class="dash-app-sidebar flex h-full w-56 shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-zinc-700/50 bg-zinc-800 py-3 pl-2 pr-1.5 text-xs [scrollbar-width:thin] [scrollbar-color:rgb(63_63_70)_transparent] sm:w-[15rem] sm:text-sm">
+  <aside class="dash-app-sidebar flex h-full w-56 shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-zinc-800/80 py-3 pl-2 pr-1.5 text-xs [scrollbar-width:thin] [scrollbar-color:rgb(63_63_70)_transparent] sm:w-[15rem] sm:text-sm">
     <div class="mb-3 rounded-md border border-zinc-700/40 bg-zinc-900/35 px-2 py-1.5 shadow-inner shadow-black/10">
       <p class="text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-500 sm:text-[10px]">Navigation</p>
       <p class="mt-0.5 text-sm font-semibold tracking-tight text-zinc-50">Antibot</p>
@@ -192,7 +192,7 @@
 
         <div x-show="open" class="mt-0.5 space-y-px rounded-md bg-zinc-900/30 py-1 pl-0.5 pr-0.5">
           <a href="/dashboard/profile-settings/" data-nav-tier="sub" hx-get="/dashboard/profile-settings/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/dashboard/profile-settings/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <svg class="h-3.5 w-3.5 shrink-0 {% if request.path == '/dashboard/profile-settings/' %}text-green-500/90{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %} sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
             Profile
@@ -200,14 +200,14 @@
 
           {% if request.user.is_superuser %}
           <a href="/dashboard/telegram-backup-settings/" data-nav-tier="sub" hx-get="/dashboard/telegram-backup-settings/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/dashboard/telegram-backup-settings/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <svg class="h-3.5 w-3.5 shrink-0 {% if request.path == '/dashboard/telegram-backup-settings/' %}text-green-500/90{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %} sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
             </svg>
             Backup
           </a>
 
-          <a href="/dashboard/users/" data-nav-tier="sub" hx-get="/dashboard/users/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/dashboard/users/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
-            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <a href="/dashboard/users/" data-nav-tier="sub" hx-get="/dashboard/users/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if '/dashboard/users/' in request.path %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+            <svg class="h-3.5 w-3.5 shrink-0 {% if '/dashboard/users/' in request.path %}text-green-500/90{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %} sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
             </svg>
             Users

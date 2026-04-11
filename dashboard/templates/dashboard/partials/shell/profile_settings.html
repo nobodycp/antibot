@@ -1,5 +1,5 @@
 <span class="hidden" data-page-title="Profile Settings"></span>
-<div class="min-w-0 w-full text-sm">
+<div class="ds-page">
   {% include "dashboard/partials/includes/dashboard_page_header.html" with header_title="Profile Settings" header_icon="profile_user" header_subtitle="Update your account information" header_hide_stats=True %}
 
   {% include "dashboard/partials/messages.html" %}
@@ -7,54 +7,48 @@
   <div class="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start lg:gap-8">
     <div class="min-w-0 space-y-4 lg:col-span-9">
       <!-- Profile Form -->
-      <section class="dash-surface overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 shadow-lg shadow-black/20 ring-1 ring-zinc-700/30">
-        <div class="border-b border-zinc-700/50 bg-zinc-900/25 px-4 py-3 sm:px-5">
-          <h2 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:text-[11px]">⚙️ Profile Information</h2>
-          <p class="mt-1 text-xs text-zinc-600">Identity and avatar used across the dashboard</p>
-        </div>
-        <div class="p-4 sm:p-5">
-        <form method="post" enctype="multipart/form-data" class="space-y-4">
+      <section class="ds-card dash-surface">
+        {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Profile" %}
+        <div class="ds-card__body">
+        <form method="post" enctype="multipart/form-data" class="ds-form-stack">
           {% csrf_token %}
           <input type="hidden" name="action" value="profile">
 
-          <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 p-3 sm:p-4">
+          <div class="ds-fieldset">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-x-6 md:gap-y-4">
-              <div class="space-y-1.5">
-                <label class="block text-xs font-medium text-zinc-400" for="id-profile-username">Username</label>
+              <div class="ds-field">
+                <label class="ds-label" for="id-profile-username">Username</label>
                 <input id="id-profile-username"
                        type="text"
                        name="username"
                        value="{{ request.user.username }}"
-                       placeholder="Enter username"
-                       class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+                       placeholder="Username"
+                       class="ds-input">
               </div>
 
-              <div class="space-y-1.5">
-                <label class="block text-xs font-medium text-zinc-400" for="id-profile-email">Email</label>
+              <div class="ds-field">
+                <label class="ds-label" for="id-profile-email">Email</label>
                 <input id="id-profile-email"
                        type="email"
                        name="email"
                        value="{{ request.user.email }}"
-                       placeholder="Enter email"
-                       class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+                       placeholder="Email"
+                       class="ds-input">
               </div>
 
-              <div class="space-y-1.5 md:col-span-2">
-                <label class="block text-xs font-medium text-zinc-400" for="id-profile-avatar">Avatar</label>
+              <div class="ds-field md:col-span-2">
+                <label class="ds-label" for="id-profile-avatar">Avatar</label>
                 <input id="id-profile-avatar"
                        type="file"
                        name="avatar"
                        accept="image/*"
-                       class="w-full min-h-[2.25rem] cursor-pointer rounded-md border border-zinc-600 bg-zinc-950/80 px-2.5 py-1.5 text-sm text-zinc-300 shadow-inner shadow-black/20 file:mr-2 file:cursor-pointer file:rounded file:border-0 file:bg-zinc-700 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-zinc-100 hover:file:bg-zinc-600 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+                       class="ds-input cursor-pointer px-2.5 py-1.5 text-zinc-300 file:mr-2 file:cursor-pointer file:rounded file:border-0 file:bg-zinc-700 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-zinc-100 hover:file:bg-zinc-600">
               </div>
             </div>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2 border-t border-zinc-700/50 pt-4">
-            <button type="submit"
-                    class="min-h-[2.125rem] rounded-md bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-900/30 transition-all hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 active:scale-[0.99]">
-              Save Changes
-            </button>
+          <div class="ds-form-actions">
+            <button type="submit" class="ds-btn ds-btn--primary">Save changes</button>
           </div>
         </form>
 
@@ -92,8 +86,7 @@
                   class="mt-4 flex flex-wrap items-center gap-2"
                   onsubmit="return confirm('This will invalidate your current API key. Continue?');">
               {% csrf_token %}
-              <button type="submit"
-                      class="min-h-[2.125rem] rounded-md border border-amber-700/60 bg-amber-700/90 px-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 active:scale-[0.99]">
+              <button type="submit" class="ds-btn ds-btn--amber ds-btn--px3">
                 Regenerate API Key
               </button>
             </form>
@@ -103,52 +96,32 @@
       </section>
 
       <!-- Change Password -->
-      <section class="dash-surface overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 shadow-lg shadow-black/20 ring-1 ring-zinc-700/30">
-        <div class="border-b border-zinc-700/50 bg-zinc-900/25 px-4 py-3 sm:px-5">
-          <h2 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:text-[11px]">🔒 Change Password</h2>
-          <p class="mt-1 text-xs text-zinc-600">Use a strong password you do not reuse elsewhere</p>
-        </div>
-        <div class="p-4 sm:p-5">
-        <form method="post" class="space-y-4">
+      <section class="ds-card dash-surface">
+        {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Password" %}
+        <div class="ds-card__body">
+        <form method="post" class="ds-form-stack">
           {% csrf_token %}
           <input type="hidden" name="action" value="password">
 
-          <div class="rounded-lg border border-zinc-700/40 bg-zinc-900/35 p-3 sm:p-4">
+          <div class="ds-fieldset">
             <div class="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:gap-x-6 xl:gap-y-4">
-              <div class="space-y-1.5">
-                <label class="block text-xs font-medium text-zinc-400" for="id-pw-old">Old Password</label>
-                <input id="id-pw-old"
-                       type="password"
-                       name="old_password"
-                       placeholder="Enter current password"
-                       class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+              <div class="ds-field">
+                <label class="ds-label" for="id-pw-old">Old password</label>
+                <input id="id-pw-old" type="password" name="old_password" placeholder="Current password" class="ds-input" autocomplete="current-password">
               </div>
-
-              <div class="space-y-1.5">
-                <label class="block text-xs font-medium text-zinc-400" for="id-pw-new">New Password</label>
-                <input id="id-pw-new"
-                       type="password"
-                       name="new_password"
-                       placeholder="Enter new password"
-                       class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+              <div class="ds-field">
+                <label class="ds-label" for="id-pw-new">New password</label>
+                <input id="id-pw-new" type="password" name="new_password" placeholder="New password" class="ds-input" autocomplete="new-password">
               </div>
-
-              <div class="space-y-1.5 xl:col-span-2">
-                <label class="block text-xs font-medium text-zinc-400" for="id-pw-confirm">Confirm Password</label>
-                <input id="id-pw-confirm"
-                       type="password"
-                       name="confirm_password"
-                       placeholder="Confirm new password"
-                       class="w-full min-h-[2.25rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-3 py-2 text-sm text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-2 focus:ring-green-500/20">
+              <div class="ds-field xl:col-span-2">
+                <label class="ds-label" for="id-pw-confirm">Confirm password</label>
+                <input id="id-pw-confirm" type="password" name="confirm_password" placeholder="Confirm new password" class="ds-input" autocomplete="new-password">
               </div>
             </div>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2 border-t border-zinc-700/50 pt-4">
-            <button type="submit"
-                    class="min-h-[2.125rem] rounded-md bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-900/30 transition-all hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 active:scale-[0.99]">
-              Change Password
-            </button>
+          <div class="ds-form-actions">
+            <button type="submit" class="ds-btn ds-btn--primary">Change password</button>
           </div>
         </form>
         </div>
@@ -157,11 +130,9 @@
 
     <!-- Profile Preview -->
     <aside class="h-fit min-w-0 lg:sticky lg:top-4 lg:col-span-3">
-      <div class="dash-surface overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 shadow-lg shadow-black/20 ring-1 ring-zinc-700/30">
-        <div class="border-b border-zinc-700/50 bg-zinc-900/25 px-4 py-3">
-          <h2 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:text-[11px]">🖼️ Profile Preview</h2>
-        </div>
-        <div class="p-4">
+      <div class="ds-card dash-surface">
+        {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Preview" %}
+        <div class="ds-card__body">
           <div class="flex flex-col items-center rounded-lg border border-zinc-700/50 bg-zinc-950/50 px-3 py-4 shadow-inner shadow-black/20">
             {% if profile.avatar %}
               <img src="{{ profile.avatar.url }}" alt="" class="mb-3 h-20 w-20 rounded-full border-2 border-zinc-600 object-cover shadow-md">

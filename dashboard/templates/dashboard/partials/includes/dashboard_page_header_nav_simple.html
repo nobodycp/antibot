@@ -1,0 +1,29 @@
+{# Same header chrome as dashboard home: single column flex flex-col gap-1 (Block rules, Logs, Tools). #}
+{# Required: header_title. Optional: header_subtitle, heading_items, heading_simple_total, page_obj, header_hide_stats. #}
+{# header_icon is accepted but unused (keeps shell includes unchanged). #}
+<header class="dash-page-header mb-4 border-b border-zinc-700/50 pb-3">
+  <div class="flex flex-col gap-1">
+    <h1 class="text-base font-semibold tracking-tight text-white sm:text-lg">{{ header_title }}</h1>
+    {% if header_subtitle %}
+      <p class="max-w-3xl text-xs leading-relaxed text-zinc-500 sm:text-[13px]">{{ header_subtitle }}</p>
+    {% endif %}
+    {% if not header_hide_stats %}
+      <p class="text-xs font-medium tabular-nums text-zinc-400">
+        {% if heading_simple_total %}
+          <span class="text-zinc-500">Total</span>
+          <span class="ml-2 text-zinc-200">{{ heading_items|length }}</span>
+        {% else %}
+          {% if page_obj %}
+            <span class="text-zinc-500">Showing</span>
+            <span class="ml-1.5 text-zinc-200">{{ page_obj.start_index }}–{{ page_obj.end_index }}</span>
+            <span class="text-zinc-500"> of </span>
+            <span class="text-zinc-200">{{ page_obj.paginator.count }}</span>
+          {% else %}
+            <span class="text-zinc-500">Total</span>
+            <span class="ml-2 text-zinc-200">{{ heading_items|length }}</span>
+          {% endif %}
+        {% endif %}
+      </p>
+    {% endif %}
+  </div>
+</header>

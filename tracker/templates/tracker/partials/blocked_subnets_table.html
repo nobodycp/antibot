@@ -1,8 +1,8 @@
 <tbody id="subnet-table-body">
   {% for s in blocked_subnets %}
-  <tr class="border-b border-zinc-700/40 odd:bg-zinc-900/20 even:bg-zinc-800/15 hover:!bg-zinc-700/35 transition-colors">
-    <td class="px-2 py-1.5 text-zinc-200 font-mono text-xs">{{ s.cidr }}</td>
-    <td class="px-2 py-1.5 text-right">
+  <tr>
+    <td class="px-2 py-1.5 text-zinc-200 font-mono">{{ s.cidr }}</td>
+    <td class="table-actions px-2 py-1.5">
       <form method="post" class="inline"
             hx-post="{% url 'tracker:blocked_subnets' %}"
             hx-target="#blocked-subnets-wrapper"

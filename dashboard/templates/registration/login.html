@@ -1,34 +1,41 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-zinc-900">
+<html lang="en" class="dash-app-root h-full">
   <head>
     <meta charset="UTF-8" />
     <title>Login</title>
+    <link rel="stylesheet" href="{% static 'dashboard/css/design-system.css' %}" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{% static 'dashboard/css/design-system.css' %}" />
   </head>
-  <body class="h-full flex items-center justify-center">
-    <div class="w-full max-w-sm px-6 py-8 space-y-6">
-      <h2 class="text-white text-2xl font-bold text-center">Log in to <span class="text-white/60">Antibot</span></h2>
+  <body class="flex h-full items-center justify-center text-white antialiased">
+    <div class="w-full max-w-sm space-y-6 px-6 py-8">
+      <h1 class="text-center text-2xl font-bold tracking-tight text-white">
+        Log in to <span class="text-zinc-400">Antibot</span>
+      </h1>
 
-      {% if form.errors %}
-        <p class="text-sm text-red-400 bg-red-900/40 px-3 py-2 rounded text-center">
-          Invalid username or password. Please try again.
-        </p>
-      {% endif %}
+      <div class="ds-card">
+        <div class="ds-card__body space-y-4">
+          {% if form.errors %}
+            <p class="ds-alert ds-alert--error text-center" role="alert">
+              Invalid username or password. Please try again.
+            </p>
+          {% endif %}
 
-      <form method="post" class="space-y-4">
-        {% csrf_token %}
-
-        <input type="text" name="username" placeholder="Email or Username" required
-          class="w-full px-4 py-2 rounded bg-zinc-800 text-white placeholder-zinc-500 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-blue-600" />
-
-        <input type="password" name="password" placeholder="Password" required
-          class="w-full px-4 py-2 rounded bg-zinc-800 text-white placeholder-zinc-500 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-blue-600" />
-
-        <button type="submit"
-          class="w-full py-2 text-black font-semibold bg-white hover:bg-zinc-200 rounded">
-          Log in
-        </button>
-      </form>
+          <form method="post" class="ds-form-stack">
+            {% csrf_token %}
+            <div class="ds-field">
+              <label class="sr-only" for="login-username">Username</label>
+              <input id="login-username" type="text" name="username" placeholder="Email or Username" required class="ds-input w-full min-w-0" autocomplete="username">
+            </div>
+            <div class="ds-field">
+              <label class="sr-only" for="login-password">Password</label>
+              <input id="login-password" type="password" name="password" placeholder="Password" required class="ds-input w-full min-w-0" autocomplete="current-password">
+            </div>
+            <button type="submit" class="ds-btn ds-btn--inverse w-full">Log in</button>
+          </form>
+        </div>
+      </div>
     </div>
   </body>
 </html>

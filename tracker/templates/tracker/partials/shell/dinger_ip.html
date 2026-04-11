@@ -1,5 +1,5 @@
 <span class="hidden" data-page-title="Dinger IPs"></span>
-<div class="min-w-0 w-full px-4 text-sm">
+<div class="min-w-0 w-full space-y-5 text-sm">
   {% include "dashboard/partials/includes/dashboard_page_header.html" with header_title="Dinger IPs" header_icon="dinger_ip" heading_items=dingers heading_simple_total=True %}
 
   {% include "dashboard/partials/messages.html" %}
@@ -17,16 +17,16 @@
           <th class="px-2 py-1.5">IP Address</th>
           <th class="px-2 py-1.5">Visits</th>
           <th class="px-2 py-1.5">Last Seen</th>
-          <th class="px-2 py-1.5 text-right">Delete</th>
+          <th class="table-actions px-2 py-1.5">Delete</th>
         </tr>
       </thead>
       <tbody>
         {% for item in dingers %}
-        <tr class="border-b border-zinc-700/40 odd:bg-zinc-900/20 even:bg-zinc-800/15 hover:!bg-zinc-700/35 transition-colors">
+        <tr>
           <td class="px-2 py-1.5 font-mono text-zinc-200">{{ item.ip_address }}</td>
           <td class="px-2 py-1.5 text-zinc-300">{{ item.count }}</td>
           <td class="px-2 py-1.5 text-zinc-400">{{ item.last_seen|date:"Y-m-d H:i" }}</td>
-          <td class="px-2 py-1.5 text-right">
+          <td class="table-actions px-2 py-1.5">
             <form method="post" class="inline">
               {% csrf_token %}
               <input type="hidden" name="delete_ip" value="{{ item.ip_address }}">

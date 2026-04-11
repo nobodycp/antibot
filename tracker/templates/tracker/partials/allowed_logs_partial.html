@@ -1,26 +1,8 @@
 <div id="allowed-logs-wrapper"
      hx-get="{% url 'tracker:allowed_logs_partial' %}"
      hx-trigger="every 30s"
-     hx-target="#allowed-logs-wrapper"
+     hx-target="this"
      hx-swap="outerHTML">
 
-{% include "core/partials/messages.html" %}
-
-{% include "tracker/partials/includes/tracker_list_table_open.html" %}
-        <tr>
-          <th class="px-2 py-1.5">Time</th>
-          <th class="px-2 py-1.5">IP</th>
-          <th class="px-2 py-1.5">Country</th>
-          <th class="px-2 py-1.5">ISP</th>
-          <th class="px-2 py-1.5">Hostname</th>
-          <th class="px-2 py-1.5">OS</th>
-          <th class="px-2 py-1.5">Browser</th>
-          <th class="px-2 py-1.5">Subnet</th>
-          <th class="px-2 py-1.5 text-right">Delete</th>
-        </tr>
-      </thead>
-      {% include "tracker/partials/allowed_logs_table.html" %}
-{% include "tracker/partials/includes/tracker_list_table_close.html" %}
-
-{% include "tracker/partials/includes/tracker_pagination_if_other_pages.html" with partial_view_name="tracker:allowed_logs_partial" wrapper_id="allowed-logs-wrapper" %}
+{% include "tracker/partials/allowed_logs_inner.html" %}
 </div>

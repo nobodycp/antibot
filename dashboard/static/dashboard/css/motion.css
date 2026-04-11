@@ -18,6 +18,10 @@
     --dash-duration-slow: 1ms;
   }
 
+  html {
+    scroll-behavior: auto;
+  }
+
   .dash-swap-enter,
   .dash-page-header,
   .messages-stack .message {
@@ -34,14 +38,13 @@
 }
 
 /* ----- HTMX: main shell + *-wrapper partials ----- */
+/* Opacity-only: avoids transform on #main-content (layout width / scroll jank during HTMX). */
 @keyframes dash-main-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -167,17 +170,37 @@ main tbody tr {
   transition: background-color var(--dash-duration) var(--dash-ease-out);
 }
 
-/* ----- Panel surfaces (add class .dash-surface on key containers) ----- */
-.dash-surface {
+/* ----- Panel surfaces (.ds-card is the design-system surface; .dash-surface kept for legacy) ----- */
+.dash-surface,
+.ds-card,
+.dash-panel {
   transition-property: border-color, box-shadow;
   transition-duration: var(--dash-duration);
   transition-timing-function: var(--dash-ease-out);
 }
 
 @media (hover: hover) {
-  .dash-surface:hover {
-    border-color: rgb(63 63 70 / 0.85);
-    box-shadow: 0 12px 24px -8px rgb(0 0 0 / 0.35);
+  .dash-surface:hover:not(.dash-table-shell):not(.table-container),
+  .ds-card:hover,
+  .dash-panel:hover {
+    border-color: var(--ds-color-border-muted);
+    box-shadow: 0 12px 28px -10px rgb(0 0 0 / 0.45);
+  }
+
+  .dash-surface.dash-table-shell:hover,
+  .table-container:hover {
+    border-color: var(--ds-color-border-hover);
+    box-shadow: 0 12px 36px -20px rgb(0 0 0 / 0.42);
+  }
+
+  .dash-panel:has(.table-container):hover {
+    box-shadow: 0 18px 44px -26px rgb(0 0 0 / 0.52);
+  }
+
+  .ds-card--static:hover,
+  .dash-panel--static:hover {
+    border-color: var(--ds-color-border-subtle);
+    box-shadow: var(--ds-shadow-card);
   }
 }
 
@@ -190,8 +213,8 @@ main tbody tr {
 
 @media (hover: hover) {
   .dash-header-icon-frame:hover {
-    border-color: rgb(63 63 70 / 0.75);
-    background-color: rgb(24 24 27 / 0.55);
+    border-color: var(--ds-color-border-hover);
+    background-color: var(--ds-color-bg-head);
   }
 }
 

@@ -1,21 +1,23 @@
 {% load slugify_filters %}
 <tbody id="logs-table-body">
   {% for log in logs %}
-  <tr class="border-b border-zinc-700/40 odd:bg-zinc-900/20 even:bg-zinc-800/15 hover:!bg-zinc-700/35 transition-colors">
+  <tr>
     <td class="px-2 py-1.5 text-zinc-400 whitespace-nowrap">{{ log.timestamp|timesince }} ago</td>
-    <td class="px-2 py-1.5 text-zinc-100 font-mono text-xs">{{ log.ip_address }}</td>
-    <td class="px-2 py-1.5 text-zinc-100 flex items-center gap-2">
+    <td class="px-2 py-1.5 text-zinc-100 font-mono">{{ log.ip_address }}</td>
+    <td class="px-2 py-1.5 text-zinc-100 align-middle">
+      <span class="inline-flex items-center gap-2">
       {% if log.country %}
         <img src="https://flagcdn.com/24x18/{{ log.country|lower }}.png"
              alt="{{ log.country }} flag"
              class="w-4 h-3 rounded-sm border border-zinc-600">
       {% endif %}
       <span>{{ log.country }}</span>
+      </span>
     </td>
 
-    <td class="px-2 py-1.5 text-zinc-100 text-xs">{{ log.isp|default:"—" }}</td>
+    <td class="px-2 py-1.5 text-zinc-100">{{ log.isp|default:"—" }}</td>
 
-    <td class="px-2 py-1.5 text-zinc-100 text-xs">{{ log.hostname|default:"—" }}</td>
+    <td class="px-2 py-1.5 text-zinc-100">{{ log.hostname|default:"—" }}</td>
 
     <td class="px-2 py-1.5 text-zinc-100">
       <span class="flex items-center gap-2">
@@ -34,8 +36,8 @@
         <span>{{ log.browser }}</span>
       </span>
     </td>
-    <td class="px-2 py-1.5 text-zinc-100 font-mono text-xs">{{ log.b_subnet }}</td>
-    <td class="px-2 py-1.5 text-right">
+    <td class="px-2 py-1.5 text-zinc-100 font-mono">{{ log.b_subnet }}</td>
+    <td class="table-actions px-2 py-1.5">
       <form method="post"
             hx-post="{% url 'tracker:allowed_logs' %}"
             hx-target="#allowed-logs-wrapper"

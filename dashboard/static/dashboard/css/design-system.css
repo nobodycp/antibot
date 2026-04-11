@@ -1,0 +1,1265 @@
+/**
+ * Antibot dashboard design system (UI layer).
+ * Use ds-* classes for structure; pair with Tailwind only for layout grids and one-off spacing.
+ * Tokens: CSS custom properties (--ds-*).
+ */
+
+:root {
+  /*
+   * Reference palette (softened charcoal — same hierarchy, less crushed black)
+   * Section strips: same as surface-adjacent band (not a light gray slab) — .ds-card__head + <thead>.
+   * background #141414 · surface #1C1C1C · card #262626 · row #202020 · row-alt #262626
+   * header strip #1C1C1C (surface) · hover #323232 · border #3A3A3A · text #E0E0E0 · muted #888888 · accent #4CAF50
+   */
+  --ds-ref-bg: #141414;
+  --ds-ref-surface: #1c1c1c;
+  --ds-ref-card: #262626;
+  --ds-ref-row: #202020;
+  --ds-ref-row-alt: #262626;
+  --ds-ref-card-head: #1c1c1c;
+  --ds-ref-table-head: #1c1c1c;
+  --ds-ref-hover: #323232;
+  --ds-ref-border: #3a3a3a;
+  --ds-ref-text: #e0e0e0;
+  --ds-ref-muted: #888888;
+  --ds-ref-accent: #4caf50;
+
+  --ds-color-bg-app: var(--ds-ref-bg);
+  --ds-color-bg-sidebar: var(--ds-ref-surface);
+  --ds-color-bg-header: var(--ds-ref-surface);
+  --ds-color-bg-raised: var(--ds-ref-card);
+  --ds-color-bg-head: var(--ds-ref-card-head);
+  --ds-color-bg-inset: var(--ds-ref-surface);
+  --ds-color-bg-field: var(--ds-ref-row);
+  --ds-color-bg-table-shell: var(--ds-ref-card);
+  /* Same paint as .ds-card__head — one “strip” language app-wide */
+  --ds-color-bg-table-head: var(--ds-ref-card-head);
+  --ds-color-bg-panel-table: var(--ds-ref-card);
+
+  /* Borders — #3A3A3A at low opacity (almost borderless) */
+  --ds-color-border: rgb(58 58 58 / 0.5);
+  --ds-color-border-muted: rgb(58 58 58 / 0.38);
+  --ds-color-border-subtle: rgb(58 58 58 / 0.28);
+  --ds-color-ring: rgb(58 58 58 / 0.22);
+  --ds-color-border-hover: rgb(58 58 58 / 0.65);
+  --ds-color-ring-hover: rgb(58 58 58 / 0.35);
+  --ds-color-input-border: rgb(58 58 58 / 0.55);
+  --ds-color-table-divider: rgb(58 58 58 / 0.22);
+  --ds-table-row-line: rgb(58 58 58 / 0.2);
+  --ds-table-head-separator: rgb(58 58 58 / 0.26);
+  --ds-table-shell-border: rgb(58 58 58 / 0.32);
+  /* Outer frame around listing tables — change this to retune the whole table edge */
+  --ds-color-table-outline: rgb(82 82 82 / 0.52);
+
+  /* Text — reference */
+  --ds-color-text: var(--ds-ref-text);
+  --ds-color-text-secondary: #c8c8c8;
+  --ds-color-text-muted: var(--ds-ref-muted);
+  --ds-color-text-kicker: #6e6e6e;
+  --ds-color-text-placeholder: #6a6a6a;
+  /* Listing <thead> — same weight as labels, not full white shout */
+  --ds-color-text-table-head: var(--ds-color-text-muted);
+
+  /* Links / pagination — neutral gray (no blue) */
+  --ds-color-interactive: #9e9e9e;
+  --ds-color-interactive-hover: #d0d0d0;
+
+  /* Accent — reference green + muted UI greens (not Tailwind neon) */
+  --ds-color-accent: var(--ds-ref-accent);
+  --ds-color-accent-ring: rgb(76 175 80 / 0.28);
+  --ds-color-focus-border: rgb(76 175 80 / 0.45);
+  --ds-color-focus-ring-neutral: rgb(58 58 58 / 0.75);
+
+  /* Primary CTA — dark gray on card */
+  --ds-color-primary: #383838;
+  --ds-color-primary-hover: #404040;
+  /* Stat / semantic — desaturated (screenshot-aligned) */
+  --ds-color-danger: #a34f4f;
+  --ds-color-danger-hover: #b85c5c;
+  --ds-color-warning: #b18c3f;
+  --ds-color-warning-hover: #c49a48;
+  --ds-color-success: #3fb16d;
+  --ds-color-success-hover: #4aba78;
+
+  /* Table zebra + hover — reference */
+  --ds-color-table-row-odd: var(--ds-ref-row);
+  --ds-color-table-row-even: var(--ds-ref-row-alt);
+  --ds-color-table-row-hover: var(--ds-ref-hover);
+
+  --ds-color-selection-bg: rgb(255 255 255 / 0.06);
+  /* —— Spacing (rem) —— */
+  --ds-space-1: 0.25rem;
+  --ds-space-2: 0.5rem;
+  --ds-space-3: 0.75rem;
+  --ds-space-4: 1rem;
+  --ds-space-5: 1.25rem;
+  --ds-space-6: 1.5rem;
+  --ds-space-8: 2rem;
+  /* —— Radius —— */
+  --ds-radius-sm: 0.375rem;
+  --ds-radius-md: 0.5rem;
+  --ds-radius-lg: 0.75rem;
+  --ds-radius-xl: 0.75rem;
+  /* —— Typography —— */
+  --ds-font-sans: ui-sans-serif, system-ui, sans-serif;
+  --ds-text-xs: 0.75rem;
+  --ds-text-sm: 0.875rem;
+  --ds-text-kicker-size: 0.625rem;
+  /* Block rules + Logs tables (tracker_list_table_open --compact only) */
+  --ds-text-table-compact: 0.625rem;
+  --ds-text-table-compact-head: 0.625rem;
+  --ds-tracking-kicker: 0.14em;
+  /* Depth — soft only, no harsh outline ring */
+  --ds-shadow-card: 0 8px 32px -14px rgb(0 0 0 / 0.55);
+  --ds-shadow-card-sm: 0 4px 24px -12px rgb(0 0 0 / 0.45);
+  --ds-shadow-inner: inset 0 1px 2px 0 rgb(0 0 0 / 0.35);
+}
+
+/* —— Global base (loads after Tailwind CDN in base.html for correct cascade) —— */
+html {
+  color-scheme: dark;
+}
+
+/* App shell (base.html / login.html); palette v2 from --ds-color-bg-* */
+.dash-app-root,
+.dash-app-main {
+  background-color: var(--ds-color-bg-app);
+}
+
+.dash-app-sidebar {
+  background-color: var(--ds-color-bg-sidebar);
+}
+
+.dash-app-header {
+  background-color: var(--ds-color-bg-header);
+}
+
+.dash-app-footer {
+  border-top: 1px solid var(--ds-color-border-muted);
+  background-color: var(--ds-color-bg-sidebar);
+  color: var(--ds-color-text-muted);
+}
+
+body {
+  font-family: var(--ds-font-sans);
+  color: var(--ds-color-text);
+}
+
+::selection {
+  background-color: var(--ds-color-selection-bg);
+  color: var(--ds-color-text);
+}
+
+.dash-main-scroll {
+  overscroll-behavior-y: contain;
+}
+
+/*
+ * Tailwind CDN utilities ignore :root — map zinc chips to neutral DS (no slate/blue).
+ */
+main.dash-app-main input[class*="border-zinc-600"],
+main.dash-app-main textarea[class*="border-zinc-600"],
+main.dash-app-main select[class*="border-zinc-600"],
+main.dash-app-main section[class*="border-zinc-700"],
+main.dash-app-main div[class*="border-zinc-700"],
+main.dash-app-main form[class*="border-zinc-700"] {
+  border-color: rgb(58 58 58 / 0.55) !important;
+}
+
+main.dash-app-main input[class*="bg-zinc-950"],
+main.dash-app-main input[class*="bg-zinc-900"],
+main.dash-app-main textarea[class*="bg-zinc-950"],
+main.dash-app-main textarea[class*="bg-zinc-900"],
+main.dash-app-main select[class*="bg-zinc-950"],
+main.dash-app-main select[class*="bg-zinc-900"] {
+  background-color: rgb(32 32 32 / 0.95) !important;
+}
+
+main.dash-app-main section[class*="bg-zinc-800"],
+main.dash-app-main div[class*="bg-zinc-800/"] {
+  background-color: rgb(38 38 38 / 0.92) !important;
+}
+
+main.dash-app-main div[class*="bg-zinc-900/25"],
+main.dash-app-main div[class*="bg-zinc-900/35"] {
+  background-color: rgb(38 38 38 / 0.45) !important;
+}
+
+main.dash-app-main [class*="ring-zinc-700"] {
+  --tw-ring-color: rgb(58 58 58 / 0.5) !important;
+}
+
+main.dash-app-main input::placeholder,
+main.dash-app-main textarea::placeholder {
+  color: rgb(106 106 106 / 0.95) !important;
+}
+
+main.dash-app-main [class*="text-zinc-100"] {
+  color: var(--ds-color-text) !important;
+}
+
+main.dash-app-main [class*="text-zinc-200"] {
+  color: var(--ds-color-text-secondary) !important;
+}
+
+main.dash-app-main [class*="text-zinc-300"] {
+  color: var(--ds-color-text-secondary) !important;
+}
+
+main.dash-app-main [class*="text-zinc-400"] {
+  color: var(--ds-color-text-muted) !important;
+}
+
+main.dash-app-main [class*="text-zinc-500"] {
+  color: var(--ds-color-text-kicker) !important;
+}
+
+main.dash-app-main [class*="text-zinc-600"] {
+  color: var(--ds-color-text-kicker) !important;
+}
+
+@media (hover: hover) {
+  main.dash-app-main a[class*="hover:bg-zinc-900"]:hover,
+  main.dash-app-main button[class*="hover:bg-zinc-900"]:hover {
+    background-color: rgb(50 50 50 / 0.98) !important;
+  }
+
+  main.dash-app-main a[class*="hover:bg-zinc-800"]:hover,
+  main.dash-app-main button[class*="hover:bg-zinc-800"]:hover {
+    background-color: rgb(50 50 50 / 0.95) !important;
+  }
+}
+
+/* Sidebar — reference surface / row tones */
+aside.dash-app-sidebar [class*="border-zinc-800"],
+aside.dash-app-sidebar [class*="border-zinc-700"] {
+  border-color: rgb(58 58 58 / 0.45) !important;
+}
+
+aside.dash-app-sidebar [class*="bg-zinc-900"],
+aside.dash-app-sidebar [class*="bg-zinc-800"] {
+  background-color: rgb(32 32 32 / 0.75) !important;
+}
+
+aside.dash-app-sidebar [class*="bg-zinc-700/"] {
+  background-color: rgb(58 58 58 / 0.4) !important;
+}
+
+aside.dash-app-sidebar [class*="bg-zinc-900/30"],
+aside.dash-app-sidebar [class*="bg-zinc-900/35"] {
+  background-color: rgb(38 38 38 / 0.4) !important;
+}
+
+aside.dash-app-sidebar [class*="text-zinc-50"],
+aside.dash-app-sidebar [class*="text-zinc-100"] {
+  color: var(--ds-color-text) !important;
+}
+
+aside.dash-app-sidebar [class*="text-zinc-300"] {
+  color: var(--ds-color-text-secondary) !important;
+}
+
+aside.dash-app-sidebar [class*="text-zinc-400"] {
+  color: var(--ds-color-text-muted) !important;
+}
+
+aside.dash-app-sidebar [class*="text-zinc-500"] {
+  color: var(--ds-color-text-kicker) !important;
+}
+
+@media (hover: hover) {
+  aside.dash-app-sidebar a[class*="hover:bg-zinc-800"]:hover,
+  aside.dash-app-sidebar button[class*="hover:bg-zinc-800"]:hover {
+    background-color: rgb(50 50 50 / 0.95) !important;
+  }
+
+  aside.dash-app-sidebar a[class*="hover:bg-zinc-900"]:hover {
+    background-color: rgb(38 38 38 / 0.9) !important;
+  }
+}
+
+/* Sidebar active accent — reference #4CAF50 */
+aside.dash-app-sidebar [class*="text-green-400"],
+aside.dash-app-sidebar [class*="text-green-500"] {
+  color: var(--ds-ref-accent) !important;
+}
+
+aside.dash-app-sidebar [class*="border-green-500"] {
+  border-color: var(--ds-ref-accent) !important;
+}
+
+header.dash-app-header {
+  border-bottom-color: rgb(58 58 58 / 0.4) !important;
+}
+
+header.dash-app-header [class*="border-zinc-600"],
+header.dash-app-header [class*="border-zinc-700"] {
+  border-color: rgb(58 58 58 / 0.45) !important;
+}
+
+header.dash-app-header [class*="bg-zinc-900"],
+header.dash-app-header [class*="bg-zinc-800"],
+header.dash-app-header [class*="bg-zinc-700"] {
+  background-color: rgb(28 28 28 / 0.65) !important;
+}
+
+header.dash-app-header [class*="text-zinc-300"] {
+  color: var(--ds-color-text-secondary) !important;
+}
+
+header.dash-app-header [class*="text-zinc-400"] {
+  color: var(--ds-color-text-muted) !important;
+}
+
+header.dash-app-header [class*="text-zinc-500"],
+header.dash-app-header [class*="text-zinc-600"] {
+  color: var(--ds-color-text-kicker) !important;
+}
+
+header.dash-app-header [class*="bg-zinc-600"] {
+  background-color: rgb(58 58 58 / 0.5) !important;
+}
+
+@media (hover: hover) {
+  header.dash-app-header [class*="hover:bg-zinc-800"]:hover,
+  header.dash-app-header [class*="hover:bg-zinc-700"]:hover {
+    background-color: rgb(50 50 50 / 0.9) !important;
+  }
+
+  header.dash-app-header a[class*="hover:bg-zinc-800"]:hover {
+    color: var(--ds-color-text) !important;
+  }
+
+  header.dash-app-header [class*="hover:border-zinc-500"]:hover {
+    border-color: rgb(58 58 58 / 0.65) !important;
+  }
+}
+
+/* —— Tracker / Tools: sticky toolbar + table card (matches DS tokens) —— */
+.dash-sticky-toolbar {
+  border-bottom: 1px solid var(--ds-color-border-muted);
+  border-radius: var(--ds-radius-lg);
+  background-color: var(--ds-color-bg-app);
+  box-shadow:
+    0 1px 0 0 rgb(0 0 0 / 0.4),
+    0 10px 28px -16px rgb(0 0 0 / 0.5);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .dash-sticky-toolbar {
+    background-color: rgb(20 20 20 / 0.94);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+}
+
+/* —— Listing tables: flush to shell edges (no inner gutter) —— */
+.table-container,
+.dash-surface.dash-table-shell {
+  overflow: hidden;
+  border-radius: var(--ds-radius-lg);
+  border: 1px solid var(--ds-color-table-outline);
+  padding: 0;
+  background-color: var(--ds-color-bg-table-shell);
+  box-shadow: 0 8px 32px -20px rgb(0 0 0 / 0.48);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .table-container,
+  .dash-surface.dash-table-shell {
+    background-color: var(--ds-ref-card);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+}
+
+/* Home dashboard: title row + table — equal column height, body fills remainder */
+.table-container.table-container--stacked {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.table-container__toolbar {
+  flex-shrink: 0;
+  padding-inline: var(--ds-space-3);
+  padding-top: var(--ds-space-3);
+  padding-bottom: var(--ds-space-2);
+}
+
+@media (min-width: 640px) {
+  .table-container__toolbar {
+    padding-inline: var(--ds-space-4);
+  }
+}
+
+.table-container__toolbar .ds-link-muted {
+  color: var(--ds-color-text-secondary);
+}
+
+.table-container__toolbar .ds-link-muted:hover {
+  color: var(--ds-color-interactive-hover);
+}
+
+.table-container.table-container--stacked > .table-container__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.table-container__scroll {
+  overflow-x: auto;
+  margin-inline: 0;
+}
+
+/* HTMX pagination under list tables */
+.ds-pagination {
+  font-size: var(--ds-text-xs);
+  line-height: 1.4;
+}
+
+.ds-pagination__meta {
+  color: var(--ds-color-text-muted);
+}
+
+.ds-pagination__link {
+  font-weight: 500;
+  color: var(--ds-color-interactive);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.ds-pagination__link:hover {
+  color: var(--ds-color-interactive-hover);
+  text-decoration: underline;
+}
+
+.ds-pagination__link:focus-visible {
+  outline: none;
+  border-radius: var(--ds-radius-sm);
+  box-shadow: 0 0 0 2px var(--ds-color-focus-ring-neutral);
+}
+
+/* In-content links (tables, toolbars) — no Tailwind blue */
+.ds-link-muted {
+  color: var(--ds-color-interactive);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.ds-link-muted:hover {
+  color: var(--ds-color-interactive-hover);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Catch stray Tailwind blue utilities (CDN) in dashboard chrome */
+main.dash-app-main [class*="text-blue-400"],
+main.dash-app-main [class*="text-blue-300"],
+main.dash-app-main [class*="text-blue-500"] {
+  color: var(--ds-color-interactive) !important;
+}
+
+@media (hover: hover) {
+  main.dash-app-main [class*="hover:text-blue-300"]:hover {
+    color: var(--ds-color-interactive-hover) !important;
+  }
+}
+
+main.dash-app-main [class*="ring-blue-"],
+main.dash-app-main [class*="shadow-blue-"] {
+  --tw-ring-color: rgb(120 120 128 / 0.35) !important;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.2) !important;
+}
+
+/* Legacy Tailwind blue primary chips → muted charcoal */
+main button[class*="bg-blue-600"],
+main a[class*="bg-blue-600"],
+main button.bg-blue-600,
+main a.bg-blue-600 {
+  background-color: var(--ds-color-primary) !important;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.2) !important;
+}
+
+main button[class*="bg-blue-600"]:hover,
+main a[class*="bg-blue-600"]:hover,
+main button.bg-blue-600:hover,
+main a.bg-blue-600:hover {
+  background-color: var(--ds-color-primary-hover) !important;
+}
+
+/* —— Page shell —— */
+.ds-page {
+  min-width: 0;
+  width: 100%;
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-sm);
+  line-height: 1.5;
+}
+
+.ds-page-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ds-space-5);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .ds-page-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--ds-space-8);
+  }
+  .ds-page-grid__main {
+    grid-column: span 8 / span 8;
+  }
+  .ds-page-grid__side {
+    grid-column: span 4 / span 4;
+  }
+}
+
+/* —— Card / panel —— */
+/* Home dashboard reference: rounded-xl + border-zinc-700/50 + bg-zinc-800/60 + ring + depth */
+.ds-card {
+  overflow: hidden;
+  border-radius: var(--ds-radius-xl);
+  border: 1px solid var(--ds-color-border-subtle);
+  background-color: var(--ds-color-bg-raised);
+  box-shadow: var(--ds-shadow-card);
+}
+
+.ds-card--table {
+  box-shadow: var(--ds-shadow-card);
+}
+
+/**
+ * Home dashboard reference chrome for Block rules / Logs / Tools / Users.
+ * Same values as Tailwind: rounded-xl border-zinc-700/50 bg-zinc-800/60 ring + shadow-lg.
+ */
+.dash-panel {
+  overflow: hidden;
+  border-radius: var(--ds-radius-xl);
+  border: 1px solid var(--ds-color-border-subtle);
+  background-color: var(--ds-color-bg-raised);
+  box-shadow: var(--ds-shadow-card);
+}
+
+/*
+ * Panels that wrap a listing table: no horizontal inset — zebra meets panel edges.
+ * Card head (.ds-card__head) keeps its own horizontal padding for title text.
+ */
+.dash-panel:has(.table-container) {
+  padding: 0 0 0.75rem;
+  border: none;
+  background-color: var(--ds-color-bg-inset);
+  box-shadow: 0 16px 48px -28px rgb(0 0 0 / 0.55);
+}
+
+/* Metric tiles — shadow-md + ring (home stats row) */
+.dash-stat-tile {
+  overflow: hidden;
+  border-radius: var(--ds-radius-xl);
+  border: 1px solid var(--ds-color-border-subtle);
+  background-color: var(--ds-color-bg-raised);
+  box-shadow: var(--ds-shadow-card-sm);
+  padding: 0.5rem 0.75rem;
+}
+
+.dash-stat-tile__label {
+  font-size: 0.625rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ds-color-text-muted);
+}
+
+.dash-stat-tile__value {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ds-color-text);
+}
+
+/* Compact metric tiles — same chrome as home secondary stats (shadow-md + ring) */
+.ds-stat-tile {
+  overflow: hidden;
+  border-radius: var(--ds-radius-xl);
+  border: 1px solid var(--ds-color-border-subtle);
+  background-color: var(--ds-color-bg-raised);
+  box-shadow: var(--ds-shadow-card-sm);
+  padding: var(--ds-space-2) var(--ds-space-3);
+}
+
+.ds-stat-tile__label {
+  font-size: 0.625rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ds-color-text-muted);
+}
+
+.ds-stat-tile__value {
+  margin-top: var(--ds-space-1);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ds-color-text);
+}
+
+.ds-card__head {
+  border-bottom: 1px solid var(--ds-color-border-muted);
+  background-color: var(--ds-color-bg-head);
+  padding: 0.3125rem var(--ds-space-2);
+}
+
+@media (min-width: 640px) {
+  .ds-card__head {
+    padding: 0.375rem var(--ds-space-3);
+  }
+}
+
+.ds-card__body {
+  padding: var(--ds-space-4);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .ds-card__body {
+    padding: var(--ds-space-5);
+  }
+}
+
+.ds-kicker {
+  margin: 0;
+  font-size: var(--ds-text-kicker-size);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ds-tracking-kicker);
+  color: var(--ds-color-text-muted);
+  line-height: 1.2;
+}
+
+.ds-subtitle {
+  margin: 0.125rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--ds-color-text-muted);
+}
+
+/* —— Inset field groups —— */
+.ds-fieldset {
+  border-radius: var(--ds-radius-lg);
+  border: 1px solid var(--ds-color-border-muted);
+  background-color: var(--ds-color-bg-inset);
+  padding: var(--ds-space-3);
+}
+
+@media (min-width: 640px) {
+  .ds-fieldset {
+    padding: var(--ds-space-4);
+  }
+}
+
+.ds-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-1);
+  width: 100%;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.ds-label {
+  font-size: var(--ds-text-xs);
+  font-weight: 500;
+  color: var(--ds-color-text-secondary);
+}
+
+/* Preflight من Tailwind يستهدف input/select بخصوصية أعلى من مجرد .class — !important + نوع العنصر يضمن العرض الكامل */
+input.ds-input,
+textarea.ds-textarea,
+select.ds-select,
+.ds-input,
+.ds-select,
+.ds-textarea {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+  min-height: 2.25rem;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-color-input-border);
+  background-color: var(--ds-color-bg-field);
+  padding: var(--ds-space-2) var(--ds-space-3);
+  font-size: var(--ds-text-sm);
+  color: var(--ds-color-text);
+  box-shadow: var(--ds-shadow-inner);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ds-input::placeholder,
+.ds-textarea::placeholder {
+  color: var(--ds-color-text-placeholder);
+}
+
+.ds-input:focus,
+.ds-select:focus,
+.ds-textarea:focus {
+  outline: none;
+  border-color: var(--ds-color-focus-border);
+  box-shadow: var(--ds-shadow-inner), 0 0 0 2px var(--ds-color-accent-ring);
+}
+
+.ds-input:read-only {
+  cursor: default;
+  opacity: 0.95;
+}
+
+/* WebKit autofill: بدون هذا تظهر خلفية زرقاء/صفراء تلصق الحقول وتلغي حدود التصميم */
+input.ds-input:-webkit-autofill,
+input.ds-input:-webkit-autofill:hover,
+input.ds-input:-webkit-autofill:focus,
+input.ds-input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--ds-color-text) !important;
+  caret-color: var(--ds-color-text);
+  -webkit-box-shadow: 0 0 0 1000px var(--ds-color-bg-field) inset !important;
+  box-shadow: var(--ds-shadow-inner), 0 0 0 1000px var(--ds-color-bg-field) inset !important;
+}
+
+.ds-input--mono {
+  font-family: ui-monospace, monospace;
+  font-size: 0.6875rem;
+}
+
+@media (min-width: 640px) {
+  .ds-input--mono {
+    font-size: var(--ds-text-xs);
+  }
+}
+
+.ds-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-4);
+  width: 100%;
+  min-width: 0;
+}
+
+.ds-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-2);
+  border-top: 1px solid var(--ds-color-border);
+  padding-top: var(--ds-space-4);
+}
+
+/* —— Check row —— */
+.ds-check-row {
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  gap: var(--ds-space-2);
+  border-radius: var(--ds-radius-lg);
+  border: 1px solid var(--ds-color-border-muted);
+  background-color: var(--ds-color-bg-inset);
+  padding: var(--ds-space-2) var(--ds-space-3);
+  font-size: var(--ds-text-xs);
+  color: var(--ds-color-text-secondary);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.ds-check-row:hover {
+  border-color: var(--ds-color-border-hover);
+}
+
+.ds-checkbox {
+  border-radius: var(--ds-radius-sm);
+  border-color: var(--ds-color-input-border);
+  background-color: var(--ds-color-bg-field);
+  color: var(--ds-color-text-secondary);
+  accent-color: var(--ds-ref-accent);
+}
+
+.ds-checkbox:focus {
+  outline: none;
+}
+
+.ds-checkbox:focus-visible {
+  box-shadow: 0 0 0 2px var(--ds-color-accent-ring);
+}
+
+/* —— Buttons —— */
+.ds-btn {
+  display: inline-flex;
+  min-height: 2.125rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ds-radius-md);
+  padding: 0 var(--ds-space-4);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.ds-btn.w-full {
+  width: 100%;
+}
+
+.ds-btn:focus {
+  outline: none;
+}
+
+.ds-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--ds-color-focus-ring-neutral);
+}
+
+.ds-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.ds-btn--primary {
+  border: 1px solid var(--ds-table-shell-border);
+  background-color: var(--ds-color-primary);
+  color: var(--ds-ref-text);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.25);
+}
+
+.ds-btn--primary:hover:not(:disabled) {
+  background-color: var(--ds-color-primary-hover);
+  border-color: rgb(58 58 58 / 0.55);
+}
+
+.ds-btn--primary:focus-visible {
+  box-shadow: 0 0 0 2px var(--ds-color-focus-ring-neutral);
+}
+
+/* شاشة تسجيل الدخول: زر فاتح على خلفية داكنة (مثل التصميم السابق) */
+.ds-btn--inverse {
+  background-color: #fafafa;
+  color: #18181b;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+}
+
+.ds-btn--inverse:hover:not(:disabled) {
+  background-color: #fff;
+}
+
+.ds-btn--inverse:focus-visible {
+  box-shadow: 0 0 0 2px rgb(250 250 250 / 0.45);
+}
+
+.ds-btn--success {
+  background-color: var(--ds-color-success);
+  color: #fff;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.15);
+}
+
+.ds-btn--success:hover:not(:disabled) {
+  background-color: var(--ds-color-success-hover);
+}
+
+.ds-btn--success:focus-visible {
+  box-shadow: 0 0 0 2px rgb(52 211 153 / 0.45);
+}
+
+.ds-btn--warning {
+  background-color: var(--ds-color-warning);
+  color: #fff;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.12);
+}
+
+.ds-btn--warning:hover:not(:disabled) {
+  background-color: var(--ds-color-warning-hover);
+}
+
+.ds-btn--warning:focus-visible {
+  box-shadow: 0 0 0 2px rgb(251 191 36 / 0.45);
+}
+
+.ds-btn--danger {
+  background-color: var(--ds-color-danger);
+  color: #fff;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.15);
+}
+
+.ds-btn--danger:hover:not(:disabled) {
+  background-color: var(--ds-color-danger-hover);
+}
+
+.ds-btn--danger:focus-visible {
+  box-shadow: 0 0 0 2px rgb(248 113 113 / 0.45);
+}
+
+.ds-btn--sm {
+  min-height: 2rem;
+  padding: 0 var(--ds-space-3);
+  font-size: var(--ds-text-xs);
+}
+
+.ds-btn--px3 {
+  padding-left: var(--ds-space-3);
+  padding-right: var(--ds-space-3);
+}
+
+a.ds-btn {
+  text-decoration: none;
+}
+
+/* Secondary actions (backup / integrations) */
+.ds-btn--violet {
+  background-color: #7c3aed;
+  color: #fff;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.15);
+}
+
+.ds-btn--violet:hover:not(:disabled) {
+  background-color: #8b5cf6;
+}
+
+.ds-btn--violet:focus-visible {
+  box-shadow: 0 0 0 2px rgb(167 139 250 / 0.45);
+}
+
+.ds-btn--amber {
+  border: 1px solid rgb(180 83 9 / 0.6);
+  background-color: rgb(180 83 9 / 0.9);
+  color: #fff;
+}
+
+.ds-btn--amber:hover:not(:disabled) {
+  background-color: rgb(217 119 6);
+}
+
+/* —— Tables —— */
+.ds-table-scroll {
+  overflow-x: auto;
+  padding: var(--ds-space-2);
+}
+
+@media (min-width: 640px) {
+  .ds-table-scroll {
+    padding: 0;
+  }
+}
+
+/* Unified listing table element (class "table" on <table>; loads after Tailwind so our row/zebra win) */
+table.table,
+.ds-table,
+.tracker-list-table,
+.dash-table-zebra {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  background: transparent;
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-xs);
+  line-height: 1.375;
+  font-weight: 400;
+  color: var(--ds-color-text-secondary);
+}
+
+.ds-table th,
+.ds-table td {
+  padding: var(--ds-space-2) var(--ds-space-3);
+}
+
+@media (min-width: 640px) {
+  .ds-table th,
+  .ds-table td {
+    padding: 0.625rem var(--ds-space-4);
+  }
+}
+
+/* Compact data tables (tracker list pages) — aligns with legacy py-1.5 px-2 rhythm */
+.ds-table--dense th,
+.ds-table--dense td {
+  padding: 0.375rem 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .ds-table--dense th,
+  .ds-table--dense td {
+    padding: 0.375rem 0.5rem;
+  }
+}
+
+/* <th> defaults to centered in some browsers / layers — keep headers aligned with cells */
+.ds-table thead th {
+  text-align: left;
+}
+
+.ds-table thead th.text-right,
+.ds-table td.text-right {
+  text-align: right;
+}
+
+/* Tables embedded in dash-panel (e.g. users): inset shell, no double frame on <table> */
+.dash-panel .table-container {
+  margin-top: var(--ds-space-2);
+  box-shadow: none;
+  background-color: var(--ds-ref-row);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .dash-panel .table-container {
+    background-color: var(--ds-ref-row);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+}
+
+.dash-panel .table-container .ds-table {
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* —— Listing table: thead / alignment (shared across tracker, tools, dashboard) —— */
+table.table thead,
+table.table thead.table-header,
+.tracker-list-table > thead,
+.dash-table-zebra thead,
+.ds-table thead {
+  background-color: var(--ds-color-bg-table-head);
+  border-bottom: none;
+  text-align: left;
+  font-size: 0.5625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ds-color-text-table-head);
+}
+
+/*
+ * Paint header on tr/th too: some engines + Tailwind layers don’t show thead bg reliably;
+ * !important wins over stray utilities on <th>.
+ */
+table.table thead tr,
+table.table thead th,
+.tracker-list-table > thead tr,
+.tracker-list-table > thead th,
+.dash-table-zebra thead tr,
+.dash-table-zebra thead th,
+.ds-table thead tr,
+.ds-table thead th {
+  background-color: var(--ds-color-bg-table-head) !important;
+  color: var(--ds-color-text-table-head) !important;
+}
+
+.tracker-list-table thead th,
+.dash-table-zebra thead th,
+table.table thead th,
+.ds-table thead th {
+  padding: 0.3125rem 0.5rem;
+  text-align: left;
+  vertical-align: bottom;
+}
+
+@media (min-width: 640px) {
+  .tracker-list-table thead th,
+  .dash-table-zebra thead th,
+  table.table thead th,
+  .ds-table thead th {
+    padding: 0.375rem 0.625rem;
+  }
+}
+
+/* Tracker nav: Block rules + logs — denser than default tools tables */
+.tracker-list-table.tracker-list-table--compact {
+  font-size: var(--ds-text-table-compact);
+  line-height: 1.33;
+}
+
+.tracker-list-table.tracker-list-table--compact tbody td,
+.tracker-list-table.tracker-list-table--compact tbody th {
+  font-size: var(--ds-text-table-compact);
+  line-height: 1.33;
+}
+
+.tracker-list-table.tracker-list-table--compact thead th {
+  font-size: var(--ds-text-table-compact-head);
+  letter-spacing: 0.045em;
+}
+
+table.table thead th.text-right,
+table.table td.text-right,
+table.table th.table-actions,
+table.table td.table-actions,
+.tracker-list-table thead th.text-right,
+.tracker-list-table td.text-right,
+.dash-table-zebra thead th.text-right,
+.dash-table-zebra td.text-right,
+.ds-table thead th.text-right,
+.ds-table td.text-right {
+  text-align: right;
+}
+
+th.table-actions,
+td.table-actions {
+  padding-inline-start: var(--ds-space-4);
+  vertical-align: middle;
+}
+
+@media (hover: hover) {
+  main .table-actions button[type="submit"] {
+    padding: 0.3125rem;
+    border-radius: var(--ds-radius-sm);
+    transition:
+      color var(--dash-duration-fast, 0.15s) ease,
+      background-color var(--dash-duration-fast, 0.15s) ease;
+  }
+
+  main .table-actions button[type="submit"]:hover {
+    background-color: rgb(255 255 255 / 0.08);
+    color: var(--ds-color-danger-hover);
+  }
+}
+
+.table-cell--muted {
+  color: var(--ds-color-text-muted);
+}
+
+.table-cell--mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.8125em;
+}
+
+/* Semantic text (tables, stats) — same tokens as buttons; no Tailwind emerald/red/amber */
+.ds-text-primary {
+  color: var(--ds-color-text);
+}
+
+.ds-text-accent {
+  color: var(--ds-ref-accent);
+  font-weight: 600;
+}
+
+.ds-text-success {
+  color: var(--ds-color-success);
+  font-weight: 600;
+}
+
+.ds-text-danger {
+  color: var(--ds-color-danger);
+  font-weight: 600;
+}
+
+.ds-text-warning {
+  color: var(--ds-color-warning);
+  font-weight: 600;
+}
+
+/*
+ * Zebra + hover on <tr>; cells stay transparent — no strokes between rows.
+ */
+table.table tbody td,
+table.table tbody th,
+.tracker-list-table tbody td,
+.tracker-list-table tbody th,
+.dash-table-zebra tbody td,
+.dash-table-zebra tbody th,
+.ds-table tbody td,
+.ds-table tbody th {
+  border-bottom: none !important;
+  transition: background-color 0.15s ease-out;
+  background-color: transparent !important;
+}
+
+table.table tbody > tr:nth-of-type(odd),
+.tracker-list-table tbody > tr:nth-of-type(odd),
+.dash-table-zebra tbody > tr:nth-of-type(odd),
+.ds-table tbody > tr:nth-of-type(odd) {
+  background-color: var(--ds-color-table-row-odd) !important;
+}
+
+table.table tbody > tr:nth-of-type(even),
+.tracker-list-table tbody > tr:nth-of-type(even),
+.dash-table-zebra tbody > tr:nth-of-type(even),
+.ds-table tbody > tr:nth-of-type(even) {
+  background-color: var(--ds-color-table-row-even) !important;
+}
+
+table.table tbody > tr:hover,
+.tracker-list-table tbody > tr:hover,
+.dash-table-zebra tbody > tr:hover,
+.ds-table tbody > tr:hover {
+  background-color: var(--ds-color-table-row-hover) !important;
+}
+
+/* —— Alerts (django messages) —— */
+.ds-alert {
+  border-radius: var(--ds-radius-md);
+  border-width: 1px;
+  border-style: solid;
+  padding: var(--ds-space-1) var(--ds-space-2);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+@media (min-width: 640px) {
+  .ds-alert {
+    font-size: var(--ds-text-xs);
+  }
+}
+
+.ds-alert--success {
+  border-color: rgb(5 150 105);
+  background-color: rgb(4 120 87);
+  color: #fff;
+}
+
+.ds-alert--error {
+  border-color: rgb(220 38 38);
+  background-color: rgb(185 28 28);
+  color: #fff;
+}
+
+.ds-alert--warning {
+  border-color: rgb(217 119 6);
+  background-color: rgb(217 119 6);
+  color: #fff;
+}
+
+.ds-alert--info {
+  border-color: rgb(82 82 91);
+  background-color: rgb(52 52 58);
+  color: rgb(228 228 231);
+}
+
+.ds-alert--default {
+  border-color: rgb(82 82 91);
+  background-color: rgb(63 63 70);
+  color: #fff;
+}
+
+/* —— Misc —— */
+.ds-pill-muted {
+  display: inline-flex;
+  min-height: 2.125rem;
+  align-items: center;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-color-border);
+  background-color: rgb(39 39 42 / 0.45);
+  padding: 0 var(--ds-space-3);
+  font-size: var(--ds-text-xs);
+  color: var(--ds-color-text-muted);
+}
+
+.ds-inset-edit {
+  margin-top: var(--ds-space-2);
+  border-radius: var(--ds-radius-lg);
+  border: 1px solid var(--ds-color-border-muted);
+  background-color: var(--ds-color-bg-inset);
+  padding: var(--ds-space-3);
+}
+
+@media (min-width: 640px) {
+  .ds-inset-edit {
+    padding: var(--ds-space-4);
+  }
+}

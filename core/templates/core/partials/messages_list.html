@@ -2,12 +2,12 @@
 <div class="messages-stack mb-3 space-y-1.5" role="status" aria-live="polite">
   {% for message in messages %}
     <div
-      class="message rounded-md border px-2.5 py-1 text-[11px] font-medium sm:text-xs
-        {% if message.level_tag == 'success' %}bg-emerald-700 text-white border-emerald-600
-        {% elif message.level_tag == 'error' %}bg-red-700 text-white border-red-600
-        {% elif message.level_tag == 'warning' %}bg-amber-600 text-white border-amber-500
-        {% elif message.level_tag == 'info' %}bg-sky-700 text-white border-sky-600
-        {% else %}bg-zinc-700 text-white border-zinc-600{% endif %}"
+      class="message ds-alert
+        {% if message.level_tag == 'success' %}ds-alert--success
+        {% elif message.level_tag == 'error' %}ds-alert--error
+        {% elif message.level_tag == 'warning' %}ds-alert--warning
+        {% elif message.level_tag == 'info' %}ds-alert--info
+        {% else %}ds-alert--default{% endif %}"
       role="alert"
       data-message-level="{{ message.level_tag }}"
     >
