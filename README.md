@@ -127,7 +127,7 @@ In **`analytics_project/settings/base.py`**:
    cd /opt/antibot && source env/bin/activate && set -a && . .env && set +a && python manage.py collectstatic --noinput
    ```
 
-2. **WhiteNoise** (middleware in **`base.py`**) serves **`/static/`** from **`STATIC_ROOT`** through **Gunicorn**, so direct access like **`http://host:8000/static/...`** works after **`collectstatic`**. For heavier traffic, you can still add an Nginx **`location /static/`** → **`STATIC_ROOT`** so the proxy serves files without hitting Django.
+2. **WhiteNoise** (middleware in **`base.py`**) serves **`/static/`** through **Gunicorn**. In production, **`WHITENOISE_USE_FINDERS`** defaults to **on** (see **`prod.py`**) so assets load from each app’s **`static/`** tree even if **`collectstatic`** was not run yet. Run **`collectstatic`** anyway for a normal deploy; set **`DJANGO_WHITENOISE_FINDERS=0`** in **`.env`** once **`staticfiles/`** is reliably populated. **`urls.py`** also registers **`django.views.static.serve`** for **`STATIC_ROOT`** as a fallback. For heavier traffic, add Nginx **`location /static/`** → **`STATIC_ROOT`**.
 
 ### 3) Media files (`/media/`)
 

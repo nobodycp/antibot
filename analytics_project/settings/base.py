@@ -1,7 +1,9 @@
 """
 Shared Django settings for analytics_project (loaded by dev.py / prod.py).
 """
+import importlib.util
 import os
+import warnings
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -29,10 +31,24 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
 ]
 
+# WhiteNoise is listed in requirements.txt; if the venv was not upgraded, skip it so WSGI still loads.
+_WHITENOISE_SPEC = importlib.util.find_spec("whitenoise")
+WHITENOISE_AVAILABLE = _WHITENOISE_SPEC is not None
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # Serves STATIC_ROOT at STATIC_URL when DEBUG=False (Gunicorn without Nginx static block).
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+]
+
+if WHITENOISE_AVAILABLE:
+    MIDDLEWARE.append('whitenoise.middleware.WhiteNoiseMiddleware')
+else:
+    warnings.warn(
+        "Package 'whitenoise' is not installed — /static/ is served only via urls.py + "
+        "STATIC_ROOT after collectstatic. Run: pip install -r requirements.txt",
+        stacklevel=1,
+    )
+
+MIDDLEWARE += [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',

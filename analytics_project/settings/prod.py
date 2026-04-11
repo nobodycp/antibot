@@ -1,8 +1,9 @@
 """Production-oriented settings. Enable with DJANGO_ENV=production.
 
-Static files: run ``collectstatic`` after deploy (``install.sh`` does this). WhiteNoise
-serves ``STATIC_ROOT`` at ``/static/`` so CSS/JS work when Gunicorn is bound directly
-to a port (e.g. :8000) without an Nginx ``location /static/`` block.
+Static: WhiteNoise serves ``/static/``. By default ``WHITENOISE_USE_FINDERS`` is **on**
+so CSS/JS load even if ``collectstatic`` was skipped or failed (files come from each
+app's ``static/`` tree). After ``collectstatic`` works reliably, set in ``.env``:
+``DJANGO_WHITENOISE_FINDERS=0`` for slightly leaner serving from ``STATIC_ROOT`` only.
 """
 import os
 
@@ -11,6 +12,11 @@ from django.core.exceptions import ImproperlyConfigured
 from .base import *
 
 DEBUG = False
+
+# Default True when WhiteNoise is installed: serve from app static/ if STATIC_ROOT is empty.
+_wf = os.environ.get("DJANGO_WHITENOISE_FINDERS", "1").strip().lower()
+if WHITENOISE_AVAILABLE:
+    WHITENOISE_USE_FINDERS = _wf not in ("0", "false", "no", "off")
 
 if not str(SECRET_KEY or "").strip():
     raise ImproperlyConfigured(

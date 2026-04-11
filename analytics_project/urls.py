@@ -21,13 +21,24 @@ if settings.DEBUG:
     # خدمة /static/ من مجلدات التطبيقات (مثل dashboard/static/...) عبر staticfiles.
     urlpatterns += staticfiles_urlpatterns()
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-elif _serve_media:
-    _media_prefix = settings.MEDIA_URL.lstrip("/")
-    if _media_prefix:
+else:
+    # Fallback إذا تعطّل WhiteNoise أو طُلب الملف قبل اكتمال الـ middleware: خدمة من STATIC_ROOT
+    _static_prefix = settings.STATIC_URL.lstrip("/")
+    if _static_prefix:
         urlpatterns += [
             re_path(
-                r"^%s(?P<path>.*)$" % re.escape(_media_prefix),
+                r"^%s(?P<path>.*)$" % re.escape(_static_prefix),
                 serve,
-                {"document_root": settings.MEDIA_ROOT},
+                {"document_root": str(settings.STATIC_ROOT)},
             ),
         ]
+    if _serve_media:
+        _media_prefix = settings.MEDIA_URL.lstrip("/")
+        if _media_prefix:
+            urlpatterns += [
+                re_path(
+                    r"^%s(?P<path>.*)$" % re.escape(_media_prefix),
+                    serve,
+                    {"document_root": settings.MEDIA_ROOT},
+                ),
+            ]

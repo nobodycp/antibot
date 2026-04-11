@@ -192,8 +192,10 @@ ENVEOF
   "${VENV_PATH}/bin/python" "${INSTALL_DIR}/manage.py" createsuperuser --noinput || true
 
   echo "[collectstatic] Collecting static files..."
-  "${VENV_PATH}/bin/python" "${INSTALL_DIR}/manage.py" collectstatic --noinput || \
-    echo "[warn] collectstatic failed — check logs and STATIC_ROOT in settings."
+  if ! "${VENV_PATH}/bin/python" "${INSTALL_DIR}/manage.py" collectstatic --noinput; then
+    echo "[error] collectstatic failed — fix errors above (WhiteNoise finders help at runtime, but STATIC_ROOT should be populated)."
+    exit 1
+  fi
 
   echo "[6/8] Creating systemd unit (Gunicorn)..."
   sudo tee /etc/systemd/system/${SERVICE_NAME}.service >/dev/null <<EOF
