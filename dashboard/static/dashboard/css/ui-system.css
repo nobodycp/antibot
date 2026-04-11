@@ -161,9 +161,161 @@
   color: var(--ds-color-text);
 }
 
+/* Sign-in: soft accent wash on canvas (tokens only; works dark + light) */
+.ds-auth-signin {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-x: clip;
+  padding-top: var(--ds-space-5);
+  padding-bottom: max(var(--ds-space-6), env(safe-area-inset-bottom, 0px));
+  padding-left: max(var(--ds-space-5), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--ds-space-5), env(safe-area-inset-right, 0px));
+}
+
+.ds-auth-signin::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--ds-color-bg-app);
+  /* Subtle corners only — avoid a bright “slab” under the icon */
+  background-image:
+    radial-gradient(ellipse 85% 55% at 50% 0%, rgb(var(--ds-ref-accent-rgb) / 0.06), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 100% 100%, rgb(var(--ds-ref-accent-rgb) / 0.04), transparent 55%);
+}
+
+html[data-theme="light"] .ds-auth-signin::before {
+  background-image:
+    radial-gradient(ellipse 85% 55% at 50% 0%, rgb(var(--ds-ref-accent-rgb) / 0.08), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 100% 100%, rgb(var(--ds-ref-accent-rgb) / 0.05), transparent 55%);
+}
+
+.ds-auth-signin__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  box-sizing: border-box;
+  width: min(100%, 22.5rem);
+  max-width: 22.5rem;
+  margin-inline: auto;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-5);
+}
+
+.ds-auth-theme-floating {
+  position: fixed;
+  top: max(var(--ds-space-4), env(safe-area-inset-top, 0px));
+  right: max(var(--ds-space-4), env(safe-area-inset-right, 0px));
+  z-index: 2;
+}
+
+.ds-auth-mark {
+  display: flex;
+  flex: 0 0 auto;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 3rem;
+  height: 3rem;
+  max-width: 3rem;
+  max-height: 3rem;
+  overflow: hidden;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-color-border-muted);
+  /* Inset surface — not the lifted card gradient (reads as a pale slab on some screens) */
+  background-color: var(--ds-color-bg-chrome-inset);
+  background-image: none;
+  box-shadow: none;
+  color: var(--ds-color-accent);
+}
+
+.ds-auth-mark svg {
+  display: block;
+  flex-shrink: 0;
+  width: 1.375rem;
+  height: 1.375rem;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Tailwind preflight can inflate inline SVGs; keep the mark icon fixed. */
+body.ds-auth-page.ds-auth-signin .ds-auth-mark svg {
+  width: 1.375rem !important;
+  height: 1.375rem !important;
+}
+
+.ds-auth-signin__head {
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
+  padding-inline: var(--ds-space-1);
+  box-sizing: border-box;
+}
+
+.ds-auth-signin__kicker {
+  margin: 0 0 var(--ds-space-2);
+  text-align: center;
+  font-size: var(--ds-text-kicker-size);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ds-color-text-kicker);
+}
+
+.ds-auth-signin__lead {
+  margin: var(--ds-space-2) 0 0;
+  max-width: 100%;
+  margin-inline: auto;
+  text-align: center;
+  font-size: var(--ds-text-page-subtitle);
+  line-height: var(--ds-leading-snug);
+  color: var(--ds-color-text-muted);
+}
+
+.ds-auth-signin__card {
+  align-self: stretch;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  border-color: var(--ds-color-border-muted);
+  box-shadow: var(--ds-shadow-card), 0 0 0 1px var(--ds-color-ring);
+}
+
+.ds-auth-signin__card .ds-card__body {
+  padding: var(--ds-space-5);
+}
+
+@media (min-width: 640px) {
+  .ds-auth-signin__card .ds-card__body {
+    padding: var(--ds-space-5) var(--ds-space-6);
+  }
+}
+
+.ds-auth-signin__foot {
+  margin: 0;
+  max-width: 100%;
+  text-align: center;
+  font-size: var(--ds-text-xs);
+  line-height: 1.45;
+  color: var(--ds-color-text-kicker);
+}
+
 .ds-auth-title {
   margin: 0;
+  padding-inline: var(--ds-space-1);
   text-align: center;
+  text-wrap: balance;
   font-size: var(--ds-text-auth-title);
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -172,8 +324,8 @@
 }
 
 .ds-auth-title__brand {
-  color: var(--ds-color-text-muted);
-  font-weight: 600;
+  color: var(--ds-color-accent);
+  font-weight: 700;
 }
 
 /* ----- App header (top bar) — tokens only ----- */

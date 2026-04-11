@@ -1,23 +1,51 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" class="dash-app-root h-full" data-theme="dark">
+<html lang="en" class="dash-app-root h-full min-w-0" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     {% include "dashboard/partials/dash_theme_head.html" %}
-    <title>Login</title>
+    <title>Sign in · Antibot</title>
     <link rel="stylesheet" href="{% static 'dashboard/css/design-system.css' %}" />
     <link rel="stylesheet" href="{% static 'dashboard/css/motion.css' %}" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{% static 'dashboard/css/design-system.css' %}" />
     <link rel="stylesheet" href="{% static 'dashboard/css/ui-system.css' %}" />
   </head>
-  <body class="ds-auth-page flex h-full items-center justify-center antialiased">
-    <div class="w-full max-w-sm space-y-6 px-6 py-8">
-      <h1 class="ds-auth-title">
-        Log in to <span class="ds-auth-title__brand">Antibot</span>
-      </h1>
+  <body class="ds-auth-page ds-auth-signin antialiased">
+    <button
+      type="button"
+      class="dash-header-toggle dash-header-theme-toggle ds-auth-theme-floating"
+      data-theme-toggle
+      aria-label="Toggle light or dark theme"
+      title="Theme"
+    >
+      <svg class="dash-theme-icon dash-theme-icon--to-light h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+      <svg class="dash-theme-icon dash-theme-icon--to-dark h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+      </svg>
+    </button>
 
-      <div class="ds-card">
+    <div class="ds-auth-signin__inner">
+      <div class="ds-auth-mark" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" focusable="false">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+      </div>
+
+      <header class="ds-auth-signin__head">
+        <p class="ds-auth-signin__kicker">Secure access</p>
+        <h1 class="ds-auth-title">
+          Sign in to <span class="ds-auth-title__brand">Antibot</span>
+        </h1>
+        <p class="ds-auth-signin__lead">
+          Dashboard for traffic rules, logs, and tools. Use your staff credentials.
+        </p>
+      </header>
+
+      <div class="ds-card ds-auth-signin__card">
         <div class="ds-card__body space-y-4">
           {% if form.errors %}
             <p class="ds-alert ds-alert--error text-center" role="alert">
@@ -25,20 +53,40 @@
             </p>
           {% endif %}
 
-          <form method="post" class="ds-form-stack">
+          <form method="post" class="ds-form-stack" autocomplete="on">
             {% csrf_token %}
             <div class="ds-field">
-              <label class="sr-only" for="login-username">Username</label>
-              <input id="login-username" type="text" name="username" placeholder="Email or Username" required class="ds-input w-full min-w-0" autocomplete="username">
+              <label class="ds-label" for="login-username">Email or username</label>
+              <input
+                id="login-username"
+                type="text"
+                name="username"
+                placeholder="you@example.com"
+                required
+                class="ds-input w-full min-w-0"
+                autocomplete="username"
+              />
             </div>
             <div class="ds-field">
-              <label class="sr-only" for="login-password">Password</label>
-              <input id="login-password" type="password" name="password" placeholder="Password" required class="ds-input w-full min-w-0" autocomplete="current-password">
+              <label class="ds-label" for="login-password">Password</label>
+              <input
+                id="login-password"
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                required
+                class="ds-input w-full min-w-0"
+                autocomplete="current-password"
+              />
             </div>
-            <button type="submit" class="ds-btn ds-btn--inverse w-full">Log in</button>
+            <button type="submit" class="ds-btn ds-btn--inverse mt-1 w-full">Sign in</button>
           </form>
         </div>
       </div>
+
+      <p class="ds-auth-signin__foot">
+        Encrypted session. Only authorized operators should access this panel.
+      </p>
     </div>
   </body>
 </html>
