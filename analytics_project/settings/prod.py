@@ -1,4 +1,9 @@
-"""Production-oriented settings. Enable with DJANGO_ENV=production."""
+"""Production-oriented settings. Enable with DJANGO_ENV=production.
+
+Static files: run ``collectstatic`` after deploy (``install.sh`` does this). WhiteNoise
+serves ``STATIC_ROOT`` at ``/static/`` so CSS/JS work when Gunicorn is bound directly
+to a port (e.g. :8000) without an Nginx ``location /static/`` block.
+"""
 import os
 
 from django.core.exceptions import ImproperlyConfigured

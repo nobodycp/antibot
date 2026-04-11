@@ -127,7 +127,7 @@ In **`analytics_project/settings/base.py`**:
    cd /opt/antibot && source env/bin/activate && set -a && . .env && set +a && python manage.py collectstatic --noinput
    ```
 
-2. Configure the reverse proxy to serve **`/static/`** as **files** from **`STATIC_ROOT`** (e.g. `alias /opt/antibot/staticfiles/;`), with a **`location /static/`** block. Do **not** rely on Gunicorn to serve collected static in production.
+2. **WhiteNoise** (middleware in **`base.py`**) serves **`/static/`** from **`STATIC_ROOT`** through **Gunicorn**, so direct access like **`http://host:8000/static/...`** works after **`collectstatic`**. For heavier traffic, you can still add an Nginx **`location /static/`** → **`STATIC_ROOT`** so the proxy serves files without hitting Django.
 
 ### 3) Media files (`/media/`)
 

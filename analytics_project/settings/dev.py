@@ -3,6 +3,9 @@ from .base import *
 
 DEBUG = True
 
+# Serve app static files via WhiteNoise without running collectstatic on every pull.
+WHITENOISE_USE_FINDERS = True
+
 # Local dev only: not used when DJANGO_ENV=production (see prod.py).
 if not str(SECRET_KEY or "").strip():
     SECRET_KEY = "django-insecure-dev-only-not-for-production"
