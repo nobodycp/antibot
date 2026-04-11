@@ -1,18 +1,18 @@
 <template x-if="sidebar">
-  <aside class="flex h-full w-56 shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-zinc-700/50 bg-zinc-800 py-3 pl-2 pr-1.5 text-xs [scrollbar-width:thin] [scrollbar-color:rgb(63_63_70)_transparent] sm:w-[15rem] sm:text-sm">
+  <aside class="dash-app-sidebar flex h-full w-56 shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-zinc-700/50 bg-zinc-800 py-3 pl-2 pr-1.5 text-xs [scrollbar-width:thin] [scrollbar-color:rgb(63_63_70)_transparent] sm:w-[15rem] sm:text-sm">
     <div class="mb-3 rounded-md border border-zinc-700/40 bg-zinc-900/35 px-2 py-1.5 shadow-inner shadow-black/10">
       <p class="text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-500 sm:text-[10px]">Navigation</p>
       <p class="mt-0.5 text-sm font-semibold tracking-tight text-zinc-50">Antibot</p>
     </div>
     <nav class="flex flex-1 flex-col gap-0.5 pb-2">
-      <a href="/dashboard/" data-nav-tier="top" hx-get="/dashboard/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group relative flex min-h-[2rem] items-center gap-2 rounded-md border-l-2 px-2.5 py-1.5 text-xs transition-all duration-150 sm:text-sm {% if request.path == '/dashboard/' %}border-green-500 bg-zinc-900/55 font-medium text-green-400 shadow-sm{% else %}border-transparent text-zinc-300 hover:bg-zinc-800/90 hover:text-zinc-100{% endif %}">
+      <a href="/dashboard/" data-nav-tier="top" hx-get="/dashboard/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group relative flex min-h-[2rem] items-center gap-2 rounded-md border-l-2 px-2.5 py-1.5 text-xs transition-all duration-200 ease-out sm:text-sm {% if request.path == '/dashboard/' %}border-green-500 bg-zinc-900/55 font-medium text-green-400 shadow-sm{% else %}border-transparent text-zinc-300 hover:bg-zinc-800/90 hover:text-zinc-100{% endif %}">
         <svg class="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 {% if request.path == '/dashboard/' %}text-green-500/90{% else %}text-zinc-500 group-hover:text-zinc-300{% endif %} transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6" />
         </svg>
         Dashboard
       </a>
 
-      <a href="#" data-nav-tier="top" class="group flex min-h-[2rem] items-center gap-2 rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-xs text-zinc-300 transition-all duration-150 hover:bg-zinc-800/90 hover:text-zinc-100 sm:text-sm">
+      <a href="#" data-nav-tier="top" class="group flex min-h-[2rem] items-center gap-2 rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-xs text-zinc-300 transition-all duration-200 ease-out hover:bg-zinc-800/90 hover:text-zinc-100 sm:text-sm">
         <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M11 17a4 4 0 100-8 4 4 0 000 8z" />
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1112.21 3H21v9.79z" />
@@ -25,7 +25,7 @@
       {% if request.user.is_superuser %}
       <!-- Block Rules -->
       <div x-data="{ open: '{% if '/tracker/blocked-ips/' in request.path or '/tracker/blocked-subnets/' in request.path or '/tracker/blocked-isps/' in request.path or '/tracker/blocked-browsers/' in request.path or '/tracker/blocked-os/' in request.path or '/tracker/allowed-countries/' in request.path or '/tracker/blocked-hostnames/' in request.path or '/tracker/dinger-ip/' in request.path %}true{% else %}false{% endif %}' == 'true' }">
-        <button type="button" @click="open = !open" class="group flex min-h-[2rem] w-full items-center justify-between rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 transition-all duration-150 hover:bg-zinc-800/90 hover:text-zinc-100 sm:text-sm">
+        <button type="button" @click="open = !open" class="group flex min-h-[2rem] w-full items-center justify-between rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 transition-all duration-200 ease-out hover:bg-zinc-800/90 hover:text-zinc-100 sm:text-sm">
           <span class="flex items-center gap-2">
             <span class="shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="nav_block_rules" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
@@ -38,56 +38,56 @@
         </button>
 
         <div x-show="open" class="mt-0.5 space-y-px rounded-md bg-zinc-900/30 py-1 pl-0.5 pr-0.5">
-          <a href="/tracker/blocked-subnets/" data-nav-tier="sub" hx-get="/tracker/blocked-subnets/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-subnets/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tracker/blocked-subnets/" data-nav-tier="sub" hx-get="/tracker/blocked-subnets/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-subnets/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tracker/blocked-subnets/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_subnet" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Subnet
           </a>
 
-          <a href="/tracker/blocked-ips/" data-nav-tier="sub" hx-get="/tracker/blocked-ips/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-ips/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tracker/blocked-ips/" data-nav-tier="sub" hx-get="/tracker/blocked-ips/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-ips/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tracker/blocked-ips/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_ip" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             IP
           </a>
 
-          <a href="/tracker/blocked-isps/" data-nav-tier="sub" hx-get="/tracker/blocked-isps/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-isps/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tracker/blocked-isps/" data-nav-tier="sub" hx-get="/tracker/blocked-isps/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-isps/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tracker/blocked-isps/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_isp" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             ISP
           </a>
 
-          <a href="/tracker/blocked-browsers/" data-nav-tier="sub" hx-get="/tracker/blocked-browsers/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-browsers/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tracker/blocked-browsers/" data-nav-tier="sub" hx-get="/tracker/blocked-browsers/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-browsers/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tracker/blocked-browsers/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_browser" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Browser
           </a>
 
-          <a href="/tracker/blocked-os/" data-nav-tier="sub" hx-get="/tracker/blocked-os/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-os/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tracker/blocked-os/" data-nav-tier="sub" hx-get="/tracker/blocked-os/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-os/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tracker/blocked-os/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_os" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             OS
           </a>
 
-          <a href="/tracker/blocked-hostnames/" data-nav-tier="sub" hx-get="/tracker/blocked-hostnames/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-hostnames/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tracker/blocked-hostnames/" data-nav-tier="sub" hx-get="/tracker/blocked-hostnames/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/blocked-hostnames/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tracker/blocked-hostnames/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_hostname" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Hostname
           </a>
 
-          <a href="/tracker/allowed-countries/" data-nav-tier="sub" hx-get="/tracker/allowed-countries/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/allowed-countries/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tracker/allowed-countries/" data-nav-tier="sub" hx-get="/tracker/allowed-countries/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/allowed-countries/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tracker/allowed-countries/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="allowed_country" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Country
           </a>
 
-          <a href="/tracker/dinger-ip/" data-nav-tier="sub" hx-get="/tracker/dinger-ip/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/dinger-ip/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tracker/dinger-ip/" data-nav-tier="sub" hx-get="/tracker/dinger-ip/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/dinger-ip/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tracker/dinger-ip/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="dinger_ip" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
@@ -99,7 +99,7 @@
 
       <!-- Logs -->
       <div x-data="{ open: '{% if '/tracker/allowed-logs/' in request.path or '/tracker/denied-logs/' in request.path or '/tracker/ip-info/' in request.path %}true{% else %}false{% endif %}' == 'true' }">
-        <button type="button" @click="open = !open" class="group flex min-h-[2rem] w-full items-center justify-between rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 transition-all duration-150 hover:bg-zinc-800/90 hover:text-zinc-100 sm:text-sm">
+        <button type="button" @click="open = !open" class="group flex min-h-[2rem] w-full items-center justify-between rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 transition-all duration-200 ease-out hover:bg-zinc-800/90 hover:text-zinc-100 sm:text-sm">
           <span class="flex items-center gap-2">
             <span class="shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="nav_logs" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
@@ -112,21 +112,21 @@
         </button>
 
         <div x-show="open" class="mt-0.5 space-y-px rounded-md bg-zinc-900/30 py-1 pl-0.5 pr-0.5">
-          <a href="/tracker/allowed-logs/" data-nav-tier="sub" hx-get="/tracker/allowed-logs/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/allowed-logs/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tracker/allowed-logs/" data-nav-tier="sub" hx-get="/tracker/allowed-logs/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/allowed-logs/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tracker/allowed-logs/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="log_allowed" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Allowed
           </a>
 
-          <a href="/tracker/denied-logs/" data-nav-tier="sub" hx-get="/tracker/denied-logs/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/denied-logs/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tracker/denied-logs/" data-nav-tier="sub" hx-get="/tracker/denied-logs/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/denied-logs/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tracker/denied-logs/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="log_denied" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Denied
           </a>
 
-          <a href="/tracker/ip-info/" data-nav-tier="sub" hx-get="/tracker/ip-info/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/ip-info/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tracker/ip-info/" data-nav-tier="sub" hx-get="/tracker/ip-info/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tracker/ip-info/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tracker/ip-info/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="ip_info" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
@@ -138,7 +138,7 @@
       <!-- Tools (superuser only — shared data, same as file upload) -->
       {% if request.user.is_superuser %}
       <div x-data="{ open: '{% if '/tools/upload-files/' in request.path or '/tools/google-safe-check/' in request.path or '/tools/redirect-check/' in request.path %}true{% else %}false{% endif %}' == 'true' }">
-        <button type="button" @click="open = !open" class="group flex min-h-[2rem] w-full items-center justify-between rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 transition-all duration-150 hover:bg-zinc-800/90 hover:text-zinc-100 sm:text-sm">
+        <button type="button" @click="open = !open" class="group flex min-h-[2rem] w-full items-center justify-between rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 transition-all duration-200 ease-out hover:bg-zinc-800/90 hover:text-zinc-100 sm:text-sm">
           <span class="flex items-center gap-2">
             <span class="shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="nav_tools" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
@@ -151,21 +151,21 @@
         </button>
 
         <div x-show="open" class="mt-0.5 space-y-px rounded-md bg-zinc-900/30 py-1 pl-0.5 pr-0.5">
-          <a href="/tools/upload-files/" data-nav-tier="sub" hx-get="/tools/upload-files/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tools/upload-files/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tools/upload-files/" data-nav-tier="sub" hx-get="/tools/upload-files/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tools/upload-files/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tools/upload-files/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_files" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Files
           </a>
 
-          <a href="/tools/google-safe-check/" data-nav-tier="sub" hx-get="/tools/google-safe-check/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tools/google-safe-check/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tools/google-safe-check/" data-nav-tier="sub" hx-get="/tools/google-safe-check/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tools/google-safe-check/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tools/google-safe-check/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_safe" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Safe Browser Checker
           </a>
 
-          <a href="/tools/redirect-check/" data-nav-tier="sub" hx-get="/tools/redirect-check/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/tools/redirect-check/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/tools/redirect-check/" data-nav-tier="sub" hx-get="/tools/redirect-check/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/tools/redirect-check/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <span class="shrink-0 {% if request.path == '/tools/redirect-check/' %}text-green-400{% else %}text-zinc-500 transition-colors group-hover:text-zinc-300{% endif %}">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_redirect" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
@@ -177,7 +177,7 @@
 
       <!-- User -->
       <div x-data="{ open: {% if '/dashboard/profile-settings/' in request.path or '/dashboard/telegram-backup-settings/' in request.path or '/dashboard/users/' in request.path %}true{% else %}false{% endif %} }">
-        <button type="button" @click="open = !open" class="group flex min-h-[2rem] w-full items-center justify-between rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 transition-all duration-150 hover:bg-zinc-800/90 hover:text-zinc-100 sm:text-sm">
+        <button type="button" @click="open = !open" class="group flex min-h-[2rem] w-full items-center justify-between rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 transition-all duration-200 ease-out hover:bg-zinc-800/90 hover:text-zinc-100 sm:text-sm">
           <span class="flex items-center gap-2">
             <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A9 9 0 1118.88 17.8M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -191,7 +191,7 @@
         </button>
 
         <div x-show="open" class="mt-0.5 space-y-px rounded-md bg-zinc-900/30 py-1 pl-0.5 pr-0.5">
-          <a href="/dashboard/profile-settings/" data-nav-tier="sub" hx-get="/dashboard/profile-settings/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/dashboard/profile-settings/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/dashboard/profile-settings/" data-nav-tier="sub" hx-get="/dashboard/profile-settings/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/dashboard/profile-settings/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
@@ -199,14 +199,14 @@
           </a>
 
           {% if request.user.is_superuser %}
-          <a href="/dashboard/telegram-backup-settings/" data-nav-tier="sub" hx-get="/dashboard/telegram-backup-settings/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/dashboard/telegram-backup-settings/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/dashboard/telegram-backup-settings/" data-nav-tier="sub" hx-get="/dashboard/telegram-backup-settings/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/dashboard/telegram-backup-settings/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
             </svg>
             Backup
           </a>
 
-          <a href="/dashboard/users/" data-nav-tier="sub" hx-get="/dashboard/users/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-150 sm:min-h-[2rem] sm:text-xs {% if request.path == '/dashboard/users/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
+          <a href="/dashboard/users/" data-nav-tier="sub" hx-get="/dashboard/users/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group flex min-h-[1.75rem] items-center gap-1.5 rounded border-l-2 py-1 pl-2.5 pr-1.5 text-[11px] transition-all duration-200 ease-out sm:min-h-[2rem] sm:text-xs {% if request.path == '/dashboard/users/' %}border-green-500 bg-zinc-800/80 font-medium text-green-400{% else %}border-transparent text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200{% endif %}">
             <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
             </svg>

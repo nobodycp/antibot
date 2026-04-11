@@ -1,8 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-zinc-900">
   <head>
     <meta charset="UTF-8" />
     <title>{% block title %}Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'dashboard/css/motion.css' %}" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
@@ -43,6 +45,22 @@
           var title = marker.getAttribute("data-page-title");
           if (title) document.title = title;
         }
+      }
+
+      function dashAnimateSwapTarget(el) {
+        if (!el || !el.classList) return;
+        var id = el.id || "";
+        var animMain = id === "main-content";
+        var animWrap = /-wrapper$/.test(id);
+        if (!animMain && !animWrap) return;
+        el.classList.remove("dash-swap-enter");
+        void el.offsetWidth;
+        el.classList.add("dash-swap-enter");
+        if (el._dashSwapTimer) clearTimeout(el._dashSwapTimer);
+        var ms = animMain ? 280 : 240;
+        el._dashSwapTimer = setTimeout(function () {
+          el.classList.remove("dash-swap-enter");
+        }, ms);
       }
 
       function syncSidebarActive() {
@@ -145,6 +163,9 @@
       document.body.addEventListener("htmx:afterSwap", function (e) {
         syncDocumentTitleFromTarget(e.detail.target);
         syncSidebarActive();
+      });
+      document.body.addEventListener("htmx:afterSettle", function (e) {
+        dashAnimateSwapTarget(e.detail.target);
       });
       window.addEventListener("popstate", function () {
         syncSidebarActive();

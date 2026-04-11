@@ -1,0 +1,202 @@
+/**
+ * Dashboard motion system — subtle, fast, premium SaaS feel.
+ * Durations: 150–220ms. Easing: modern ease-out.
+ */
+
+:root {
+  --dash-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dash-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dash-duration: 200ms;
+  --dash-duration-fast: 150ms;
+  --dash-duration-slow: 240ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dash-duration: 1ms;
+    --dash-duration-fast: 1ms;
+    --dash-duration-slow: 1ms;
+  }
+
+  .dash-swap-enter,
+  .dash-page-header,
+  .messages-stack .message {
+    animation: none !important;
+  }
+
+  main button:active,
+  main [type="submit"]:active,
+  main tbody button:active,
+  .dash-app-header button:active,
+  .dash-app-header a:active {
+    transform: none;
+  }
+}
+
+/* ----- HTMX: main shell + *-wrapper partials ----- */
+@keyframes dash-main-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dash-wrap-in {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+#main-content.dash-swap-enter {
+  animation: dash-main-in var(--dash-duration-slow) var(--dash-ease) both;
+}
+
+main [id$="-wrapper"].dash-swap-enter {
+  animation: dash-wrap-in var(--dash-duration) var(--dash-ease-out) both;
+}
+
+/* ----- Page headers (first paint + after HTMX page load) ----- */
+@keyframes dash-header-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dash-page-header {
+  animation: dash-header-in var(--dash-duration-slow) var(--dash-ease) both;
+}
+
+/* ----- Messages ----- */
+@keyframes dash-message-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.messages-stack .message {
+  animation: dash-message-in var(--dash-duration) var(--dash-ease-out) both;
+}
+
+/* ----- Sidebar ----- */
+.dash-app-sidebar nav a[data-nav-tier],
+.dash-app-sidebar nav button[type="button"] {
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: var(--dash-duration);
+  transition-timing-function: var(--dash-ease-out);
+}
+
+.dash-app-sidebar nav a[data-nav-tier] svg,
+.dash-app-sidebar nav button[type="button"] svg {
+  transition: color var(--dash-duration) var(--dash-ease-out),
+    transform var(--dash-duration) var(--dash-ease-out);
+}
+
+/* ----- App header (top bar) ----- */
+.dash-app-header button,
+.dash-app-header a {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: var(--dash-duration);
+  transition-timing-function: var(--dash-ease-out);
+}
+
+.dash-app-header button:active,
+.dash-app-header a:active {
+  transform: scale(0.98);
+}
+
+/* ----- Main: forms ----- */
+main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+main textarea,
+main select {
+  transition-property: border-color, background-color, color, box-shadow;
+  transition-duration: var(--dash-duration);
+  transition-timing-function: var(--dash-ease-out);
+}
+
+main input:focus-visible,
+main textarea:focus-visible,
+main select:focus-visible {
+  transition-duration: var(--dash-duration-fast);
+}
+
+/* ----- Main: buttons & button-like controls ----- */
+main button,
+main [type="submit"],
+main [type="button"]:not([data-no-motion]) {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: var(--dash-duration);
+  transition-timing-function: var(--dash-ease-out);
+}
+
+main button:active:not(:disabled),
+main [type="submit"]:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Icon / text links in tables (delete, etc.) */
+main tbody a,
+main tbody button {
+  transition: color var(--dash-duration) var(--dash-ease-out),
+    opacity var(--dash-duration) var(--dash-ease-out),
+    transform var(--dash-duration-fast) var(--dash-ease-out);
+}
+
+main tbody button:active {
+  transform: scale(0.95);
+}
+
+/* ----- Main: table rows ----- */
+main tbody tr {
+  transition: background-color var(--dash-duration) var(--dash-ease-out);
+}
+
+/* ----- Panel surfaces (add class .dash-surface on key containers) ----- */
+.dash-surface {
+  transition-property: border-color, box-shadow;
+  transition-duration: var(--dash-duration);
+  transition-timing-function: var(--dash-ease-out);
+}
+
+@media (hover: hover) {
+  .dash-surface:hover {
+    border-color: rgb(63 63 70 / 0.85);
+    box-shadow: 0 12px 24px -8px rgb(0 0 0 / 0.35);
+  }
+}
+
+/* ----- Page header icon frame ----- */
+.dash-header-icon-frame {
+  transition-property: border-color, background-color, color, box-shadow;
+  transition-duration: var(--dash-duration);
+  transition-timing-function: var(--dash-ease-out);
+}
+
+@media (hover: hover) {
+  .dash-header-icon-frame:hover {
+    border-color: rgb(63 63 70 / 0.75);
+    background-color: rgb(24 24 27 / 0.55);
+  }
+}
+
+/* ----- Sticky toolbar (tracker shells) ----- */
+.dash-sticky-toolbar {
+  transition: background-color var(--dash-duration) var(--dash-ease-out),
+    box-shadow var(--dash-duration) var(--dash-ease-out);
+}

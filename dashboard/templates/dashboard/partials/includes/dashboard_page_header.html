@@ -1,9 +1,9 @@
 {# Standard page header: semantic icon + title + optional subtitle + optional count (same vars as tracker_page_heading). #}
 {# Required: header_title, header_icon (key for dashboard_icon.html). Optional: header_subtitle, heading_items, heading_simple_total, page_obj. #}
-<header class="mb-5 border-b border-zinc-700/50 pb-4">
+<header class="dash-page-header mb-5 border-b border-zinc-700/50 pb-4">
   <div class="flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
     <div class="flex min-w-0 flex-1 gap-3 sm:items-start">
-      <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-700/50 bg-zinc-900/40 text-zinc-400" aria-hidden="true">
+      <span class="dash-header-icon-frame mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-700/50 bg-zinc-900/40 text-zinc-400" aria-hidden="true">
         {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key=header_icon %}
       </span>
       <div class="min-w-0 flex-1 pt-0.5 sm:pt-0">
