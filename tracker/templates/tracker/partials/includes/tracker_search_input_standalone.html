@@ -1,7 +1,10 @@
-    <input type="text" name="q" placeholder="{{ search_placeholder }}"
-       hx-get="{{ search_url }}"
-       hx-trigger="keyup changed delay:300ms"
-       hx-target="#{{ search_target_id }}"
-       hx-swap="outerHTML"
-       hx-vals='{"page":1}'
-       class="{{ search_input_class }}" />
+{# Wrapper: .ds-input forces width:100% !important — cap width here so search is not full toolbar width. #}
+<div class="w-full min-w-0 max-w-xs shrink-0 md:ml-auto">
+  <input type="text" name="q" placeholder="{{ search_placeholder }}"
+     hx-get="{{ search_url }}"
+     hx-trigger="keyup changed delay:300ms"
+     hx-target="#{{ search_target_id }}"
+     hx-swap="outerHTML"
+     hx-vals='{"page":1}'
+     class="{% firstof search_input_class "ds-input ds-input--compact" %}" />
+</div>

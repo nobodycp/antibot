@@ -1,14 +1,13 @@
 <span class="hidden" data-page-title="Users Management"></span>
 <div class="ds-page">
   {% include "dashboard/partials/includes/dashboard_page_header.html" with header_title="Users management" header_icon="users_team" header_subtitle="Manage system users and tracker API keys" header_hide_stats=True %}
+  {% include "tracker/partials/includes/tracker_flash_messages_shell_anchor.html" %}
 
   <div class="ds-page-grid">
     <div class="ds-page-grid__main min-w-0 space-y-4">
       <section class="dash-panel dash-surface">
         {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Add user" %}
         <div class="ds-card__body">
-          {% include "dashboard/partials/messages.html" %}
-
           <form method="post" action="{% url 'dashboard:add_user' %}" class="ds-form-stack">
             {% csrf_token %}
 
@@ -79,7 +78,7 @@
     {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Users list" %}
     <div class="table-container dash-surface dash-table-shell overflow-hidden rounded-xl">
       <div class="table-container__scroll">
-      <table class="table tracker-list-table ds-table min-w-[56rem] text-left text-zinc-300">
+      <table class="table tracker-list-table ds-table min-w-[56rem] text-left">
         <thead class="table-header">
           <tr>
             <th>ID</th>
@@ -203,9 +202,4 @@ function toggleEditForm(userId) {
     el.classList.add('hidden');
   }
 }
-
-setTimeout(() => {
-  const msgBox = document.getElementById("htmx-messages");
-  if (msgBox) msgBox.innerHTML = '';
-}, 3000);
 </script>

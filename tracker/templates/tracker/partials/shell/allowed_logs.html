@@ -1,17 +1,23 @@
 <span class="hidden" data-page-title="Allowed Logs"></span>
-<div class="min-w-0 w-full space-y-5 text-sm">
+<div class="ds-page-shell">
   {% include "dashboard/partials/includes/dashboard_page_header.html" with header_title="Allowed Logs" header_icon="log_allowed" heading_items=logs page_obj=page_obj %}
 
   {% include "tracker/partials/includes/tracker_shell_actions_card_open.html" %}
   <div class="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 justify-between">
     <div class="flex flex-wrap items-center gap-1.5">
-      <!-- Delete All (scoped to your logs unless superuser) -->
-      <form method="post" class="flex items-center gap-1.5"
+      <div class="relative group shrink-0">
+        <a href="#" hx-get="{% url 'tracker:allowed_logs_partial' %}" hx-target="#allowed-logs-wrapper" hx-swap="outerHTML"
+           class="ds-icon-btn" title="Refresh">
+          {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="action_refresh" icon_size_class="h-4 w-4" %}
+        </a>
+      </div>
+
+      <form method="post" class="flex shrink-0 items-center gap-1.5"
             hx-post="{% url 'tracker:allowed_logs' %}" hx-target="#allowed-logs-wrapper" hx-swap="outerHTML">
         {% csrf_token %}
         <input type="hidden" name="delete_all" value="1">
         <div class="relative group">
-          <button type="submit" class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-red-400 transition-colors hover:bg-red-950/30 hover:text-red-300">
+          <button type="submit" class="ds-icon-btn ds-icon-btn--danger">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <title>Delete All</title>
               <path stroke-linecap="round" stroke-linejoin="round"
@@ -20,25 +26,17 @@
           </button>
         </div>
       </form>
-
-      <!-- Refresh -->
-      <div class="relative group">
-        <a href="#" hx-get="{% url 'tracker:allowed_logs_partial' %}" hx-target="#allowed-logs-wrapper" hx-swap="outerHTML"
-           class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-900/80 hover:text-zinc-200" title="Refresh">
-          {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="action_refresh" icon_size_class="h-4 w-4" %}
-        </a>
-      </div>
     </div>
 
     <!-- Search -->
     {% url 'tracker:allowed_logs_partial' as allowed_logs_search_url %}
-    {% include "tracker/partials/includes/tracker_search_input_form_wrapped.html" with search_placeholder="Search logs..." search_url=allowed_logs_search_url search_target_id="allowed-logs-wrapper" search_input_class="h-8 w-full rounded-md border border-zinc-600 bg-zinc-950/80 px-2.5 py-1 text-xs text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-1 focus:ring-green-500/30 md:ml-auto md:max-w-xs" %}
+    {% include "tracker/partials/includes/tracker_search_input_form_wrapped.html" with search_placeholder="Search logs..." search_url=allowed_logs_search_url search_target_id="allowed-logs-wrapper" %}
   </div>
   {% include "tracker/partials/includes/tracker_shell_actions_card_close.html" %}
 
   {# Same markup as allowed_logs_partial: no hx-trigger=load (unreliable after HTMX main-content swap). #}
   {% include "tracker/partials/allowed_logs_partial.html" %}
+  {% include "tracker/partials/includes/tracker_flash_messages_shell_anchor.html" %}
 </div>
 
-<!-- Clear messages after swap -->
-{% include "tracker/partials/includes/tracker_clear_messages_script.html" with clear_messages_wrapper_id="allowed-logs-wrapper" %}
+{% include "tracker/partials/includes/tracker_clear_messages_script.html" with clear_messages_wrapper_id="allowed-logs-wrapper" clear_messages_target_id="htmx-messages" %}

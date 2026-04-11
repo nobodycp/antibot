@@ -1,24 +1,31 @@
 <span class="hidden" data-page-title="Allowed Countries"></span>
-<div class="min-w-0 w-full space-y-5 text-sm">
+<div class="ds-page-shell">
   {% include "dashboard/partials/includes/dashboard_page_header.html" with header_title="Allowed Countries Management" header_icon="allowed_country" heading_items=allowed_countries %}
 
   {% include "tracker/partials/includes/tracker_shell_actions_card_open.html" %}
   <div class="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 justify-between">
     <div class="flex flex-wrap items-center gap-1.5">
       <!-- Add Country -->
-      <form method="post" class="flex flex-wrap items-center gap-1.5"
+      <form method="post" class="flex min-w-0 flex-nowrap items-center gap-1.5"
             hx-post="{% url 'tracker:allowed_country' %}"
             hx-target="#allowed-country-wrapper"
             hx-swap="outerHTML">
         {% csrf_token %}
         <input type="text" name="country" placeholder="Enter Country Code (e.g. PS)"
-               class="h-8 min-h-0 min-w-[9rem] rounded-md border border-zinc-600 bg-zinc-950/80 px-2.5 py-1 text-xs uppercase leading-tight text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-1 focus:ring-green-500/30" />
+               class="ds-input ds-input--compact min-w-0 max-w-[16rem] shrink uppercase" />
         <button type="submit"
-                class="ds-btn ds-btn--primary ds-btn--sm ds-btn--px3">Add</button>
+                class="ds-btn ds-btn--primary ds-btn--sm ds-btn--px3 shrink-0">Add</button>
       </form>
 
-      <!-- Delete All -->
-      <form method="post"
+      <div class="relative group shrink-0">
+        <a href="#" hx-get="{% url 'tracker:allowed_country_table' %}"
+           hx-target="#country-table-body" hx-swap="outerHTML"
+           class="ds-icon-btn" title="Refresh">
+          {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="action_refresh" icon_size_class="h-4 w-4" %}
+        </a>
+      </div>
+
+      <form method="post" class="shrink-0"
             hx-post="{% url 'tracker:allowed_country' %}"
             hx-target="#allowed-country-wrapper"
             hx-swap="outerHTML">
@@ -27,7 +34,7 @@
         <div class="relative group">
           <button type="submit"
                   onclick="return confirm('Delete all allowed countries?')"
-                  class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-red-400 transition-colors hover:bg-red-950/30 hover:text-red-300">
+                  class="ds-icon-btn ds-icon-btn--danger">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <title>Delete All</title>
               <path stroke-linecap="round" stroke-linejoin="round"
@@ -36,25 +43,16 @@
           </button>
         </div>
       </form>
-
-      <!-- Refresh Button -->
-      <div class="relative group">
-        <a href="#" hx-get="{% url 'tracker:allowed_country_table' %}"
-           hx-target="#country-table-body" hx-swap="outerHTML"
-           class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-900/80 hover:text-zinc-200" title="Refresh">
-          {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="action_refresh" icon_size_class="h-4 w-4" %}
-        </a>
-      </div>
     </div>
 
     <!-- Search -->
     {% url 'tracker:allowed_country_partial' as allowed_country_search_url %}
-    {% include "tracker/partials/includes/tracker_search_input_standalone.html" with search_placeholder="Search Country Code..." search_url=allowed_country_search_url search_target_id="allowed-country-wrapper" search_input_class="h-8 w-full rounded-md border border-zinc-600 bg-zinc-950/80 px-2.5 py-1 text-xs text-white shadow-inner shadow-black/20 placeholder:text-zinc-600 transition-colors focus:border-green-600/50 focus:outline-none focus:ring-1 focus:ring-green-500/30 md:ml-auto md:max-w-xs" %}
+    {% include "tracker/partials/includes/tracker_search_input_standalone.html" with search_placeholder="Search Country Code..." search_url=allowed_country_search_url search_target_id="allowed-country-wrapper" %}
   </div>
   {% include "tracker/partials/includes/tracker_shell_actions_card_close.html" %}
 
-  <!-- Wrapper -->
   {% include 'tracker/partials/allowed_country_partial.html' %}
+  {% include "tracker/partials/includes/tracker_flash_messages_shell_anchor.html" %}
 </div>
 
-{% include "tracker/partials/includes/tracker_clear_messages_script.html" with clear_messages_wrapper_id="allowed-country-wrapper" %}
+{% include "tracker/partials/includes/tracker_clear_messages_script.html" with clear_messages_wrapper_id="allowed-country-wrapper" clear_messages_target_id="htmx-messages" %}

@@ -1,0 +1,20 @@
+<div id="htmx-messages" class="messages-anchor messages-anchor--tracker-flash">
+  {% include "core/partials/messages_list.html" %}
+</div>
+<script>
+(function () {
+  function scheduleClear() {
+    var el = document.getElementById('htmx-messages');
+    if (!el || !el.classList.contains('messages-anchor--tracker-flash')) return;
+    setTimeout(function () {
+      var n = document.getElementById('htmx-messages');
+      if (n) n.innerHTML = '';
+    }, 3000);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scheduleClear);
+  } else {
+    scheduleClear();
+  }
+})();
+</script>

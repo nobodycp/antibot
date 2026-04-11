@@ -1,5 +1,4 @@
 <div id="blocked-subnets-wrapper">
-{% include "core/partials/messages.html" %}
 {% include "tracker/partials/includes/tracker_list_table_open.html" %}
         <tr>
           <th class="px-2 py-1.5">CIDR</th>
@@ -11,3 +10,4 @@
 
 {% include "tracker/partials/includes/tracker_pagination_always.html" with partial_view_name="tracker:blocked_subnets_partial" wrapper_id="blocked-subnets-wrapper" %}
 </div>
+{% include "tracker/partials/includes/tracker_flash_messages_oob.html" %}

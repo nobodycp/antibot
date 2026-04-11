@@ -5,5 +5,5 @@
        hx-target="#{{ search_target_id }}"
        hx-swap="outerHTML"
        hx-vals='{"page":1}'
-       class="{{ search_input_class }}" />
+       class="{% firstof search_input_class "ds-input ds-input--compact w-full" %}" />
   </form>

@@ -1,9 +1,16 @@
 <script>
   document.addEventListener('htmx:afterSwap', function (e) {
     var target = e.detail.target;
+    /* add_block_rule & similar: swap targets #htmx-messages directly */
+    if (target && target.id === 'htmx-messages') {
+      setTimeout(function () {
+        var el = document.getElementById('htmx-messages');
+        if (el) el.innerHTML = '';
+      }, 3000);
+    }
     if (!target || target.id !== '{{ clear_messages_wrapper_id }}') return;
     setTimeout(function () {
-      var msgBox = target.querySelector('#htmx-messages');
+      var msgBox = {% if clear_messages_target_id %}document.getElementById('{{ clear_messages_target_id }}'){% else %}target.querySelector('#htmx-messages'){% endif %};
       if (msgBox) msgBox.innerHTML = '';
     }, 3000);
   });

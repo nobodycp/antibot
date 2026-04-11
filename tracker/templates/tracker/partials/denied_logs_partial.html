@@ -5,7 +5,6 @@
      hx-target="this"
      hx-swap="outerHTML">
 
-{% include "core/partials/messages.html" %}
 {% include "tracker/partials/includes/tracker_list_table_open.html" %}
       <tr>
         <th class="px-2 py-1.5">Time</th>
@@ -25,3 +24,4 @@
 
 {% include "tracker/partials/includes/tracker_pagination_if_other_pages.html" with partial_view_name="tracker:denied_logs_partial" wrapper_id="denied-logs-wrapper" %}
 </div>
+{% include "tracker/partials/includes/tracker_flash_messages_oob.html" %}

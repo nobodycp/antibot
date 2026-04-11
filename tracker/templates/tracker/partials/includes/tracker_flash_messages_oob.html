@@ -1,0 +1,5 @@
+{% if request.META.HTTP_HX_REQUEST %}
+<div id="htmx-messages" hx-swap-oob="innerHTML">
+  {% include "core/partials/messages_list.html" %}
+</div>
+{% endif %}

@@ -3,6 +3,7 @@
 This document is the **single source of truth** for building and maintaining dashboard UI. It complements the implementation in:
 
 - `dashboard/static/dashboard/css/design-system.css` — tokens + `ds-*` components  
+- `dashboard/static/dashboard/css/ui-system.css` — page shell (`.ds-page-shell`), page header layout, auth shell  
 - `dashboard/static/dashboard/css/motion.css` — transitions, HTMX enter animations, `prefers-reduced-motion`  
 - `dashboard/templates/dashboard/partials/ui/ds_card_head.html` — reusable section header  
 - `dashboard/templates/dashboard/partials/includes/dashboard_page_header.html` — page title + icon + optional stats  
@@ -26,7 +27,7 @@ Tokens live in `:root` inside `design-system.css` as `--ds-*` variables.
 | `--ds-color-border`, `--ds-color-border-muted` | Borders |
 | `--ds-color-text`, `--ds-color-text-secondary`, `--ds-color-text-muted` | Typography |
 | `--ds-color-accent`, `--ds-color-focus-border`, `--ds-color-accent-ring` | Focus / success hints |
-| `--ds-color-primary` / hover | Primary actions (blue) |
+| `--ds-color-primary` / hover | Primary filled buttons (chrome-scale surface, not blue) |
 | `--ds-color-danger`, `--ds-color-warning`, `--ds-color-success` | Semantic buttons |
 
 **Do:** use `ds-*` classes that consume these tokens.  

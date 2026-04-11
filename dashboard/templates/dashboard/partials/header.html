@@ -1,43 +1,52 @@
-<header class="dash-app-header z-10 shrink-0 border-b border-zinc-800/80 shadow-sm shadow-black/25">
+<header class="dash-app-header dash-header-bar z-10 shrink-0">
   <div class="mx-auto flex h-11 max-w-[1360px] items-stretch justify-between gap-2 px-3 sm:h-12 sm:gap-3 sm:px-4 lg:px-6">
     <div class="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
       <button type="button"
               @click="sidebar = !sidebar"
-              class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-600/80 bg-zinc-900/50 text-zinc-200 transition-all hover:border-zinc-500 hover:bg-zinc-700/80 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/50"
+              class="dash-header-toggle"
               aria-label="Toggle sidebar">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
-      <div class="hidden h-5 w-px shrink-0 bg-zinc-600/50 sm:block" aria-hidden="true"></div>
+      <div class="dash-header-rule" aria-hidden="true"></div>
       <div class="min-w-0 flex-1 py-0.5">
-        <p class="truncate text-[10px] font-medium tracking-tight text-zinc-500 sm:text-[11px]">
-          <span class="text-zinc-300">Antibot</span><span class="text-zinc-600"> / </span>Dashboard
+        <p class="dash-header-breadcrumb">
+          <span class="dash-header-breadcrumb__strong">Antibot</span><span class="dash-header-breadcrumb__sep"> / </span>Dashboard
         </p>
       </div>
-      <button type="button"
-              class="shrink-0 rounded-md border border-zinc-600/70 bg-zinc-900/40 px-2 py-1 text-[10px] font-medium text-zinc-400 transition-all hover:border-zinc-500 hover:bg-zinc-700/50 hover:text-zinc-200 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/40 sm:text-[11px]">
+      <button type="button" class="dash-header-chip">
         Quick Shortener
+      </button>
+      <button type="button"
+              class="dash-header-toggle dash-header-theme-toggle"
+              data-theme-toggle
+              aria-label="Toggle light or dark theme"
+              title="Theme">
+        <svg class="dash-theme-icon dash-theme-icon--to-light h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+        <svg class="dash-theme-icon dash-theme-icon--to-dark h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+        </svg>
       </button>
     </div>
 
-    <div class="flex shrink-0 items-center gap-0.5 rounded-lg border border-zinc-700/40 bg-zinc-900/35 py-0.5 pl-1.5 pr-0.5 shadow-inner shadow-black/20 sm:gap-1 sm:rounded-xl sm:py-1 sm:pl-2 sm:pr-1.5">
+    <div class="dash-header-user-rail">
       {% if request.user.is_authenticated %}
-        <span class="hidden max-w-[6rem] truncate px-0.5 text-[10px] font-medium text-zinc-400 md:inline lg:max-w-[8rem]" title="{{ request.user.username }}">{{ request.user.username }}</span>
-        <div class="hidden h-4 w-px bg-zinc-600/40 md:block" aria-hidden="true"></div>
+        <span class="dash-header-user-name" title="{{ request.user.username }}">{{ request.user.username }}</span>
+        <div class="dash-header-user-rule" aria-hidden="true"></div>
       {% endif %}
-      <a href="/accounts/logout/"
-         class="rounded-md px-2 py-1.5 text-[10px] font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40 sm:text-[11px] sm:py-1">
+      <a href="/accounts/logout/" class="dash-header-logout">
         Logout
       </a>
-      <a href="/dashboard/profile-settings/"
-         class="ml-0.5 flex shrink-0 rounded-full p-0.5 ring-2 ring-transparent transition hover:ring-green-500/45 focus:outline-none focus-visible:ring-green-500/60">
+      <a href="/dashboard/profile-settings/" class="dash-header-avatar-link">
         {% if request.user.is_authenticated and request.user.profile.avatar %}
           <img src="{{ request.user.profile.avatar.url }}"
                alt=""
-               class="h-7 w-7 rounded-full border border-zinc-600 object-cover shadow-sm sm:h-8 sm:w-8">
+               class="dash-header-avatar-img">
         {% else %}
-          <div class="h-7 w-7 rounded-full border border-zinc-600 bg-gradient-to-br from-green-500 to-green-700 shadow-sm sm:h-8 sm:w-8" aria-hidden="true"></div>
+          <div class="dash-header-avatar-fallback" aria-hidden="true"></div>
         {% endif %}
       </a>
     </div>

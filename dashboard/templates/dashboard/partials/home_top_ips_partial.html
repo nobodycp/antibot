@@ -3,51 +3,51 @@
   hx-trigger="every 30s"
   hx-target="this"
   hx-swap="outerHTML"
-  class="grid grid-cols-1 xl:grid-cols-3 gap-4"
+  class="grid grid-cols-1 gap-4 xl:grid-cols-3"
 >
-  <div class="overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 p-3 shadow-lg shadow-black/15 ring-1 ring-zinc-700/30">
-    <h2 class="text-sm font-semibold text-white mb-4">Top IPs</h2>
+  <div class="ds-home-widget">
+    <h2 class="ds-home-widget__title">Top IPs</h2>
     <div class="space-y-2">
       {% for row in top_ips %}
-        <div class="flex items-center justify-between text-xs border-b border-zinc-700/60 pb-2">
-          <span class="text-zinc-300 break-all">{{ row.ip_address }}</span>
-          <span class="text-white font-semibold">{{ row.count }}</span>
+        <div class="ds-home-widget__row">
+          <span class="ds-home-widget__metric-name break-all">{{ row.ip_address }}</span>
+          <span class="ds-home-widget__metric-value">{{ row.count }}</span>
         </div>
       {% empty %}
-        <div class="text-zinc-500 text-xs">No IP data found.</div>
+        <div class="ds-home-widget__empty">No IP data found.</div>
       {% endfor %}
     </div>
   </div>
 
-  <div class="overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 p-3 shadow-lg shadow-black/15 ring-1 ring-zinc-700/30">
-    <h2 class="text-sm font-semibold text-white mb-4">Top Countries</h2>
+  <div class="ds-home-widget">
+    <h2 class="ds-home-widget__title">Top Countries</h2>
     <div class="space-y-2">
       {% for row in top_countries %}
-        <div class="flex items-center justify-between text-xs border-b border-zinc-700/60 pb-2">
-          <span class="flex items-center gap-2 text-zinc-300">
+        <div class="ds-home-widget__row">
+          <span class="flex min-w-0 items-center gap-2 ds-home-widget__metric-name">
             <img src="https://flagcdn.com/16x12/{{ row.country|lower }}.png"
-                 class="w-4 h-3 rounded-sm"
+                 class="ds-table-flag h-3 w-4 shrink-0"
                  alt="{{ row.country }}">
             {{ row.country }}
           </span>
-          <span class="text-white font-semibold">{{ row.total }}</span>
+          <span class="ds-home-widget__metric-value">{{ row.total }}</span>
         </div>
       {% empty %}
-        <div class="text-zinc-500 text-xs">No country data found.</div>
+        <div class="ds-home-widget__empty">No country data found.</div>
       {% endfor %}
     </div>
   </div>
 
-  <div class="overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-800/60 p-3 shadow-lg shadow-black/15 ring-1 ring-zinc-700/30">
-    <h2 class="text-sm font-semibold text-white mb-4">Top ISPs</h2>
+  <div class="ds-home-widget">
+    <h2 class="ds-home-widget__title">Top ISPs</h2>
     <div class="space-y-2">
       {% for row in top_isps %}
-        <div class="flex items-center justify-between text-xs border-b border-zinc-700/60 pb-2 gap-3">
-          <span class="text-zinc-300 break-words">{{ row.isp }}</span>
-          <span class="text-white font-semibold">{{ row.total }}</span>
+        <div class="ds-home-widget__row gap-3">
+          <span class="ds-home-widget__metric-name break-words">{{ row.isp }}</span>
+          <span class="ds-home-widget__metric-value">{{ row.total }}</span>
         </div>
       {% empty %}
-        <div class="text-zinc-500 text-xs">No ISP data found.</div>
+        <div class="ds-home-widget__empty">No ISP data found.</div>
       {% endfor %}
     </div>
   </div>

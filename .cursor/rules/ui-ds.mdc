@@ -1,0 +1,42 @@
+# UI Design System Enforcement (STRICT)
+
+This repository uses a stabilized design system (ds-* / dash-*).
+
+All UI changes MUST follow these rules.
+
+## 1. Reuse First (Mandatory)
+Always reuse existing:
+- ds-* classes
+- dash-* classes
+- design tokens
+
+Before editing:
+- Identify the exact DS component being reused
+
+## 2. Minimal Diff Only
+- Only fix the requested issue
+- No layout restructuring
+- No redesign
+- No global visual changes
+
+## 3. No New Styling Patterns
+STRICTLY FORBIDDEN:
+- raw Tailwind zinc-* / blue-* utilities in templates
+- one-off styling
+- inline Tailwind clutter
+- parallel component systems
+
+## 4. Scope Lock
+- Only modify the requested file/component
+- Do not touch shared/global files unless explicitly requested
+
+## 5. Design System Integrity
+- Do not extend DS unless explicitly requested
+- Do not override DS behavior with ad-hoc styles
+
+## 6. Failure Conditions
+A change is invalid if:
+- it introduces new styling patterns
+- it bypasses ds-* / dash-* system
+- it modifies unrelated files
+- it changes global UI unintentionally

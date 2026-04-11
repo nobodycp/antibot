@@ -10,13 +10,13 @@
   <div class="table-container table-container--stacked dash-surface dash-table-shell min-h-0 overflow-hidden rounded-xl">
     <div class="table-container__toolbar">
       <div class="flex items-center justify-between gap-3">
-        <h2 class="text-sm font-semibold text-white">Latest Allowed Logs</h2>
+        <h2 class="text-sm font-semibold">Latest Allowed Logs</h2>
         <a href="/tracker/allowed-logs/" class="ds-link-muted shrink-0 text-xs">View all</a>
       </div>
     </div>
 
     <div class="table-container__scroll">
-      <table class="table tracker-list-table tracker-list-table--compact min-w-full border-collapse bg-transparent text-left text-zinc-300">
+      <table class="table tracker-list-table tracker-list-table--compact min-w-full border-collapse bg-transparent text-left">
         <thead class="table-header">
           <tr>
             <th class="text-left">IP</th>
@@ -28,12 +28,12 @@
         <tbody>
           {% for row in latest_allowed %}
             <tr>
-              <td class="py-2 pr-3 text-white table-cell--mono">{{ row.ip_address }}</td>
-              <td class="py-2 pr-3 text-zinc-300">
+              <td class="py-2 pr-3 table-cell--mono">{{ row.ip_address }}</td>
+              <td class="py-2 pr-3">
                 {% if row.country %}
                   <span class="flex items-center gap-2">
                     <img src="https://flagcdn.com/16x12/{{ row.country|lower }}.png"
-                         class="w-4 h-3 rounded-sm"
+                         class="ds-table-flag h-3 w-4"
                          alt="{{ row.country }}">
                     {{ row.country }}
                   </span>
@@ -41,12 +41,12 @@
                   -
                 {% endif %}
               </td>
-              <td class="py-2 pr-3 text-zinc-300">{{ row.isp|default:"-" }}</td>
+              <td class="py-2 pr-3">{{ row.isp|default:"-" }}</td>
               <td class="py-2 pr-3 table-cell--muted">{{ row.timestamp|timesince }} ago</td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="4" class="py-4 text-center text-zinc-500">No allowed logs found.</td>
+              <td colspan="4" class="ds-table-empty">No allowed logs found.</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -57,13 +57,13 @@
   <div class="table-container table-container--stacked dash-surface dash-table-shell min-h-0 overflow-hidden rounded-xl">
     <div class="table-container__toolbar">
       <div class="flex items-center justify-between gap-3">
-        <h2 class="text-sm font-semibold text-white">Latest Denied Logs</h2>
+        <h2 class="text-sm font-semibold">Latest Denied Logs</h2>
         <a href="/tracker/denied-logs/" class="ds-link-muted shrink-0 text-xs">View all</a>
       </div>
     </div>
 
     <div class="table-container__scroll">
-      <table class="table tracker-list-table tracker-list-table--compact min-w-full border-collapse bg-transparent text-left text-zinc-300">
+      <table class="table tracker-list-table tracker-list-table--compact min-w-full border-collapse bg-transparent text-left">
         <thead class="table-header">
           <tr>
             <th class="text-left">IP</th>
@@ -75,13 +75,13 @@
         <tbody>
           {% for row in latest_denied %}
             <tr>
-              <td class="py-2 pr-3 text-white table-cell--mono">{{ row.ip_address }}</td>
-              <td class="py-2 pr-3 text-red-300">{{ row.reason|default:"-" }}</td>
-              <td class="py-2 pr-3 text-zinc-300">
+              <td class="py-2 pr-3 table-cell--mono">{{ row.ip_address }}</td>
+              <td class="py-2 pr-3 ds-text-danger">{{ row.reason|default:"-" }}</td>
+              <td class="py-2 pr-3">
                 {% if row.country %}
                   <span class="flex items-center gap-2">
                     <img src="https://flagcdn.com/16x12/{{ row.country|lower }}.png"
-                         class="w-4 h-3 rounded-sm"
+                         class="ds-table-flag h-3 w-4"
                          alt="{{ row.country }}">
                     {{ row.country }}
                   </span>
@@ -93,7 +93,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="4" class="py-4 text-center text-zinc-500">No denied logs found.</td>
+              <td colspan="4" class="ds-table-empty">No denied logs found.</td>
             </tr>
           {% endfor %}
         </tbody>

@@ -1,9 +1,9 @@
 <span class="hidden" data-page-title="Dashboard"></span>
-<div class="min-w-0 w-full space-y-5 text-sm">
-  <header class="dash-page-header mb-4 border-b border-zinc-700/50 pb-3">
+<div class="ds-page-shell">
+  <header class="dash-page-header">
     <div class="flex flex-col gap-1">
-      <h1 class="text-base font-semibold tracking-tight text-white sm:text-lg">Dashboard</h1>
-      <p class="max-w-3xl text-xs leading-relaxed text-zinc-500 sm:text-[13px]">Overview of visitors, denied logs, top activity, and alerts.</p>
+      <h1 class="ds-page-header__title ds-page-header__title--large">Dashboard</h1>
+      <p class="ds-page-header__subtitle max-w-3xl sm:text-[13px]">Overview of visitors, denied logs, top activity, and alerts.</p>
     </div>
   </header>
 
@@ -14,7 +14,7 @@
     hx-target="this"
     hx-swap="outerHTML"
   >
-    <div class="ds-card dash-surface animate-pulse px-4 py-3 text-xs text-zinc-500">
+    <div class="ds-card dash-surface animate-pulse px-4 py-3 ds-loading-placeholder">
       Loading stats…
     </div>
   </div>
@@ -26,7 +26,7 @@
     hx-target="this"
     hx-swap="outerHTML"
   >
-    <div class="ds-card dash-surface animate-pulse px-4 py-3 text-xs text-zinc-500">
+    <div class="ds-card dash-surface animate-pulse px-4 py-3 text-xs ds-home-widget__empty">
       Loading secondary stats…
     </div>
   </div>
@@ -38,7 +38,7 @@
     hx-target="this"
     hx-swap="outerHTML"
   >
-    <div class="ds-card dash-surface animate-pulse px-4 py-3 text-xs text-zinc-500">
+    <div class="ds-card dash-surface animate-pulse px-4 py-3 ds-loading-placeholder">
       Loading latest logs…
     </div>
   </div>
@@ -50,7 +50,7 @@
     hx-target="this"
     hx-swap="outerHTML"
   >
-    <div class="ds-card dash-surface animate-pulse px-4 py-3 text-xs text-zinc-500">
+    <div class="ds-card dash-surface animate-pulse px-4 py-3 ds-loading-placeholder">
       Loading alerts…
     </div>
   </div>
@@ -62,7 +62,7 @@
     hx-target="this"
     hx-swap="outerHTML"
   >
-    <div class="ds-card dash-surface animate-pulse px-4 py-3 text-xs text-zinc-500">
+    <div class="ds-card dash-surface animate-pulse px-4 py-3 ds-loading-placeholder">
       Loading top IPs…
     </div>
   </div>
