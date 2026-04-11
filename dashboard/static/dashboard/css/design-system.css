@@ -35,6 +35,8 @@
   /* Same paint as .ds-card__head — one “strip” language app-wide */
   --ds-color-bg-table-head: var(--ds-ref-card-head);
   --ds-color-bg-panel-table: var(--ds-ref-card);
+  /* Card content well — lighter charcoal (ref-bg → +2 steps toward gray) */
+  --ds-color-bg-card-body: var(--ds-ref-row);
 
   /* Borders — #3A3A3A at low opacity (almost borderless) */
   --ds-color-border: rgb(58 58 58 / 0.5);
@@ -624,6 +626,7 @@ main a.bg-blue-600:hover {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
+  background-color: var(--ds-color-bg-card-body);
 }
 
 @media (min-width: 640px) {
