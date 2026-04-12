@@ -6,7 +6,10 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path, re_path
 from django.views.static import serve
 
+from core.health import health
+
 urlpatterns = [
+    path("health/", health, name="health"),
     path('dashboard/', include('dashboard.urls')),  # بدون namespace
     path('tracker/', include('tracker.urls', namespace='tracker')),  # كل مسارات التتبع والحظر
     path('tools/', include('tools.urls', namespace='tools')),        # الأدوات مثل الفاحص ورفع الملفات

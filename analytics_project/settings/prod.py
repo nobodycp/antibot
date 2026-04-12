@@ -30,3 +30,18 @@ if _raw_hosts.strip():
 else:
     # Safe default: loopback only. Set ALLOWED_HOSTS to your real hostnames/IPs in production.
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+
+# --- HTTPS behind a trusted reverse proxy (Nginx, Caddy, etc.) ---
+# Never set USE_X_FORWARDED_PROTO if clients can reach Gunicorn directly (spoofed header).
+_use_xfp = os.environ.get("USE_X_FORWARDED_PROTO", "").strip().lower()
+if _use_xfp in ("1", "true", "yes", "on"):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+_csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "").strip()
+if _csrf_origins:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins.split(",") if o.strip()]
+
+_secure_cookies = os.environ.get("DJANGO_SECURE_COOKIES", "").strip().lower()
+if _secure_cookies in ("1", "true", "yes", "on"):
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True

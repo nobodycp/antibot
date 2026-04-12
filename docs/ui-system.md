@@ -11,6 +11,16 @@ This document is the **single source of truth** for building and maintaining das
 
 ---
 
+## CSS load order: Tailwind CDN and `design-system.css`
+
+Dashboard pages (see `dashboard/templates/dashboard/base.html` and the login template) load **Tailwind from the CDN** first, then **`design-system.css`**, and in some flows **`design-system.css` appears again** after the Tailwind script.
+
+**Why:** Tailwind’s preflight (base reset) runs first. Our **`ds-*`** components and tokens in `design-system.css` are authored to sit **on top of** that baseline. Loading `design-system.css` **again** after the CDN ensures utility classes and any CDN-injected ordering quirks do not leave token-backed surfaces half-styled; it is intentional for consistency, at the cost of an extra network request and duplicate parse until a **local Tailwind build** merges everything into one file.
+
+**Future improvement (optional):** add `tailwind.config.js`, build CSS with `npm run build`, ship a single compiled bundle, and remove the duplicate link — see README / deployment notes when you drop the CDN for stricter CSP or offline installs.
+
+---
+
 ## 1. Design tokens
 
 Tokens live in `:root` inside `design-system.css` as `--ds-*` variables.

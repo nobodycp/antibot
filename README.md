@@ -129,6 +129,17 @@ In **`analytics_project/settings/base.py`**:
 
 2. **WhiteNoise** (middleware in **`base.py`**) serves **`/static/`** through **Gunicorn**. In production, **`WHITENOISE_USE_FINDERS`** defaults to **on** (see **`prod.py`**) so assets load from each app’s **`static/`** tree even if **`collectstatic`** was not run yet. Run **`collectstatic`** anyway for a normal deploy; set **`DJANGO_WHITENOISE_FINDERS=0`** in **`.env`** once **`staticfiles/`** is reliably populated. **`urls.py`** also registers **`django.views.static.serve`** for **`STATIC_ROOT`** as a fallback. For heavier traffic, add Nginx **`location /static/`** → **`STATIC_ROOT`**.
 
+**Project `static/` directory (repo root):** holds shared assets collected via **`STATICFILES_DIRS`** (e.g. SVG icons under **`static/icons/`** for OS/browser). App-specific UI lives under **`dashboard/static/`**, **`tools/static/`**, etc. See **[`static/README.md`](static/README.md)**.
+
+**Deploy checklist (after every `git pull` on the server):**
+
+1. `source env/bin/activate` (or your venv path)
+2. `pip install -r requirements.txt`
+3. `python manage.py migrate` (when migrations ship)
+4. `python manage.py collectstatic --noinput`
+5. Restart Gunicorn (e.g. `sudo systemctl restart <service>`)
+6. Smoke: open **`/accounts/login/`** and confirm CSS loads; optional **`GET /health/`** (JSON: **`ok`**, **`database`**, **`cache`**, **`static_design_system_css`** should be true when Redis and DB are up)
+
 ### 3) Media files (`/media/`)
 
 - **`MEDIA_URL`** is **`/media/`**; **`MEDIA_ROOT`** is **`media/`** under the project root (e.g. **`/opt/antibot/media`**).
@@ -140,20 +151,19 @@ In **`analytics_project/settings/base.py`**:
 
 ### 4) Proxy headers, HTTPS awareness, and Django settings
 
-**Currently in code:**
+**Read from `.env` in production (`prod.py`):**
 
-- **`analytics_project/settings/prod.py`** reads **`ALLOWED_HOSTS`** from the **`ALLOWED_HOSTS`** environment variable (comma-separated). **`install.sh`** sets loopback-only hosts until you edit **`/opt/antibot/.env`** to include your public **hostname(s) and/or IP(s)**.
+- **`ALLOWED_HOSTS`** — comma-separated hostnames/IPs (required for public access).
+- **`USE_X_FORWARDED_PROTO=1`** — sets **`SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')`** so Django treats requests as HTTPS when the proxy sends that header. **Only** if Gunicorn is **not** reachable directly from untrusted clients (otherwise a client could spoof the header).
+- **`CSRF_TRUSTED_ORIGINS`** — comma-separated full origins, e.g. **`https://example.com,https://www.example.com`** (needed for HTTPS POST/CSRF in Django 4+).
+- **`DJANGO_SECURE_COOKIES=1`** — sets **`SESSION_COOKIE_SECURE`** and **`CSRF_COOKIE_SECURE`** (use when the site is HTTPS-only).
 
-**Not currently wired from `.env` in this project** (document here so you know what to add if needed):
+**Proxy configuration reminders:**
 
 | Concern | What to do |
 |--------|------------|
-| **`Host`** header | Nginx should pass **`proxy_set_header Host $host;`** (or your canonical host) so Django’s host validation matches **`ALLOWED_HOSTS`**. |
-| **`X-Forwarded-Proto`** | Set **`proxy_set_header X-Forwarded-Proto $scheme;`** so the upstream knows the client used HTTPS. |
-| Django **`request.is_secure()`** / redirects | Django only treats the request as HTTPS behind a proxy if **`SECURE_PROXY_SSL_HEADER`** is set (e.g. **`('HTTP_X_FORWARDED_PROTO', 'https')`**). **This is not set in the repo today.** If you need secure cookies or correct “https” URLs from Django’s point of view, add that in **`prod.py`** (or **`base.py`** under production) after you trust the proxy — **never** set it if clients can reach Gunicorn directly with a spoofed header. |
-| **CSRF** (Django 4.x + HTTPS) | Logins and forms may require **`CSRF_TRUSTED_ORIGINS`** (e.g. **`https://example.com`**). **Not read from `.env` in this repo yet.** If you see CSRF failures behind HTTPS, add the appropriate list in settings (often mirroring your public URLs). |
-
-Until those are added in settings, many deployments still work for basic pages if the proxy and **`ALLOWED_HOSTS`** are correct; add **`SECURE_PROXY_SSL_HEADER`** and **`CSRF_TRUSTED_ORIGINS`** when you enable stricter cookie/CSRF behavior or see related errors.
+| **`Host`** header | Nginx should pass **`proxy_set_header Host $host;`** so Django’s host validation matches **`ALLOWED_HOSTS`**. |
+| **`X-Forwarded-Proto`** | Set **`proxy_set_header X-Forwarded-Proto $scheme;`** on the reverse proxy when terminating TLS. |
 
 ### 5) Minimal Nginx example (operator guidance only)
 

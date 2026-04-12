@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 
 from core.resilient_cache import (
     safe_cache_add,
@@ -43,3 +43,50 @@ class ResilientCacheTests(SimpleTestCase):
     def test_safe_incr_returns_none_on_backend_error(self, mock_cache):
         mock_cache.incr.side_effect = ConnectionError("down")
         self.assertIsNone(safe_cache_incr("k"))
+
+
+_HEALTH_CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "health-tests",
+    }
+}
+
+
+@override_settings(CACHES=_HEALTH_CACHES)
+class HealthEndpointTests(TestCase):
+    def test_health_ok_json(self):
+        r = self.client.get("/health/")
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertTrue(data.get("ok"))
+        self.assertTrue(data.get("database"))
+        self.assertTrue(data.get("cache"))
+        self.assertTrue(data.get("static_design_system_css"))
+
+    def test_health_get_only(self):
+        r = self.client.post("/health/")
+        self.assertEqual(r.status_code, 405)
+
+
+def _http_response_body(response):
+    """WhiteNoise serves some static files as streaming responses without `.content`."""
+    if getattr(response, "streaming", False):
+        return b"".join(response.streaming_content)
+    return response.content
+
+
+class StaticAssetSmokeTests(TestCase):
+    """Ensures primary dashboard CSS is served at STATIC_URL (dev staticfiles finder)."""
+
+    def test_design_system_css_url_returns_200(self):
+        r = self.client.get("/static/dashboard/css/design-system.css")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(b"--ds-", _http_response_body(r))
+
+    @override_settings(DEBUG=False)
+    def test_design_system_css_url_returns_200_when_debug_false(self):
+        """Production-style URLConf (no staticfiles_urlpatterns); WhiteNoise + finders serve assets."""
+        r = self.client.get("/static/dashboard/css/design-system.css")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(b"--ds-", _http_response_body(r))
