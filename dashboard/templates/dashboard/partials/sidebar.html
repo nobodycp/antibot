@@ -135,9 +135,9 @@
         </div>
       </div>
 
-      <!-- Tools (superuser only — shared data, same as file upload) -->
-      {% if request.user.is_superuser %}
-      <div x-data="{ open: '{% if '/tools/upload-files/' in request.path or '/tools/google-safe-check/' in request.path or '/tools/redirect-check/' in request.path %}true{% else %}false{% endif %}' == 'true' }">
+      <!-- Tools: RSA decrypt for all staff; other tools superuser-only -->
+      {% if request.user.is_staff %}
+      <div x-data="{ open: '{% if '/tools/upload-files/' in request.path or '/tools/google-safe-check/' in request.path or '/tools/redirect-check/' in request.path or '/tools/rsa-decrypt/' in request.path %}true{% else %}false{% endif %}' == 'true' }">
         <button type="button" @click="open = !open" class="dash-nav-section-btn">
           <span class="flex items-center gap-2">
             <span class="dash-nav-ico shrink-0">
@@ -151,6 +151,7 @@
         </button>
 
         <div x-show="open" class="dash-nav-nested space-y-px">
+          {% if request.user.is_superuser %}
           <a href="/tools/upload-files/" data-nav-tier="sub" hx-get="/tools/upload-files/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tools/upload-files/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_files" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
@@ -170,6 +171,14 @@
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_redirect" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Redirect Check
+          </a>
+          {% endif %}
+
+          <a href="/tools/rsa-decrypt/" data-nav-tier="sub" hx-get="/tools/rsa-decrypt/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tools/rsa-decrypt/' %}is-active{% endif %}">
+            <span class="dash-nav-ico shrink-0">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_rsa" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
+            RSA decrypt
           </a>
         </div>
       </div>

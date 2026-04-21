@@ -1,0 +1,153 @@
+<span class="hidden" data-page-title="RSA decrypt"></span>
+<div id="rsa-decrypt-root" class="ds-page-shell">
+  {% include "dashboard/partials/includes/dashboard_page_header.html" with header_title="RSA decrypt" header_icon="tool_rsa" header_subtitle="Private key stays in this browser (localStorage) until you clear or replace it — not in Django session or app database" header_hide_stats=True %}
+  {% include "tracker/partials/includes/tracker_flash_messages_shell_anchor.html" %}
+
+  <div class="ds-card dash-surface mb-4">
+    {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Private key" subtitle="PEM file (.pem). Read only in your browser; the server never stores it." show_subtitle=True %}
+    <div class="ds-card__body space-y-3">
+      <div id="rsa-key-panel-empty" class="space-y-2">
+        <p class="text-sm text-[var(--ds-color-text-secondary)]">No key loaded yet. Choose a PEM file — it will be kept in this browser only.</p>
+        <label class="block min-w-0">
+          <span class="mb-1 block text-xs font-medium text-[var(--ds-color-text-muted)]">Private key (PEM)</span>
+          <input type="file" id="rsa-key-file" accept=".pem,.key,text/plain" class="ds-input ds-input--compact max-w-full text-sm" />
+        </label>
+      </div>
+      <div id="rsa-key-panel-loaded" class="space-y-2 hidden">
+        <p class="text-sm text-[var(--ds-color-text-secondary)]">A private key is loaded in this browser (localStorage). It stays until you replace the file or clear it.</p>
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="block min-w-0">
+            <span class="mb-1 block text-xs font-medium text-[var(--ds-color-text-muted)]">Replace key</span>
+            <input type="file" id="rsa-key-file-replace" accept=".pem,.key,text/plain" class="ds-input ds-input--compact max-w-full text-sm" />
+          </label>
+          <button type="button" id="rsa-clear-key" class="ds-btn ds-btn--danger ds-btn--sm ds-btn--px3">Clear key</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ds-card dash-surface mb-4">
+    {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Ciphertext" subtitle="RSA-encrypted block as Base64 (or continuous hex). Tries OAEP SHA-256, OAEP SHA-1, then PKCS#1 v1.5." show_subtitle=True %}
+    <div class="ds-card__body space-y-2">
+      <form method="post" id="rsa-decrypt-form" class="space-y-2">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="decrypt" />
+        <textarea name="private_key_pem" id="rsa-hidden-pem" class="hidden" autocomplete="off" aria-hidden="true"></textarea>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-[var(--ds-color-text-muted)]">Ciphertext</span>
+          <textarea name="ciphertext" id="rsa-ciphertext" rows="8" disabled
+                    class="ds-input font-mono text-xs min-h-[8rem] w-full resize-y" placeholder="Load a key first, then paste Base64 or hex…"></textarea>
+        </label>
+        <button type="submit" id="rsa-decrypt-btn" class="ds-btn ds-btn--primary ds-btn--sm ds-btn--px3" disabled>Decrypt</button>
+      </form>
+    </div>
+  </div>
+
+  {% if decrypted_plaintext is not None %}
+  <div class="ds-card dash-surface border-[var(--ds-color-success)]/30">
+    {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Result" subtitle="Shown on this response only — not stored in the database" show_subtitle=True %}
+    <div class="ds-card__body">
+      <pre class="ds-input font-mono text-xs whitespace-pre-wrap break-all max-h-96 overflow-auto m-0 border-0 bg-[var(--ds-color-bg-inset)] p-3 rounded-lg">{{ decrypted_plaintext }}</pre>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+(function () {
+  var STORAGE_KEY = "antibot.tools.rsaDecrypt.privateKeyPem";
+  var root = document.getElementById("rsa-decrypt-root");
+  if (!root) return;
+
+  var emptyPanel = document.getElementById("rsa-key-panel-empty");
+  var loadedPanel = document.getElementById("rsa-key-panel-loaded");
+  var fileInput = document.getElementById("rsa-key-file");
+  var fileReplace = document.getElementById("rsa-key-file-replace");
+  var clearBtn = document.getElementById("rsa-clear-key");
+  var form = document.getElementById("rsa-decrypt-form");
+  var hiddenPem = document.getElementById("rsa-hidden-pem");
+  var ciphertext = document.getElementById("rsa-ciphertext");
+  var decryptBtn = document.getElementById("rsa-decrypt-btn");
+
+  function show(el, on) {
+    el.classList.toggle("hidden", !on);
+  }
+
+  function refreshKeyUi() {
+    var pem = null;
+    try {
+      pem = localStorage.getItem(STORAGE_KEY);
+    } catch (e) {
+      pem = null;
+    }
+    var has = !!(pem && pem.trim());
+    show(emptyPanel, !has);
+    show(loadedPanel, has);
+    ciphertext.disabled = !has;
+    decryptBtn.disabled = !has;
+    ciphertext.placeholder = has
+      ? "Paste Base64 or hex…"
+      : "Load a key first, then paste Base64 or hex…";
+  }
+
+  function savePemFromFile(file) {
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var text = (reader.result || "").toString();
+      if (text.indexOf("PRIVATE KEY") === -1 || text.indexOf("BEGIN") === -1) {
+        alert("This file does not look like a PEM private key (expected BEGIN … PRIVATE KEY).");
+        return;
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY, text.trim() + "\n");
+      } catch (e) {
+        alert("Could not save key in browser storage (quota or private mode).");
+        return;
+      }
+      refreshKeyUi();
+    };
+    reader.readAsText(file);
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener("change", function () {
+      var f = this.files && this.files[0];
+      savePemFromFile(f);
+      this.value = "";
+    });
+  }
+  if (fileReplace) {
+    fileReplace.addEventListener("change", function () {
+      var f = this.files && this.files[0];
+      savePemFromFile(f);
+      this.value = "";
+    });
+  }
+  if (clearBtn) {
+    clearBtn.addEventListener("click", function () {
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (e) {}
+      refreshKeyUi();
+    });
+  }
+  if (form && hiddenPem) {
+    form.addEventListener("submit", function (e) {
+      var pem = "";
+      try {
+        pem = localStorage.getItem(STORAGE_KEY) || "";
+      } catch (err) {}
+      pem = pem.trim();
+      if (!pem) {
+        e.preventDefault();
+        alert("Load a private key PEM file first.");
+        return;
+      }
+      hiddenPem.value = pem;
+    });
+  }
+
+  refreshKeyUi();
+})();
+</script>
