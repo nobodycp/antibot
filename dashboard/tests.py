@@ -16,6 +16,12 @@ class DashboardRoleAccessTests(TestCase):
         super().setUp()
         self.client = Client()
         self.regular = User.objects.create_user(username="dash_user", password="pw-d-123")
+        self.staff_only = User.objects.create_user(
+            username="dash_staff",
+            password="pw-st-123",
+            is_staff=True,
+            is_superuser=False,
+        )
         self.superuser = User.objects.create_user(
             username="dash_admin",
             password="pw-s-123",
@@ -27,11 +33,19 @@ class DashboardRoleAccessTests(TestCase):
         self.client.force_login(self.regular)
         r = self.client.get(reverse("dashboard:home"))
         self.assertEqual(r.status_code, 200)
+        self.assertNotContains(r, "dash-home-rsa-root")
+
+    def test_staff_dashboard_home_includes_rsa_widget(self):
+        self.client.force_login(self.staff_only)
+        r = self.client.get(reverse("dashboard:home"))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "dash-home-rsa-root")
 
     def test_superuser_dashboard_home_loads(self):
         self.client.force_login(self.superuser)
         r = self.client.get(reverse("dashboard:home"))
         self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "dash-home-rsa-root")
 
     def test_regular_user_profile_settings_loads(self):
         self.client.force_login(self.regular)

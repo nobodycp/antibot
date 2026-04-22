@@ -11,6 +11,7 @@ from ..helpers.dashboard_views_helper import (
     top_countries_queryset,
     top_isps_queryset,
 )
+from ..models import UserStoredRSAPrivateKey
 from tracker.helpers.ownership import (
     ip_log_queryset,
     rejected_logs_queryset,
@@ -51,6 +52,10 @@ def dashboard_home(request):
         user=user,
     )
 
+    has_rsa_stored_key = (
+        user.is_staff and UserStoredRSAPrivateKey.objects.filter(user=user).exists()
+    )
+
     context = {
         'total_visitors': total_visitors,
         'total_denied': total_denied,
@@ -67,6 +72,7 @@ def dashboard_home(request):
         'top_isps': top_isps,
         'alerts': alerts,
         'last_update': now,
+        'has_rsa_stored_key': has_rsa_stored_key,
     }
     return render_page_or_shell(
         request,

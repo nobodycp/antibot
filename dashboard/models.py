@@ -44,6 +44,25 @@ class UserProfile(models.Model):
         return self.user.username
 
 
+class UserStoredRSAPrivateKey(models.Model):
+    """One PEM private key per user for Tools → RSA decrypt (encrypted at rest)."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="stored_rsa_private_key_row",
+    )
+    fernet_ciphertext = models.TextField(help_text="Fernet-encrypted PEM text")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User stored RSA private key"
+        verbose_name_plural = "User stored RSA private keys"
+
+    def __str__(self):
+        return f"RSA PEM store for user {self.user_id}"
+
+
 class UserAPIKey(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,

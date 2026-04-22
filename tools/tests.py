@@ -6,7 +6,11 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+
+from dashboard.models import UserStoredRSAPrivateKey
+from dashboard.rsa_key_crypto import decrypt_user_rsa_pem, encrypt_user_rsa_pem
 
 User = get_user_model()
 _LOGIN_PREFIX = "/accounts/login"
@@ -81,6 +85,12 @@ class RsaDecryptToolTests(TestCase):
             )
         ).decode("ascii")
 
+    def _store_account_key(self):
+        UserStoredRSAPrivateKey.objects.update_or_create(
+            user=self.staff,
+            defaults={"fernet_ciphertext": encrypt_user_rsa_pem(self.staff.pk, self.pem)},
+        )
+
     def test_staff_can_open_rsa_decrypt(self):
         self.client.force_login(self.staff)
         r = self.client.get(reverse("tools:rsa_decrypt"))
@@ -92,23 +102,44 @@ class RsaDecryptToolTests(TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertTrue(r.url.startswith(_LOGIN_PREFIX))
 
-    def test_decrypt_with_pem_in_post_body(self):
+    def test_decrypt_with_account_stored_key(self):
         self.client.force_login(self.staff)
+        self._store_account_key()
         r = self.client.post(
             reverse("tools:rsa_decrypt"),
-            {
-                "action": "decrypt",
-                "private_key_pem": self.pem,
-                "ciphertext": self.ciphertext_b64,
-            },
+            {"action": "decrypt", "ciphertext": self.ciphertext_b64},
         )
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "secret-message")
 
-    def test_decrypt_without_pem_redirects_with_message(self):
+    def test_decrypt_without_stored_key_redirects(self):
         self.client.force_login(self.staff)
         r = self.client.post(
             reverse("tools:rsa_decrypt"),
             {"action": "decrypt", "ciphertext": self.ciphertext_b64},
         )
         self.assertEqual(r.status_code, 302)
+
+    def test_decrypt_htmx_returns_fragment_only(self):
+        self.client.force_login(self.staff)
+        self._store_account_key()
+        r = self.client.post(
+            reverse("tools:rsa_decrypt"),
+            {"action": "decrypt", "ciphertext": self.ciphertext_b64},
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "secret-message")
+        self.assertNotContains(r, "rsa-decrypt-root")
+
+    def test_upload_key_saves_encrypted_row(self):
+        self.client.force_login(self.staff)
+        up = SimpleUploadedFile("k.pem", self.pem.encode("utf-8"), content_type="application/x-pem-file")
+        r = self.client.post(
+            reverse("tools:rsa_decrypt"),
+            {"action": "upload_key", "private_key": up},
+        )
+        self.assertEqual(r.status_code, 302)
+        row = UserStoredRSAPrivateKey.objects.get(user=self.staff)
+        self.assertTrue(row.fernet_ciphertext)
+        self.assertEqual(self.pem.strip(), decrypt_user_rsa_pem(self.staff.pk, row.fernet_ciphertext).strip())

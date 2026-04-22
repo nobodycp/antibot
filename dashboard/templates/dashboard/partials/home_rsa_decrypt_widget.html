@@ -1,0 +1,52 @@
+{# Staff-only RSA snippet: key comes from account DB (same as Tools → RSA decrypt). #}
+{% if request.user.is_staff %}
+<div class="grid grid-cols-1 gap-4 min-h-0 xl:grid-cols-2 xl:items-stretch mt-4" id="dash-home-rsa-root">
+  <section class="ds-card dash-surface flex min-h-0 flex-col overflow-hidden rounded-xl">
+    <div class="ds-card__head">
+      <h2 class="ds-kicker">Ciphertext</h2>
+      <p class="ds-subtitle">RSA block as Base64 or hex. Uses the private key <strong class="font-semibold text-[var(--ds-color-text)]">saved on your account</strong> from
+        <a href="/tools/rsa-decrypt/" class="ds-link-muted underline-offset-2 hover:underline" hx-get="/tools/rsa-decrypt/" hx-target="#main-content" hx-push-url="true">Tools → RSA decrypt</a>
+        (upload or replace there — not in the browser).</p>
+    </div>
+    <div class="ds-card__body flex min-h-0 flex-1 flex-col gap-3">
+      {% if not has_rsa_stored_key %}
+      <div class="rounded-lg border border-[var(--ds-color-border-muted)] bg-[var(--ds-color-bg-inset)] px-3 py-2 text-xs text-[var(--ds-color-text-secondary)]">
+        No key on your account yet. Open <a href="/tools/rsa-decrypt/" class="ds-link-muted underline-offset-2 hover:underline" hx-get="/tools/rsa-decrypt/" hx-target="#main-content" hx-push-url="true">RSA decrypt</a> and upload your PEM there first.
+      </div>
+      {% else %}
+      <div class="rounded-lg border border-[var(--ds-color-border-muted)] bg-[var(--ds-color-bg-inset)] px-3 py-2 text-xs text-[var(--ds-color-success)]">
+        Account key is available — paste ciphertext below.
+      </div>
+      {% endif %}
+      <form id="dash-home-rsa-form" class="flex min-h-0 flex-1 flex-col gap-2"
+            hx-post="{% url 'tools:rsa_decrypt' %}"
+            hx-target="#dash-home-rsa-result"
+            hx-swap="innerHTML"
+            hx-indicator="#dash-home-rsa-decrypt-btn">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="decrypt" />
+        <label class="flex min-h-0 flex-1 flex-col">
+          <span class="mb-1 block text-xs font-medium text-[var(--ds-color-text-muted)]">Ciphertext</span>
+          <textarea name="ciphertext" id="dash-home-rsa-ciphertext" rows="8" {% if not has_rsa_stored_key %}disabled{% endif %}
+                    class="ds-input font-mono text-xs min-h-[8rem] w-full resize-y" placeholder="{% if has_rsa_stored_key %}Paste Base64 or hex…{% else %}Save a key on RSA decrypt first{% endif %}"></textarea>
+        </label>
+        <button type="submit" id="dash-home-rsa-decrypt-btn" class="ds-btn ds-btn--primary ds-btn--sm ds-btn--px3 shrink-0 self-start" {% if not has_rsa_stored_key %}disabled{% endif %}>Decrypt</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="ds-card dash-surface flex min-h-0 flex-col overflow-hidden rounded-xl border border-[var(--ds-color-border-muted)]">
+    <div class="ds-card__head">
+      <h2 class="ds-kicker">Result</h2>
+      <p class="ds-subtitle">Updates here without reloading the dashboard. Plaintext is not stored in the database.</p>
+    </div>
+    <div class="ds-card__body min-h-0 flex-1">
+      <div id="dash-home-rsa-result" class="min-h-[8rem]">
+        <div class="flex flex-col items-center justify-center rounded-lg border border-dashed border-[var(--ds-color-border)] bg-[var(--ds-color-bg-inset)]/50 py-10 text-center">
+          <p class="m-0 max-w-xs text-xs text-[var(--ds-color-text-muted)]">Run Decrypt from the left card to show plaintext (or an error) in this panel.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endif %}
