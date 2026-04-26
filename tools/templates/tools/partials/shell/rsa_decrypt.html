@@ -55,7 +55,7 @@
   </div>
 
   <div class="ds-card dash-surface mb-4">
-    {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Ciphertext" subtitle="RSA-encrypted block as Base64 (or continuous hex). Uses the key saved on your account. Decrypt updates the result area via HTMX without reloading the page." show_subtitle=True %}
+    {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Ciphertext" subtitle="Raw RSA block: standard Base64 or hex. Or v1 hybrid: 1 plus three dot-separated URL-safe Base64 parts — wrapped AES-256 key (RSAES-OAEP SHA-256), 12-byte GCM nonce, AES-GCM ciphertext including tag. Uses the key saved on your account." show_subtitle=True %}
     <div class="ds-card__body space-y-2">
       <form id="rsa-decrypt-form" class="space-y-2"
             hx-post="{% url 'tools:rsa_decrypt' %}"

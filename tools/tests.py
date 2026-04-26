@@ -1,13 +1,16 @@
 """Tools app permission tests (superuser-only pages)."""
 
 import base64
+import os
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase
 from django.urls import reverse
+from django.utils.html import escape
 
 from dashboard.models import UserStoredRSAPrivateKey
 from dashboard.rsa_key_crypto import decrypt_user_rsa_pem, encrypt_user_rsa_pem
@@ -111,6 +114,45 @@ class RsaDecryptToolTests(TestCase):
         )
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "secret-message")
+
+    def _build_hybrid_v1_line(self, *, json_plain: str) -> str:
+        priv = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        pub = priv.public_key()
+        pem = priv.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        ).decode("utf-8")
+        aes_key = os.urandom(32)
+        nonce = os.urandom(12)
+        aes_ct = AESGCM(aes_key).encrypt(nonce, json_plain.encode("utf-8"), None)
+        oaep = padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None,
+        )
+        rsa_ct = pub.encrypt(aes_key, oaep)
+
+        def u64(b: bytes) -> str:
+            return base64.urlsafe_b64encode(b).decode("ascii").rstrip("=")
+
+        line = f"1.{u64(rsa_ct)}.{u64(nonce)}.{u64(aes_ct)}"
+        return pem, line
+
+    def test_decrypt_hybrid_v1_envelope(self):
+        json_body = '{"name":"Ada","card_last4":"4242"}'
+        pem, line = self._build_hybrid_v1_line(json_plain=json_body)
+        UserStoredRSAPrivateKey.objects.update_or_create(
+            user=self.staff,
+            defaults={"fernet_ciphertext": encrypt_user_rsa_pem(self.staff.pk, pem)},
+        )
+        self.client.force_login(self.staff)
+        r = self.client.post(
+            reverse("tools:rsa_decrypt"),
+            {"action": "decrypt", "ciphertext": line},
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(escape(json_body), r.content.decode())
 
     def test_decrypt_without_stored_key_redirects(self):
         self.client.force_login(self.staff)

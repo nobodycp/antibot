@@ -8,6 +8,7 @@ import re
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import redirect
@@ -20,6 +21,79 @@ from dashboard.models import UserStoredRSAPrivateKey
 from dashboard.rsa_key_crypto import decrypt_user_rsa_pem, encrypt_user_rsa_pem
 
 MAX_KEY_BYTES = 256 * 1024
+
+AES_KEY_LEN = 32
+AES_GCM_NONCE_LEN = 12
+
+
+def _urlsafe_b64decode(segment: str) -> bytes:
+    s = (segment or "").strip()
+    pad = (-len(s)) % 4
+    return base64.urlsafe_b64decode(s + "=" * pad)
+
+
+def _parse_hybrid_v1_line(raw: str) -> tuple[bytes, bytes, bytes] | None:
+    """
+    One-line envelope: 1.<rsa_ciphertext_b64url>.<aes_nonce_b64url>.<aes_gcm_ciphertext_b64url>
+    (URL-safe base64 segments; = padding may be omitted.)
+    """
+    text = re.sub(r"\s+", "", (raw or "").strip())
+    if not text.startswith("1.") or text.startswith("1.."):
+        return None
+    parts = text.split(".")
+    if len(parts) != 4 or parts[0] != "1":
+        return None
+    try:
+        rsa_ct = _urlsafe_b64decode(parts[1])
+        nonce = _urlsafe_b64decode(parts[2])
+        aes_ct = _urlsafe_b64decode(parts[3])
+    except binascii.Error:
+        return None
+    return rsa_ct, nonce, aes_ct
+
+
+def _try_decrypt_hybrid_v1(
+    pem: str, rsa_ct: bytes, nonce: bytes, aes_ct: bytes
+) -> tuple[str | None, str | None]:
+    try:
+        key = serialization.load_pem_private_key(
+            pem.encode("utf-8"),
+            password=None,
+        )
+    except Exception as exc:
+        return None, f"Invalid private key PEM: {exc}"
+
+    if not isinstance(key, rsa.RSAPrivateKey):
+        return None, "Key is not an RSA private key."
+
+    oaep_sha256 = padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None,
+    )
+    try:
+        aes_key = key.decrypt(rsa_ct, oaep_sha256)
+    except Exception:
+        return None, "RSA unwrap failed (wrong key or corrupt RSA segment; expected RSAES-OAEP with SHA-256)."
+
+    if len(aes_key) != AES_KEY_LEN:
+        return None, f"After RSA unwrap, AES key must be {AES_KEY_LEN} bytes; got {len(aes_key)}."
+
+    if len(nonce) != AES_GCM_NONCE_LEN:
+        return None, f"AES-GCM nonce must be {AES_GCM_NONCE_LEN} bytes; got {len(nonce)}."
+
+    if len(aes_ct) < 16:
+        return None, "AES-GCM segment too short (need at least 16-byte tag)."
+
+    try:
+        plain = AESGCM(aes_key).decrypt(nonce, aes_ct, None)
+    except Exception:
+        return None, "AES-GCM decrypt failed (wrong key, bad nonce, or corrupt ciphertext/tag)."
+
+    try:
+        return plain.decode("utf-8"), None
+    except UnicodeDecodeError:
+        return plain.hex(), None
 
 
 def _parse_ciphertext(raw: str) -> bytes | None:
@@ -171,15 +245,24 @@ def rsa_decrypt_view(request):
             messages.error(request, msg)
             return redirect("tools:rsa_decrypt")
 
-        ct_bytes = _parse_ciphertext(request.POST.get("ciphertext", ""))
-        if not ct_bytes:
-            msg = "Paste ciphertext as Base64 (or hex)."
-            if htmx:
-                return HttpResponse(_result_fragment_html(error_message=msg))
-            messages.error(request, msg)
-            return redirect("tools:rsa_decrypt")
+        raw_ct = request.POST.get("ciphertext", "")
+        hybrid = _parse_hybrid_v1_line(raw_ct)
+        if hybrid is not None:
+            rsa_blob, nonce_b, aes_b = hybrid
+            plain, err = _try_decrypt_hybrid_v1(pem, rsa_blob, nonce_b, aes_b)
+        else:
+            ct_bytes = _parse_ciphertext(raw_ct)
+            if not ct_bytes:
+                msg = (
+                    "Paste a raw RSA block as Base64 (or hex), or a v1 line: "
+                    "1.<RSA_b64url>.<nonce_b64url>.<aes_gcm_b64url>."
+                )
+                if htmx:
+                    return HttpResponse(_result_fragment_html(error_message=msg))
+                messages.error(request, msg)
+                return redirect("tools:rsa_decrypt")
 
-        plain, err = _try_decrypt(pem, ct_bytes)
+            plain, err = _try_decrypt(pem, ct_bytes)
         if err:
             if htmx:
                 return HttpResponse(_result_fragment_html(error_message=err))
