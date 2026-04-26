@@ -1,6 +1,6 @@
 {# HTMX fragment: match Ciphertext field — same ds-input size/style, text only. #}
 {% if error_message %}
-<textarea readonly rows="8" class="ds-input font-mono text-xs min-h-[8rem] w-full resize-y m-0 block border-[var(--ds-color-danger)]/50 text-[var(--ds-color-danger)]" aria-label="Decrypt error">{{ error_message }}</textarea>
+<textarea readonly rows="10" class="ds-input font-mono text-xs min-h-[10rem] w-full resize-y m-0 block border-[var(--ds-color-danger)]/50 text-[var(--ds-color-danger)]" aria-label="Decrypt error">{{ error_message }}</textarea>
 {% elif decrypted_plaintext is not None %}
-<textarea readonly rows="8" class="ds-input font-mono text-xs min-h-[8rem] w-full resize-y m-0 block" aria-label="Decrypted plaintext">{{ decrypted_plaintext }}</textarea>
+<textarea readonly rows="16" class="ds-input font-mono text-xs min-h-[12rem] w-full resize-y m-0 block whitespace-pre" aria-label="Decrypted plaintext">{{ decrypted_plaintext }}</textarea>
 {% endif %}

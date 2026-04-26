@@ -1,6 +1,7 @@
 """Tools app permission tests (superuser-only pages)."""
 
 import base64
+import json
 import os
 
 from cryptography.hazmat.primitives import hashes, serialization
@@ -152,7 +153,8 @@ class RsaDecryptToolTests(TestCase):
             {"action": "decrypt", "ciphertext": line},
         )
         self.assertEqual(r.status_code, 200)
-        self.assertIn(escape(json_body), r.content.decode())
+        pretty = json.dumps(json.loads(json_body), indent=2, ensure_ascii=False)
+        self.assertIn(escape(pretty), r.content.decode())
 
     def test_decrypt_without_stored_key_redirects(self):
         self.client.force_login(self.staff)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import json
 import re
 
 from cryptography.hazmat.primitives import hashes, serialization
@@ -156,6 +157,21 @@ def _try_decrypt(pem: str, ciphertext: bytes) -> tuple[str | None, str | None]:
         return plain.hex(), None
 
 
+def _maybe_pretty_print_json(text: str) -> str:
+    """If the decrypted string parses as JSON, return indented UTF-8 JSON for display."""
+    s = (text or "").strip()
+    if not s:
+        return text
+    try:
+        obj = json.loads(s)
+    except (json.JSONDecodeError, ValueError):
+        return text
+    try:
+        return json.dumps(obj, indent=2, ensure_ascii=False)
+    except (TypeError, ValueError):
+        return text
+
+
 def _is_htmx(request) -> bool:
     return (request.headers.get("HX-Request") or "").lower() == "true"
 
@@ -268,6 +284,8 @@ def rsa_decrypt_view(request):
                 return HttpResponse(_result_fragment_html(error_message=err))
             messages.error(request, err)
             return redirect("tools:rsa_decrypt")
+
+        plain = _maybe_pretty_print_json(plain)
 
         if htmx:
             return HttpResponse(_result_fragment_html(decrypted_plaintext=plain))
