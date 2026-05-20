@@ -122,7 +122,7 @@ class LogVisitorAPITests(APITestCase):
 
     def test_useragent_truncated_before_context(self, mock_build):
         mock_build.return_value = _sample_context(country_code="US")
-        AllowedCountry.objects.create(code="US")
+        AllowedCountry.objects.create(code="US", owner=self.user)
         url = reverse("tracker:log_visitor")
         long_ua = "A" * 3000
         r = self._post(url, {"ip": "198.51.100.40", "useragent": long_ua})
@@ -136,7 +136,7 @@ class LogVisitorAPITests(APITestCase):
         mock_build.return_value = _sample_context()
         ip = "198.51.100.22"
         BlockedIP.objects.create(ip_address=ip)
-        AllowedCountry.objects.create(code="US")
+        AllowedCountry.objects.create(code="US", owner=self.user)
 
         url = reverse("tracker:log_visitor")
         before = RejectedVisitor.objects.count()
@@ -155,9 +155,24 @@ class LogVisitorAPITests(APITestCase):
         self.assertEqual(rv.reason, "IP")
         self.assertEqual(rv.owner_id, self.user.id)
 
+    def test_country_allowlist_is_per_api_user(self, mock_build):
+        mock_build.return_value = _sample_context(country_code="US")
+        other = get_user_model().objects.create_user(
+            username="api_other_user",
+            password="test-pass-456",
+        )
+        AllowedCountry.objects.create(code="US", owner=other)
+        url = reverse("tracker:log_visitor")
+        r = self._post(
+            url,
+            {"ip": "198.51.100.44", "useragent": "Mozilla/5.0"},
+        )
+        self.assertEqual(r.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(r.data.get("reason"), 'Country code "US" is not allowed')
+
     def test_allowed_visitor_returns_201_and_creates_visitor(self, mock_build):
         mock_build.return_value = _sample_context(country_code="US")
-        AllowedCountry.objects.create(code="US")
+        AllowedCountry.objects.create(code="US", owner=self.user)
         ip = "198.51.100.33"
 
         url = reverse("tracker:log_visitor")

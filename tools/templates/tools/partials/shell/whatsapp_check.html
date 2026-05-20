@@ -1,0 +1,44 @@
+<span class="hidden" data-page-title="WhatsApp Check"></span>
+<div class="ds-page-shell ds-page-shell--wa-check" x-data="{ tab: '{{ tab }}' }">
+  {% include "dashboard/partials/includes/dashboard_page_header.html" with header_title="WhatsApp Check" header_icon="tool_safe" header_subtitle="Validate phone numbers via linked WhatsApp accounts" %}
+
+  {% include "tracker/partials/includes/tracker_flash_messages_shell_anchor.html" %}
+
+  {% if not node_available %}
+  <section class="ds-card ds-card--table mb-4 border-amber-500/40">
+    <div class="ds-card__body text-sm ds-text-warning">
+      WhatsApp validator (<code>whatsapp/index.js</code>) not found. Run <code>npm install</code> in the <code>whatsapp/</code> folder.
+    </div>
+  </section>
+  {% endif %}
+
+  <div class="wa-check-tabs flex flex-wrap gap-1 border-b border-[var(--ds-color-border-muted)] pb-1">
+    <button type="button"
+            @click="tab = 'check'"
+            :class="tab === 'check' ? 'ds-btn ds-btn--primary ds-btn--sm' : 'ds-btn ds-btn--ghost ds-btn--sm'">
+      Number check
+    </button>
+    <button type="button"
+            @click="tab = 'accounts'"
+            :class="tab === 'accounts' ? 'ds-btn ds-btn--primary ds-btn--sm' : 'ds-btn ds-btn--ghost ds-btn--sm'">
+      Accounts
+    </button>
+  </div>
+
+  <div class="wa-check-tab-panel" x-show="tab === 'check'" x-cloak>
+    {% include "tools/partials/whatsapp_check_tab.html" %}
+  </div>
+
+  <div x-show="tab === 'accounts'" x-cloak>
+    {% include "tools/partials/whatsapp_accounts_tab.html" %}
+  </div>
+</div>
+
+<script>
+document.body.addEventListener('htmx:configRequest', function (event) {
+  const tokenInput = document.querySelector('input[name=csrfmiddlewaretoken]');
+  if (tokenInput) {
+    event.detail.headers['X-CSRFToken'] = tokenInput.value;
+  }
+});
+</script>

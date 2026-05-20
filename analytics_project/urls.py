@@ -7,8 +7,10 @@ from django.urls import include, path, re_path
 from django.views.static import serve
 
 from core.health import health
+from core.views import root_redirect
 
 urlpatterns = [
+    path("", root_redirect, name="root"),
     path("health/", health, name="health"),
     path('dashboard/', include('dashboard.urls')),  # بدون namespace
     path('tracker/', include('tracker.urls', namespace='tracker')),  # كل مسارات التتبع والحظر

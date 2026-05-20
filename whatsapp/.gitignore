@@ -1,0 +1,7 @@
+node_modules/
+sessions/
+verified_active_numbers.txt
+progress.json
+numbers.txt
+*.log
+.DS_Store

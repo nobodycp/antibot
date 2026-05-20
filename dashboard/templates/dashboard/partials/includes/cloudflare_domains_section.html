@@ -1,0 +1,218 @@
+{# Shared Cloudflare domains UI. Expects: domains, admin_mode (optional), target_user (admin only). #}
+<section id="cloudflare-domains" class="ds-card dash-surface scroll-mt-4" x-data="{ showAddForm: false, permPopover: false }">
+  {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Cloudflare domains" %}
+  <div class="ds-card__perm-bar space-y-2 border-b border-[var(--ds-color-border-muted)] px-3 py-2 sm:px-4">
+    <div class="relative inline-block"
+         @mouseenter="permPopover = true"
+         @mouseleave="permPopover = false"
+         @click.outside="permPopover = false">
+      <button type="button"
+              class="ds-perm-trigger"
+              @click.prevent="permPopover = !permPopover"
+              :aria-expanded="permPopover"
+              aria-controls="cf-permissions-popover"
+              aria-label="Required permissions">
+        Required permissions
+      </button>
+      <div id="cf-permissions-popover"
+           x-show="permPopover"
+           x-transition.opacity.duration.150ms
+           x-cloak
+           role="tooltip"
+           class="ds-perm-popover"
+           @mouseenter="permPopover = true"
+           @mouseleave="permPopover = false">
+        <p class="ds-perm-popover__title">Custom Zone API token</p>
+        <div class="table-container overflow-x-auto rounded-md border border-[var(--ds-color-border-muted)]">
+          <table class="table ds-table min-w-[18rem] text-left text-xs">
+            <thead class="table-header">
+              <tr>
+                <th scope="col">Resource</th>
+                <th scope="col">Permission</th>
+                <th scope="col">Access</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Zone</td><td>Zone</td><td>Read</td></tr>
+              <tr><td>Zone</td><td>Zone Settings</td><td>Edit</td></tr>
+              <tr><td>Zone</td><td>WAF</td><td>Edit</td></tr>
+              <tr><td>Zone</td><td>Firewall Services</td><td>Edit</td></tr>
+              <tr><td>Zone</td><td>Bot Management</td><td>Edit</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ds-card__body space-y-4">
+    {% if domains %}
+    <div class="table-container dash-surface dash-table-shell overflow-hidden rounded-xl">
+      <div class="table-container__scroll">
+        <table class="table ds-table min-w-[40rem] text-left">
+          <thead class="table-header">
+            <tr>
+              <th>Domain</th>
+              <th>Zone ID</th>
+              <th>Active</th>
+              <th>Last sync</th>
+              <th class="table-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in domains %}
+            <tr class="align-top">
+              <td class="ds-text-primary">{{ d.domain_name }}</td>
+              <td class="table-cell--mono text-xs">{{ d.zone_id }}</td>
+              <td>
+                {% if d.is_active %}
+                  <span class="ds-text-accent">Yes</span>
+                {% else %}
+                  <span class="table-cell--muted">No</span>
+                {% endif %}
+              </td>
+              <td class="min-w-0 max-w-[12rem] text-xs">
+                {% if d.last_synced_at %}
+                  <div class="space-y-0.5">
+                    <div class="whitespace-nowrap">{{ d.last_synced_at }}</div>
+                    <div class="whitespace-nowrap{% if d.last_sync_status == 'ok' %} ds-text-success{% elif d.last_sync_status == 'error' %} ds-text-danger{% elif d.last_sync_status == 'warning' %} ds-text-warning{% else %} table-cell--muted{% endif %}">{{ d.get_last_sync_status_display|default:d.last_sync_status|default:"—" }}</div>
+                    {% if d.last_sync_error %}
+                      <span class="block max-w-[10rem] cursor-help truncate{% if d.last_sync_status == 'warning' %} ds-text-warning{% else %} ds-text-danger{% endif %}" title="{{ d.last_sync_error }}">{{ d.last_sync_error }}</span>
+                    {% endif %}
+                  </div>
+                {% else %}
+                  <span class="table-cell--muted">Never</span>
+                {% endif %}
+              </td>
+              <td class="table-actions">
+                <div class="flex flex-wrap justify-end gap-2">
+                  <button type="button"
+                          onclick="toggleCfDomainEdit('{{ d.id }}')"
+                          class="ds-btn ds-btn--warning ds-btn--px3">
+                    Edit
+                  </button>
+                  <form method="post"
+                        action="{% if admin_mode %}{% url 'dashboard:user_domain_sync' target_user.id d.id %}{% else %}{% url 'tools:cloudflare_domain_sync' d.id %}{% endif %}"
+                        class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="ds-btn ds-btn--primary ds-btn--px3">Sync</button>
+                  </form>
+                  <form method="post"
+                        action="{% if admin_mode %}{% url 'dashboard:user_domains' target_user.id %}{% else %}{% url 'tools:cloudflare_domain_toggle' d.id %}{% endif %}"
+                        class="inline">
+                    {% csrf_token %}
+                    {% if admin_mode %}<input type="hidden" name="action" value="toggle">{% endif %}
+                    <input type="hidden" name="domain_id" value="{{ d.id }}">
+                    <button type="submit" class="ds-btn ds-btn--px3 ds-btn--warning">
+                      {% if d.is_active %}Deactivate{% else %}Activate{% endif %}
+                    </button>
+                  </form>
+                  <form method="post"
+                        action="{% if admin_mode %}{% url 'dashboard:user_domains' target_user.id %}{% else %}{% url 'tools:cloudflare_domain_delete' d.id %}{% endif %}"
+                        class="inline"
+                        onsubmit="return confirm('Remove this domain?');">
+                    {% csrf_token %}
+                    {% if admin_mode %}<input type="hidden" name="action" value="delete">{% endif %}
+                    <input type="hidden" name="domain_id" value="{{ d.id }}">
+                    <button type="submit" class="ds-btn ds-btn--px3 ds-btn--danger">Delete</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            <tr id="editCfDomain{{ d.id }}" class="hidden">
+              <td colspan="5" class="pb-4">
+                <div class="ds-inset-edit">
+                  <form method="post"
+                        action="{% if admin_mode %}{% url 'dashboard:user_domains' target_user.id %}{% else %}{% url 'tools:cloudflare_domain_update' d.id %}{% endif %}"
+                        class="flex flex-col gap-3">
+                    {% csrf_token %}
+                    {% if admin_mode %}<input type="hidden" name="action" value="update">{% endif %}
+                    <input type="hidden" name="domain_id" value="{{ d.id }}">
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div class="ds-field">
+                        <label class="ds-label">Domain name</label>
+                        <input type="text" name="domain_name" value="{{ d.domain_name }}" class="ds-input" required>
+                      </div>
+                      <div class="ds-field">
+                        <label class="ds-label">Zone ID</label>
+                        <input type="text" name="zone_id" value="{{ d.zone_id }}" class="ds-input" required>
+                      </div>
+                      <div class="ds-field md:col-span-2">
+                        <label class="ds-label">API token</label>
+                        <input type="password" name="api_token" placeholder="Leave blank to keep current token" class="ds-input" autocomplete="new-password">
+                      </div>
+                      <label class="ds-check-row md:col-span-2">
+                        <input type="checkbox" name="is_active" {% if d.is_active %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
+                        Active
+                      </label>
+                    </div>
+                    {% include "dashboard/partials/includes/cloudflare_zone_settings_fields.html" with domain=d %}
+                    <button type="submit" class="ds-btn ds-btn--success ds-btn--px3">Save</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <p class="text-sm table-cell--muted">No Cloudflare domains registered yet.</p>
+    {% endif %}
+
+    <div class="ds-form-actions">
+      <button type="button"
+              class="ds-btn ds-btn--primary"
+              @click="showAddForm = !showAddForm"
+              :aria-expanded="showAddForm">
+        <span x-show="!showAddForm">Add domain</span>
+        <span x-show="showAddForm" x-cloak>Cancel</span>
+      </button>
+    </div>
+
+    <div x-show="showAddForm"
+         x-transition
+         x-cloak
+         class="ds-inset-edit">
+      <form method="post"
+            action="{% if admin_mode %}{% url 'dashboard:user_domains' target_user.id %}{% else %}{% url 'tools:cloudflare_domain_add' %}{% endif %}"
+            class="ds-form-stack">
+        {% csrf_token %}
+        {% if admin_mode %}<input type="hidden" name="action" value="add">{% endif %}
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-x-6">
+          <div class="ds-field">
+            <label class="ds-label" for="id-cf-domain-name">Domain name</label>
+            <input id="id-cf-domain-name" type="text" name="domain_name" placeholder="example.com" class="ds-input" required>
+          </div>
+          <div class="ds-field">
+            <label class="ds-label" for="id-cf-zone-id">Zone ID</label>
+            <input id="id-cf-zone-id" type="text" name="zone_id" placeholder="32-char Zone ID (Overview)" class="ds-input" required>
+          </div>
+          <div class="ds-field md:col-span-2">
+            <label class="ds-label" for="id-cf-api-token">API token</label>
+            <input id="id-cf-api-token" type="password" name="api_token" placeholder="Zone API Token (not Global API Key)" class="ds-input" autocomplete="new-password">
+          </div>
+          <label class="ds-check-row md:col-span-2">
+            <input type="checkbox" name="is_active" checked class="ds-checkbox h-4 w-4 shrink-0">
+            Active (include in Cloud Sync)
+          </label>
+        </div>
+
+        {% include "dashboard/partials/includes/cloudflare_zone_settings_fields.html" with domain=cf_zone_defaults %}
+
+        <div class="ds-form-actions">
+          <button type="submit" class="ds-btn ds-btn--primary">Add domain</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script>
+function toggleCfDomainEdit(domainId) {
+  const el = document.getElementById('editCfDomain' + domainId);
+  if (!el) return;
+  el.classList.toggle('hidden');
+}
+</script>

@@ -1,0 +1,65 @@
+<span class="hidden" data-page-title="Cloudflare Sync"></span>
+<div class="ds-page">
+  {% include "dashboard/partials/includes/dashboard_page_header.html" with header_title="Cloudflare Sync" header_icon="cloud_sync" header_subtitle="Push antibot WAF rules to all active Cloudflare domains" header_hide_stats=True %}
+  {% include "tracker/partials/includes/tracker_flash_messages_shell_anchor.html" %}
+
+  <div class="ds-page-grid">
+    <div class="ds-page-grid__main min-w-0 space-y-4">
+      <section class="ds-card dash-surface">
+        {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Sync" %}
+        <div class="ds-card__body space-y-4">
+          <p class="text-sm text-[var(--ds-color-text-muted)]">
+            Sync All updates global blocked subnets once per zone, then each domain&rsquo;s allowed
+            countries and zone settings (SSL, bot fight, rate limit). WAF rules use
+            <code class="ds-profile-code">antibot:*</code> descriptions only.
+            Applies to <strong>{{ active_domains }}</strong> active domain(s)
+            ({{ total_domains }} total registered).
+          </p>
+          <form method="post" action="{% url 'tools:cloud_sync_start' %}" class="ds-form-actions">
+            {% csrf_token %}
+            <button type="submit" class="ds-btn ds-btn--primary"
+                    onclick="return confirm('Sync all active domains now?');">
+              Sync All
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section class="ds-card dash-surface">
+        {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Active domains" %}
+        <div class="ds-card__body">
+          {% include "tools/partials/cloud_sync_domains.html" %}
+        </div>
+      </section>
+
+      <section class="ds-card dash-surface">
+        {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Latest run" %}
+        <div class="ds-card__body"
+             id="cloud-sync-status"
+             {% if latest_run and latest_run.status == "running" %}
+             hx-get="{% url 'tools:cloud_sync_status' %}"
+             hx-trigger="every 3s"
+             hx-swap="innerHTML"
+             {% endif %}>
+          {% include "tools/partials/cloud_sync_status.html" %}
+        </div>
+      </section>
+    </div>
+
+    <div class="ds-page-grid__side min-w-0 space-y-4">
+      <section class="dash-panel dash-surface">
+        {% include "dashboard/partials/ui/ds_card_head.html" with kicker="Recent runs" %}
+        <div class="ds-card__body space-y-2 text-sm">
+          {% for run in recent_runs %}
+          <div class="dash-stat-tile">
+            <div class="dash-stat-tile__label">{{ run.started_at }}</div>
+            <div class="dash-stat-tile__value">{{ run.get_status_display }} — {{ run.domains_ok }} ok / {{ run.domains_failed }} fail</div>
+          </div>
+          {% empty %}
+          <p class="table-cell--muted">No history yet.</p>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

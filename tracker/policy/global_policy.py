@@ -9,13 +9,15 @@ from __future__ import annotations
 
 from typing import Optional
 
+from django.contrib.auth.models import AbstractBaseUser
+
 from ..helpers.allowed_country_codes import get_allowed_country_codes
 from ..helpers.blocked_subnet_rules import ip_matches_global_blocked_subnet
 
 
-def allowed_country_codes() -> list[str]:
-    """ISO country codes allowed for the global allowlist."""
-    return get_allowed_country_codes()
+def allowed_country_codes(user: AbstractBaseUser) -> list[str]:
+    """ISO country codes allowed for this user's allowlist."""
+    return get_allowed_country_codes(user)
 
 
 def subnet_deny_reason_if_blocked(ip: str) -> Optional[str]:

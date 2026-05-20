@@ -12,7 +12,8 @@ A **Django** app for visitor monitoring and blocking rules (IP, subnets, ISP, br
 | **Allowed countries** | `AllowedCountry` entries feed into allow/deny decisions. |
 | **Logs and analysis** | Pages for allowed/denied traffic, IP details, and adding block rules from logs. |
 | **Dashboard** | Stats, user management, profile settings, and optional Telegram backups. |
-| **Utilities** | File uploads, Google Safe Browsing checks, and redirect inspection. |
+| **Utilities** | File uploads, Google Safe Browsing checks, redirect inspection, and Cloudflare WAF sync. |
+| **Cloudflare edge** | Push global blocked subnets and per-user allowed countries to zone WAF custom rules (superuser **Sync All**). |
 
 **Main integration point for external apps:** `POST /tracker/api/log/` — send header **`X-API-Key`** with the **per-user key** shown on **Dashboard → Profile settings** (each user gets a key when their account is created). JSON body: `ip`, `useragent`. Responses: allow (`201`) or deny (`403`) with a readable reason. Missing or wrong key returns `403` with `{"error": "..."}`.
 
@@ -21,7 +22,7 @@ A **Django** app for visitor monitoring and blocking rules (IP, subnets, ISP, br
 ## Requirements
 
 - **Python 3.9+** (aligned with Django in `requirements.txt`)
-- **Database:** SQLite when **`DB_NAME`** is unset (typical local dev). PostgreSQL when **`DB_NAME`** and related **`DB_*`** vars are set — see **`.env.example`**. Requires **`psycopg2-binary`** from `requirements.txt`. The **`install.sh`** path provisions PostgreSQL and writes `.env` with **`DB_*`** automatically.
+- **Database:** SQLite when no postgres env is set (typical local dev). PostgreSQL when **`DATABASE_URL`**, **`POSTGRES_*`**, or legacy **`DB_*`** is set — see **`.env.example`**. Requires **`psycopg2-binary`** from `requirements.txt`. Production (`DJANGO_ENV=production`) requires PostgreSQL. Optional **`docker-compose.yml`** for local Postgres. Manual systemd steps: **`deploy/README.md`**.
 
 ---
 
@@ -233,7 +234,7 @@ python manage.py runserver
 - [http://127.0.0.1:8000/dashboard/](http://127.0.0.1:8000/dashboard/)
 - [http://127.0.0.1:8000/accounts/login/](http://127.0.0.1:8000/accounts/login/)
 
-Settings load from `analytics_project.settings`: **dev** unless **`DJANGO_ENV=production`** (or **`prod`**) in `.env`. Omit **`DB_NAME`** to keep the default **SQLite** file. Put secrets in `.env`.
+Settings load from `analytics_project.settings`: **dev** unless **`DJANGO_ENV=production`** (or **`prod`**) in `.env`. Omit postgres env vars to keep the default **SQLite** file. Put secrets in `.env`.
 
 ---
 
@@ -341,6 +342,69 @@ curl -s -X POST http://127.0.0.1:8000/tracker/api/log/ \
 | `/tools/google-safe-check/partial/` | Results table partial |
 | `/tools/redirect-check/` | Redirect check |
 | `/tools/redirect-check/table/` | Redirect table partial |
+| `/tools/cloudflare-domains/` | Cloudflare zones (logged-in user, own domains) |
+| `/tools/cloud-sync/` | Cloudflare WAF sync (superuser) |
+| `/dashboard/users/<id>/domains/` | Admin: manage a user's Cloudflare zones |
+
+---
+
+## Cloudflare WAF sync
+
+Register zones under **Tools → Cloudflare Domains** (each user) or **Users → Domains** (superuser). API tokens are encrypted at rest and are not shown again after save.
+
+**Superuser:** **Tools → Cloud Sync → Sync All** pushes rules to every **active** domain:
+
+- **Subnets:** global `BlockedSubnet` list → `antibot:subnet-block`
+- **Countries:** owner's `AllowedCountry` codes → `antibot:country-allow-<user_id>` (`not ip.geoip.country in {...}`)
+
+Only WAF custom rules whose description starts with `antibot:` are replaced; other zone rules are left unchanged.
+
+**Per-domain zone settings** (checkboxes and dropdowns on add/edit) are pushed after WAF rules on each **Sync** and on **Sync All**:
+
+- Toggles: Bot Fight Mode, Under Attack Mode, Block AI Bots, AI Labyrinth, AI Crawl Control (maps to `content_bots_protection`), Browser Integrity Check, Always Use HTTPS, HTTP/3 (with QUIC), 0-RTT Connection Resumption, Automatic HTTPS Rewrites
+- Dropdowns: Security level, minimum TLS, SSL/TLS mode, challenge passage TTL (`challenge_ttl`)
+
+**Per-domain rate limit** (section **Rate limit** on add/edit domain forms):
+
+- Enable checkbox, then set **Requests** (e.g. `30`), **Per** window in seconds (e.g. `10`), **Action** (`block`, `challenge`, `js_challenge`, `managed_challenge`), and **Duration** mitigation timeout in seconds (e.g. `10`).
+- Sync pushes rule `antibot:rate-limit` to the zone `http_ratelimit` entrypoint ruleset (per client IP via `ip.src`). Disabled in the UI removes that rule from Cloudflare.
+
+Bot/AI toggles use `GET`/`PUT` `/zones/{zone_id}/bot_management` (plan-dependent). Other fields use `GET`/`PATCH` `/zones/{zone_id}/settings/{id}`. Each setting is compared with Cloudflare before PATCH (no write when already matching). Rate limits use `GET`/`PUT` `/zones/{zone_id}/rulesets/phases/http_ratelimit/entrypoint` (and ruleset update by id).
+
+### Cloudflare API token permissions
+
+Use a **Bearer API token** only (paste the token string; the app sends `Authorization: Bearer …`).
+**Do not** use the account **Global API Key** + email — Cloudflare returns *Authentication error* and sync will fail.
+
+**Token type:** A **Zone API token** (one zone) or a **Custom token** with **Zone** permissions are both fine. An account-level custom token with **Zone Resources → All zones** (or **Include → Specific zone**) works the same way, as long as the permissions below are granted for every zone you register. Prefer **one zone per token** when possible.
+
+**Zone resources:** Scope the token to **only the zone(s)** you add in antibot (`zone_id` + domain). **All zones** is OK for operators who manage many domains with one token; **Specific zone** is tighter.
+
+| Tier | Permission resource | Permission | Access | Used for |
+|------|---------------------|------------|--------|----------|
+| **Minimum** | Zone | Zone | Read | `GET /zones/{id}`, `GET /zones?name=…` (save/verify) |
+| **Minimum** | Zone | Zone Settings | Edit | `GET`/`PATCH /zones/{id}/settings/*` (HTTPS, TLS, security level, challenge TTL, …) |
+| **Minimum** | Zone | WAF | Edit | `GET`/`PUT` `rulesets/.../http_request_firewall_custom/entrypoint` (subnet + country `antibot:*` rules) |
+| **Recommended** | Zone | Firewall Services | Edit | Same rulesets API path; include if WAF-only token gets 403 on sync |
+| **Recommended** | Zone | Bot Management | Edit | `GET`/`PUT /zones/{id}/bot_management` (Bot Fight, AI bots, Labyrinth, crawl control) |
+| **Recommended** | Zone | WAF | Edit | `GET`/`PUT` `rulesets/.../http_ratelimit/entrypoint` (`antibot:rate-limit`) |
+| **Recommended** | Account | Account Filter Lists | Edit | `GET`/`POST`/`PUT /zones/{id}/rules/lists*` when **>25** global blocked subnets (IP list `antibot_subnet_block`) |
+
+Cloudflare’s UI may label access as **Edit** or **Write** depending on template age; use the write level for each row.
+
+**If a permission is missing**
+
+| Missing permission | What breaks |
+|--------------------|-------------|
+| Zone → Read | Cannot add/verify domain; sync auth errors |
+| Zone Settings → Edit | Sync fails on first zone setting (`always_use_https`, `ssl`, …) |
+| WAF → Edit | Subnet/country WAF rules not pushed; sync **error** |
+| Firewall Services → Edit | Same as WAF if your account maps rulesets only to this permission |
+| Bot Management → Edit | Bot/AI toggles not applied; sync **warning** only (DB values kept) |
+| Account Filter Lists → Edit | Fails when global blocked subnets **>25** (IP list path); ≤25 inline subnets still work |
+| WAF (rate limit phase) | Per-domain rate limit UI has no effect; sync **error** on rate-limit step |
+
+**API surface (all calls in this repo):** `dashboard/helpers/cloudflare_zone.py` (zone verify); `tools/services/cloudflare_sync_service.py` (WAF custom + zone IP lists); `tools/services/cloudflare_zone_settings.py` (settings + bot management); `tools/services/cloudflare_rate_limit.py` (rate limit ruleset). No other Cloudflare HTTP clients.
 
 ---
 
@@ -348,7 +412,7 @@ curl -s -X POST http://127.0.0.1:8000/tracker/api/log/ \
 
 ```bash
 source .venv/bin/activate
-python manage.py test tracker.tests
+python manage.py test tracker.tests tools.tests dashboard.tests
 ```
 
 ---

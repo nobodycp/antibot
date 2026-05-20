@@ -1,0 +1,30 @@
+# systemd unit for AntiBot (Gunicorn behind Nginx).
+# Install:
+#   sudo cp deploy/antibot.service /etc/systemd/system/antibot.service
+#   sudo mkdir -p /etc/antibot
+#   sudo cp /path/to/your/.env /etc/antibot/env
+#   sudo chmod 600 /etc/antibot/env
+#   # Edit User, Group, WorkingDirectory, and ExecStart venv path if not using /opt/antibot
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now antibot
+#
+# See deploy/README.md for migrate, collectstatic, and superuser steps.
+
+[Unit]
+Description=AntiBot Django (Gunicorn)
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/antibot
+Environment=DJANGO_SETTINGS_MODULE=analytics_project.settings
+EnvironmentFile=/etc/antibot/env
+ExecStart=/opt/antibot/env/bin/gunicorn --bind 127.0.0.1:8000 --workers 2 --timeout 120 analytics_project.wsgi:application
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

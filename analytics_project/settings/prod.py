@@ -13,6 +13,13 @@ from .base import *
 
 DEBUG = False
 
+# Production must use PostgreSQL (set DATABASE_URL, POSTGRES_*, or DB_* in the environment).
+if DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
+    raise ImproperlyConfigured(
+        "Production requires PostgreSQL. Set DATABASE_URL or POSTGRES_DB (or legacy DB_NAME) "
+        "in /etc/antibot/env or your deploy .env."
+    )
+
 # Default True when WhiteNoise is installed: serve from app static/ if STATIC_ROOT is empty.
 _wf = os.environ.get("DJANGO_WHITENOISE_FINDERS", "1").strip().lower()
 if WHITENOISE_AVAILABLE:

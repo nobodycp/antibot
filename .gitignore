@@ -28,6 +28,11 @@ media/
 uploads/
 *.zip
 
+# WhatsApp validator (sessions, runs, Node deps)
+whatsapp/sessions/
+whatsapp/runs/
+whatsapp/node_modules/
+
 # تجارب محلية وليست جزءاً من التطبيق
 Code_test/
 /test.py

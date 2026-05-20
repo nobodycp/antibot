@@ -4,7 +4,27 @@
       <p class="dash-sidebar-brand__kicker">Navigation</p>
       <p class="dash-sidebar-brand__title">Antibot</p>
     </div>
-    <nav class="flex flex-1 flex-col gap-0.5 pb-2">
+    <nav
+      class="flex flex-1 flex-col gap-0.5 pb-2"
+      x-data="{
+        openSections: {
+          'block-rules': {% if '/tracker/blocked-ips/' in request.path or '/tracker/blocked-subnets/' in request.path or '/tracker/blocked-isps/' in request.path or '/tracker/blocked-browsers/' in request.path or '/tracker/blocked-os/' in request.path or '/tracker/blocked-hostnames/' in request.path or '/tracker/dinger-ip/' in request.path or '/tracker/allowed-countries/' in request.path %}true{% else %}false{% endif %},
+          'logs': {% if '/tracker/allowed-logs/' in request.path or '/tracker/denied-logs/' in request.path or '/tracker/ip-info/' in request.path %}true{% else %}false{% endif %},
+          'tools': {% if '/tools/upload-files/' in request.path or '/tools/google-safe-check/' in request.path or '/tools/redirect-check/' in request.path or '/tools/rsa-decrypt/' in request.path or '/tools/cloudflare-domains/' in request.path or '/tools/whatsapp-check/' in request.path %}true{% else %}false{% endif %},
+          'user': {% if '/dashboard/profile-settings/' in request.path %}true{% else %}false{% endif %},
+          'admin': {% if '/dashboard/telegram-backup-settings/' in request.path or '/dashboard/users/' in request.path or '/tools/cloud-sync/' in request.path %}true{% else %}false{% endif %},
+        },
+        toggleSection(id) {
+          this.openSections[id] = !this.openSections[id];
+        },
+        navigateToSection(id) {
+          for (const key in this.openSections) {
+            this.openSections[key] = false;
+          }
+          this.openSections[id] = true;
+        },
+      }"
+    >
       <a href="/dashboard/" data-nav-tier="top" hx-get="/dashboard/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-top {% if request.path == '/dashboard/' %}is-active{% endif %}">
         <svg class="dash-nav-ico h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6" />
@@ -22,111 +42,111 @@
 
       <div class="dash-sidebar-sep" role="separator"></div>
 
-      {% if request.user.is_superuser %}
       <!-- Block Rules -->
-      <div x-data="{ open: '{% if '/tracker/blocked-ips/' in request.path or '/tracker/blocked-subnets/' in request.path or '/tracker/blocked-isps/' in request.path or '/tracker/blocked-browsers/' in request.path or '/tracker/blocked-os/' in request.path or '/tracker/allowed-countries/' in request.path or '/tracker/blocked-hostnames/' in request.path or '/tracker/dinger-ip/' in request.path %}true{% else %}false{% endif %}' == 'true' }">
-        <button type="button" @click="open = !open" class="dash-nav-section-btn">
+      <div>
+        <button type="button" @click="toggleSection('block-rules')" class="dash-nav-section-btn">
           <span class="flex items-center gap-2">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="nav_block_rules" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Block Rules
           </span>
-          <svg :class="{'rotate-90': open}" class="dash-nav-chevron h-3.5 w-3.5 transform sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg :class="{'rotate-90': openSections['block-rules']}" class="dash-nav-chevron h-3.5 w-3.5 transform sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
 
-        <div x-show="open" class="dash-nav-nested space-y-px">
-          <a href="/tracker/blocked-subnets/" data-nav-tier="sub" hx-get="/tracker/blocked-subnets/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tracker/blocked-subnets/' %}is-active{% endif %}">
+        <div x-show="openSections['block-rules']" x-cloak class="dash-nav-nested space-y-px">
+          {% if request.user.is_superuser %}
+          <a href="/tracker/blocked-subnets/" data-nav-tier="sub" hx-get="/tracker/blocked-subnets/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('block-rules')" class="group dash-nav-sub {% if request.path == '/tracker/blocked-subnets/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_subnet" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Subnet
           </a>
 
-          <a href="/tracker/blocked-ips/" data-nav-tier="sub" hx-get="/tracker/blocked-ips/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tracker/blocked-ips/' %}is-active{% endif %}">
+          <a href="/tracker/blocked-ips/" data-nav-tier="sub" hx-get="/tracker/blocked-ips/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('block-rules')" class="group dash-nav-sub {% if request.path == '/tracker/blocked-ips/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_ip" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             IP
           </a>
 
-          <a href="/tracker/blocked-isps/" data-nav-tier="sub" hx-get="/tracker/blocked-isps/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tracker/blocked-isps/' %}is-active{% endif %}">
+          <a href="/tracker/blocked-isps/" data-nav-tier="sub" hx-get="/tracker/blocked-isps/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('block-rules')" class="group dash-nav-sub {% if request.path == '/tracker/blocked-isps/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_isp" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             ISP
           </a>
 
-          <a href="/tracker/blocked-browsers/" data-nav-tier="sub" hx-get="/tracker/blocked-browsers/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tracker/blocked-browsers/' %}is-active{% endif %}">
+          <a href="/tracker/blocked-browsers/" data-nav-tier="sub" hx-get="/tracker/blocked-browsers/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('block-rules')" class="group dash-nav-sub {% if request.path == '/tracker/blocked-browsers/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_browser" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Browser
           </a>
 
-          <a href="/tracker/blocked-os/" data-nav-tier="sub" hx-get="/tracker/blocked-os/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tracker/blocked-os/' %}is-active{% endif %}">
+          <a href="/tracker/blocked-os/" data-nav-tier="sub" hx-get="/tracker/blocked-os/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('block-rules')" class="group dash-nav-sub {% if request.path == '/tracker/blocked-os/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_os" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             OS
           </a>
 
-          <a href="/tracker/blocked-hostnames/" data-nav-tier="sub" hx-get="/tracker/blocked-hostnames/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tracker/blocked-hostnames/' %}is-active{% endif %}">
+          <a href="/tracker/blocked-hostnames/" data-nav-tier="sub" hx-get="/tracker/blocked-hostnames/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('block-rules')" class="group dash-nav-sub {% if request.path == '/tracker/blocked-hostnames/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="blocked_hostname" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Hostname
           </a>
 
-          <a href="/tracker/allowed-countries/" data-nav-tier="sub" hx-get="/tracker/allowed-countries/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tracker/allowed-countries/' %}is-active{% endif %}">
-            <span class="dash-nav-ico shrink-0">
-              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="allowed_country" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
-            </span>
-            Country
-          </a>
-
-          <a href="/tracker/dinger-ip/" data-nav-tier="sub" hx-get="/tracker/dinger-ip/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tracker/dinger-ip/' %}is-active{% endif %}">
+          <a href="/tracker/dinger-ip/" data-nav-tier="sub" hx-get="/tracker/dinger-ip/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('block-rules')" class="group dash-nav-sub {% if request.path == '/tracker/dinger-ip/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="dinger_ip" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Dingers IP
           </a>
+          {% endif %}
+
+          <a href="/tracker/allowed-countries/" data-nav-tier="sub" hx-get="/tracker/allowed-countries/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('block-rules')" class="group dash-nav-sub {% if request.path == '/tracker/allowed-countries/' %}is-active{% endif %}">
+            <span class="dash-nav-ico shrink-0">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="allowed_country" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
+            Allowed Countries
+          </a>
         </div>
       </div>
-      {% endif %}
 
       <!-- Logs -->
-      <div x-data="{ open: '{% if '/tracker/allowed-logs/' in request.path or '/tracker/denied-logs/' in request.path or '/tracker/ip-info/' in request.path %}true{% else %}false{% endif %}' == 'true' }">
-        <button type="button" @click="open = !open" class="dash-nav-section-btn">
+      <div>
+        <button type="button" @click="toggleSection('logs')" class="dash-nav-section-btn">
           <span class="flex items-center gap-2">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="nav_logs" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Logs
           </span>
-          <svg :class="{'rotate-90': open}" class="dash-nav-chevron h-3.5 w-3.5 transform sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg :class="{'rotate-90': openSections['logs']}" class="dash-nav-chevron h-3.5 w-3.5 transform sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
 
-        <div x-show="open" class="dash-nav-nested space-y-px">
-          <a href="/tracker/allowed-logs/" data-nav-tier="sub" hx-get="/tracker/allowed-logs/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tracker/allowed-logs/' %}is-active{% endif %}">
+        <div x-show="openSections['logs']" x-cloak class="dash-nav-nested space-y-px">
+          <a href="/tracker/allowed-logs/" data-nav-tier="sub" hx-get="/tracker/allowed-logs/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('logs')" class="group dash-nav-sub {% if request.path == '/tracker/allowed-logs/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="log_allowed" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Allowed
           </a>
 
-          <a href="/tracker/denied-logs/" data-nav-tier="sub" hx-get="/tracker/denied-logs/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tracker/denied-logs/' %}is-active{% endif %}">
+          <a href="/tracker/denied-logs/" data-nav-tier="sub" hx-get="/tracker/denied-logs/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('logs')" class="group dash-nav-sub {% if request.path == '/tracker/denied-logs/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="log_denied" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Denied
           </a>
 
-          <a href="/tracker/ip-info/" data-nav-tier="sub" hx-get="/tracker/ip-info/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tracker/ip-info/' %}is-active{% endif %}">
+          <a href="/tracker/ip-info/" data-nav-tier="sub" hx-get="/tracker/ip-info/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('logs')" class="group dash-nav-sub {% if request.path == '/tracker/ip-info/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="ip_info" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
@@ -135,58 +155,73 @@
         </div>
       </div>
 
-      <!-- Tools: RSA decrypt for all staff; other tools superuser-only -->
-      {% if request.user.is_staff %}
-      <div x-data="{ open: '{% if '/tools/upload-files/' in request.path or '/tools/google-safe-check/' in request.path or '/tools/redirect-check/' in request.path or '/tools/rsa-decrypt/' in request.path %}true{% else %}false{% endif %}' == 'true' }">
-        <button type="button" @click="open = !open" class="dash-nav-section-btn">
+      <!-- Tools: Cloudflare domains for all users; RSA decrypt for staff; other tools superuser-only -->
+      <div>
+        <button type="button" @click="toggleSection('tools')" class="dash-nav-section-btn">
           <span class="flex items-center gap-2">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="nav_tools" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Tools
           </span>
-          <svg :class="{'rotate-90': open}" class="dash-nav-chevron h-3.5 w-3.5 transform sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg :class="{'rotate-90': openSections['tools']}" class="dash-nav-chevron h-3.5 w-3.5 transform sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
 
-        <div x-show="open" class="dash-nav-nested space-y-px">
+        <div x-show="openSections['tools']" x-cloak class="dash-nav-nested space-y-px">
+          <a href="/tools/cloudflare-domains/" data-nav-tier="sub" hx-get="/tools/cloudflare-domains/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('tools')" class="group dash-nav-sub {% if request.path == '/tools/cloudflare-domains/' %}is-active{% endif %}">
+            <span class="dash-nav-ico shrink-0">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="cloud_sync" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
+            Cloudflare Domains
+          </a>
+
           {% if request.user.is_superuser %}
-          <a href="/tools/upload-files/" data-nav-tier="sub" hx-get="/tools/upload-files/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tools/upload-files/' %}is-active{% endif %}">
+          <a href="/tools/upload-files/" data-nav-tier="sub" hx-get="/tools/upload-files/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('tools')" class="group dash-nav-sub {% if request.path == '/tools/upload-files/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_files" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Files
           </a>
 
-          <a href="/tools/google-safe-check/" data-nav-tier="sub" hx-get="/tools/google-safe-check/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tools/google-safe-check/' %}is-active{% endif %}">
+          <a href="/tools/google-safe-check/" data-nav-tier="sub" hx-get="/tools/google-safe-check/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('tools')" class="group dash-nav-sub {% if request.path == '/tools/google-safe-check/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_safe" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Safe Browser Checker
           </a>
 
-          <a href="/tools/redirect-check/" data-nav-tier="sub" hx-get="/tools/redirect-check/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tools/redirect-check/' %}is-active{% endif %}">
+          <a href="/tools/redirect-check/" data-nav-tier="sub" hx-get="/tools/redirect-check/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('tools')" class="group dash-nav-sub {% if request.path == '/tools/redirect-check/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_redirect" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             Redirect Check
           </a>
+
+          <a href="/tools/whatsapp-check/" data-nav-tier="sub" hx-get="/tools/whatsapp-check/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('tools')" class="group dash-nav-sub {% if '/tools/whatsapp-check/' in request.path %}is-active{% endif %}">
+            <span class="dash-nav-ico shrink-0">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_safe" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
+            WhatsApp Check
+          </a>
+
           {% endif %}
 
-          <a href="/tools/rsa-decrypt/" data-nav-tier="sub" hx-get="/tools/rsa-decrypt/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tools/rsa-decrypt/' %}is-active{% endif %}">
+          {% if request.user.is_staff %}
+          <a href="/tools/rsa-decrypt/" data-nav-tier="sub" hx-get="/tools/rsa-decrypt/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('tools')" class="group dash-nav-sub {% if request.path == '/tools/rsa-decrypt/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
               {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_rsa" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
             </span>
             RSA decrypt
           </a>
+          {% endif %}
         </div>
       </div>
-      {% endif %}
 
       <!-- User -->
-      <div x-data="{ open: {% if '/dashboard/profile-settings/' in request.path or '/dashboard/telegram-backup-settings/' in request.path or '/dashboard/users/' in request.path %}true{% else %}false{% endif %} }">
-        <button type="button" @click="open = !open" class="dash-nav-section-btn">
+      <div>
+        <button type="button" @click="toggleSection('user')" class="dash-nav-section-btn">
           <span class="flex items-center gap-2">
             <svg class="dash-nav-ico h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A9 9 0 1118.88 17.8M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -194,36 +229,60 @@
             User
           </span>
 
-          <svg :class="{'rotate-90': open}" class="dash-nav-chevron h-3.5 w-3.5 transform sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg :class="{'rotate-90': openSections['user']}" class="dash-nav-chevron h-3.5 w-3.5 transform sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
 
-        <div x-show="open" class="dash-nav-nested space-y-px">
-          <a href="/dashboard/profile-settings/" data-nav-tier="sub" hx-get="/dashboard/profile-settings/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/dashboard/profile-settings/' %}is-active{% endif %}">
+        <div x-show="openSections['user']" x-cloak class="dash-nav-nested space-y-px">
+          <a href="/dashboard/profile-settings/" data-nav-tier="sub" hx-get="/dashboard/profile-settings/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('user')" class="group dash-nav-sub {% if request.path == '/dashboard/profile-settings/' %}is-active{% endif %}">
             <svg class="dash-nav-ico h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
             Profile
           </a>
+        </div>
+      </div>
 
-          {% if request.user.is_superuser %}
-          <a href="/dashboard/telegram-backup-settings/" data-nav-tier="sub" hx-get="/dashboard/telegram-backup-settings/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/dashboard/telegram-backup-settings/' %}is-active{% endif %}">
-            <svg class="dash-nav-ico h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-            </svg>
+      {% if request.user.is_superuser %}
+      <!-- Admin (last collapsible section) -->
+      <div>
+        <button type="button" @click="toggleSection('admin')" class="dash-nav-section-btn">
+          <span class="flex items-center gap-2">
+            <span class="dash-nav-ico shrink-0">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="nav_admin" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
+            Admin
+          </span>
+          <svg :class="{'rotate-90': openSections['admin']}" class="dash-nav-chevron h-3.5 w-3.5 transform sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        <div x-show="openSections['admin']" x-cloak class="dash-nav-nested space-y-px">
+          <a href="/dashboard/users/" data-nav-tier="sub" hx-get="/dashboard/users/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('admin')" class="group dash-nav-sub {% if '/dashboard/users/' in request.path %}is-active{% endif %}">
+            <span class="dash-nav-ico shrink-0">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="users_team" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
+            Users
+          </a>
+
+          <a href="/dashboard/telegram-backup-settings/" data-nav-tier="sub" hx-get="/dashboard/telegram-backup-settings/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('admin')" class="group dash-nav-sub {% if request.path == '/dashboard/telegram-backup-settings/' %}is-active{% endif %}">
+            <span class="dash-nav-ico shrink-0">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="backup_settings" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
             Backup
           </a>
 
-          <a href="/dashboard/users/" data-nav-tier="sub" hx-get="/dashboard/users/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if '/dashboard/users/' in request.path %}is-active{% endif %}">
-            <svg class="dash-nav-ico h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-            </svg>
-            Users
+          <a href="/tools/cloud-sync/" data-nav-tier="sub" hx-get="/tools/cloud-sync/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('admin')" class="group dash-nav-sub {% if request.path == '/tools/cloud-sync/' %}is-active{% endif %}">
+            <span class="dash-nav-ico shrink-0">
+              {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="cloud_sync" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
+            </span>
+            Cloudflare Sync
           </a>
-          {% endif %}
         </div>
       </div>
+      {% endif %}
 
     </nav>
   </aside>

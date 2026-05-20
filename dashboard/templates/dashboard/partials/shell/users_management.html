@@ -124,6 +124,14 @@
             </td>
             <td class="table-actions">
               <div class="mb-2 flex flex-wrap justify-end gap-2">
+                <a href="{% url 'dashboard:user_domains' user.id %}"
+                   hx-get="{% url 'dashboard:user_domains' user.id %}"
+                   hx-target="#main-content"
+                   hx-swap="innerHTML"
+                   hx-push-url="true"
+                   class="ds-btn ds-btn--primary ds-btn--px3">
+                  Domains
+                </a>
                 <button type="button" onclick="toggleEditForm('{{ user.id }}')"
                         class="ds-btn ds-btn--warning ds-btn--px3">
                   Edit

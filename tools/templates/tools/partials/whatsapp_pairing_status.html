@@ -1,0 +1,24 @@
+<section class="ds-card dash-surface wa-check-accounts-pairing mb-4" id="wa-pairing-panel"
+         {% if pairing.status == 'qr' or pairing.status == 'connecting' %}
+         hx-get="{% url 'tools:whatsapp_pairing_status' account_name %}"
+         hx-trigger="every 3s"
+         hx-swap="outerHTML"
+         {% endif %}>
+  <div class="ds-card__head wa-check-accounts-pairing__head">
+    <h2 class="ds-kicker">Pair account: <span class="font-mono normal-case">{{ account_name }}</span></h2>
+  </div>
+  <div class="ds-card__body wa-check-accounts-pairing__body text-sm">
+    <p class="table-cell--muted mb-0">{{ pairing.message|default:"Waiting for pairing status…" }}</p>
+    {% if pairing.qr_data_url %}
+    <div class="wa-check-accounts-pairing__qr">
+      <img src="{{ pairing.qr_data_url }}" alt="WhatsApp QR code" class="wa-check-accounts-pairing__qr-img" />
+      <p class="text-xs table-cell--muted">WhatsApp → Linked devices → Link a device</p>
+    </div>
+    {% elif pairing.status == 'connected' %}
+    <p class="ds-text-success font-medium mb-0">Account linked. You can start a number check.</p>
+    <a href="{% url 'tools:whatsapp_check' %}?tab=check" class="ds-btn ds-btn--primary ds-btn--sm">Go to number check</a>
+    {% elif pairing.status == 'error' %}
+    <p class="ds-text-danger mb-0">{{ pairing.message }}</p>
+    {% endif %}
+  </div>
+</section>

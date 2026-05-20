@@ -1,0 +1,19 @@
+{% if latest_run %}
+<div class="space-y-2 text-sm">
+  <div class="flex flex-wrap gap-4">
+    <span><strong>Status:</strong> {{ latest_run.get_status_display }}</span>
+    <span><strong>OK:</strong> {{ latest_run.domains_ok }}</span>
+    <span><strong>Failed:</strong> {{ latest_run.domains_failed }}</span>
+    <span><strong>Started:</strong> {{ latest_run.started_at }}</span>
+    {% if latest_run.finished_at %}
+    <span><strong>Finished:</strong> {{ latest_run.finished_at }}</span>
+    {% endif %}
+  </div>
+  {% if latest_run.status == "running" %}
+  <p class="ds-text-warning">Sync in progress…</p>
+  {% endif %}
+  <pre class="ds-input ds-input--mono max-h-64 overflow-auto whitespace-pre-wrap text-xs">{{ latest_run.log_text }}</pre>
+</div>
+{% else %}
+<p class="text-sm table-cell--muted">No sync runs yet.</p>
+{% endif %}

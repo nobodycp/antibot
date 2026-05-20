@@ -14,6 +14,7 @@ from .views.home_views import (
     home_top_ips_partial,
 )
 from .views.profile_views import profile_settings_view, regenerate_api_key_view
+from .views.user_domains_views import user_domain_sync, user_domains_view
 from .views.user_views import add_user, delete_user, edit_user, users_management
 
 app_name = 'dashboard'
@@ -30,6 +31,12 @@ urlpatterns = [
     path("users/add/", add_user, name="add_user"),
     path("users/delete/<int:user_id>/", delete_user, name="delete_user"),
     path("users/edit/<int:user_id>/", edit_user, name="edit_user"),
+    path("users/<int:user_id>/domains/", user_domains_view, name="user_domains"),
+    path(
+        "users/<int:user_id>/domains/<int:domain_id>/sync/",
+        user_domain_sync,
+        name="user_domain_sync",
+    ),
     path("profile-settings/", profile_settings_view, name="profile_settings"),
     path(
         "profile-settings/regenerate-api-key/",

@@ -106,7 +106,7 @@ class LogVisitorAPIView(APIView):
         if getattr(request, "_request", None) is not None:
             request._request.api_user = api_user
 
-        allowed_codes = allowed_country_codes()
+        allowed_codes = allowed_country_codes(api_user)
 
         ip, ip_err = normalize_client_ip(request.data.get('ip'))
         user_agent_str, ua_err = normalize_user_agent(request.data.get('useragent'))

@@ -1,0 +1,89 @@
+{# Zone security / SSL settings. Pass `domain` (model instance or unsaved defaults). #}
+<fieldset class="ds-fieldset border-t border-[var(--ds-color-border)] pt-4 mt-2">
+  <legend class="text-sm font-medium text-[var(--ds-color-text)] mb-3">Zone settings (synced to Cloudflare)</legend>
+
+  <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 mb-4">
+    <label class="ds-check-row">
+      <input type="checkbox" name="bot_fight_mode" {% if domain.bot_fight_mode %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
+      Bot Fight Mode
+    </label>
+    <label class="ds-check-row">
+      <input type="checkbox" name="under_attack_mode" {% if domain.under_attack_mode %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
+      Under Attack Mode
+    </label>
+    <label class="ds-check-row">
+      <input type="checkbox" name="block_ai_bots" {% if domain.block_ai_bots %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
+      Block AI Bots
+    </label>
+    <label class="ds-check-row">
+      <input type="checkbox" name="ai_labyrinth" {% if domain.ai_labyrinth %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
+      AI Labyrinth
+    </label>
+    <label class="ds-check-row">
+      <input type="checkbox" name="ai_crawl_control" {% if domain.ai_crawl_control %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
+      AI Crawl Control
+    </label>
+    <label class="ds-check-row">
+      <input type="checkbox" name="browser_integrity_check" {% if domain.browser_integrity_check %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
+      Browser Integrity Check
+    </label>
+    <label class="ds-check-row">
+      <input type="checkbox" name="always_use_https" {% if domain.always_use_https %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
+      Always Use HTTPS
+    </label>
+    <label class="ds-check-row">
+      <input type="checkbox" name="http3_enabled" {% if domain.http3_enabled %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
+      HTTP/3 (with QUIC)
+    </label>
+    <label class="ds-check-row">
+      <input type="checkbox" name="zero_rtt_enabled" {% if domain.zero_rtt_enabled %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
+      0-RTT Connection Resumption
+    </label>
+    <label class="ds-check-row">
+      <input type="checkbox" name="automatic_https_rewrites" {% if domain.automatic_https_rewrites %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
+      Automatic HTTPS Rewrites
+    </label>
+  </div>
+  <p class="text-xs text-[var(--ds-color-text-muted)] mb-3">
+    AI bot toggles use the Bot Management API and may require a supported Cloudflare plan.
+  </p>
+
+  <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+    <div class="ds-field">
+      <label class="ds-label">Security level</label>
+      <select name="security_level" class="ds-select">
+        {% for value, label in domain.SECURITY_LEVEL_CHOICES %}
+          {% if value != "under_attack" and value != "off" %}
+          <option value="{{ value }}" {% if domain.security_level == value or domain.security_level == "off" and value == "essentially_off" %}selected{% endif %}>{{ label }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+    <div class="ds-field">
+      <label class="ds-label">Minimum TLS version</label>
+      <select name="min_tls_version" class="ds-select">
+        {% for value, label in domain.MIN_TLS_CHOICES %}
+        <option value="{{ value }}" {% if domain.min_tls_version == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="ds-field">
+      <label class="ds-label">SSL/TLS mode</label>
+      <select name="ssl_mode" class="ds-select">
+        {% for value, label in domain.SSL_MODE_CHOICES %}
+        <option value="{{ value }}" {% if domain.ssl_mode == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="ds-field">
+      <label class="ds-label">Challenge passage (TTL)</label>
+      <select name="challenge_ttl" class="ds-select">
+        {% for value, label in domain.CHALLENGE_TTL_CHOICES %}
+        <option value="{{ value }}" {% if domain.challenge_ttl == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</fieldset>
+
+{% include "dashboard/partials/includes/cloudflare_rate_limit_fields.html" with domain=domain %}

@@ -47,10 +47,23 @@ class BlockedHostname(models.Model):
         return self.hostname
 
 class AllowedCountry(models.Model):
-    code = models.CharField(max_length=2, unique=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="allowed_countries",
+    )
+    code = models.CharField(max_length=2)
     name = models.CharField(max_length=100, null=True, blank=True)
+
     class Meta:
         verbose_name_plural = "7 - Allowed Country Codes"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "code"],
+                name="tracker_allowedcountry_owner_code_uniq",
+            ),
+        ]
+
     def __str__(self):
         return self.code.upper()
 

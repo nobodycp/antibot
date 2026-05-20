@@ -1,0 +1,5 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Cloudflare Domains — {{ target_user.username }}{% endblock %}
+
+{% block content %}{% include "dashboard/partials/shell/user_domains.html" %}{% endblock %}

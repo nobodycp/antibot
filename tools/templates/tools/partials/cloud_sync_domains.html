@@ -1,0 +1,55 @@
+{% if active_domain_rows %}
+<div class="table-container dash-surface dash-table-shell overflow-hidden rounded-xl">
+  <div class="table-container__scroll">
+    <table class="table ds-table min-w-[36rem] text-left">
+      <thead class="table-header">
+        <tr>
+          <th>Domain</th>
+          <th>Owner</th>
+          <th>Zone ID</th>
+          <th>Last sync</th>
+          <th class="text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in active_domain_rows %}
+        <tr>
+          <td class="ds-text-primary">{{ d.domain_name }}</td>
+          <td>
+            <a href="{% url 'dashboard:user_domains' d.user_id %}"
+               class="ds-link"
+               hx-get="{% url 'dashboard:user_domains' d.user_id %}"
+               hx-target="#main-content"
+               hx-swap="innerHTML"
+               hx-push-url="true">{{ d.user.username }}</a>
+          </td>
+          <td class="table-cell--mono text-xs">{{ d.zone_id }}</td>
+          <td class="text-xs table-cell--muted">
+            {% if d.last_synced_at %}
+              {{ d.last_synced_at }}
+              {% if d.last_sync_status %}
+                <span class="{% if d.last_sync_status == 'ok' %}ds-text-success{% elif d.last_sync_status == 'error' %}ds-text-danger{% elif d.last_sync_status == 'warning' %}ds-text-warning{% endif %}">
+                  ({{ d.get_last_sync_status_display }})
+                </span>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td class="table-actions">
+            <form method="post"
+                  action="{% url 'tools:cloud_sync_domain_sync' d.id %}"
+                  class="inline">
+              {% csrf_token %}
+              <button type="submit" class="ds-btn ds-btn--primary ds-btn--px3">Sync</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<p class="text-sm table-cell--muted">No active domains registered. Add domains from a user&rsquo;s Cloudflare domains page (Admin &rarr; Users).</p>
+{% endif %}

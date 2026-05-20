@@ -2,8 +2,6 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 
-from core.decorators import superuser_required
-
 from ..rule_cache_invalidation import invalidate_tracker_rule_caches
 from ..helpers.logs_views_helper import (
     apply_country_code_filter,
@@ -11,7 +9,11 @@ from ..helpers.logs_views_helper import (
     list_search_q,
     visitor_logs_search_q,
 )
-from ..helpers.ownership import rejected_logs_queryset, visitor_logs_queryset
+from ..helpers.ownership import (
+    allowed_countries_queryset,
+    rejected_logs_queryset,
+    visitor_logs_queryset,
+)
 from ..models import AllowedCountry, RejectedVisitor, Visitor
 from .list_flow import (
     logs_after_post_htmx_or_redirect,
@@ -21,8 +23,9 @@ from .list_flow import (
 )
 
 
-@superuser_required
+@login_required
 def allowed_country_view(request):
+    countries_qs = allowed_countries_queryset(request.user).order_by("code")
     if request.method == 'POST':
         code = request.POST.get('country')
         delete_id = request.POST.get('delete_id')
@@ -30,21 +33,21 @@ def allowed_country_view(request):
 
         if code:
             code = code.strip().upper()
-            if not AllowedCountry.objects.filter(code=code).exists():
-                AllowedCountry.objects.create(code=code)
+            if not countries_qs.filter(code=code).exists():
+                AllowedCountry.objects.create(code=code, owner=request.user)
                 messages.success(request, f"✅ Country code {code} added.")
             else:
                 messages.warning(request, f"⚠️ {code} already exists.")
         elif delete_id:
             try:
-                obj = AllowedCountry.objects.get(id=delete_id)
+                obj = countries_qs.get(id=delete_id)
                 messages.error(request, f"🗑️ {obj.code} deleted.")
                 obj.delete()
             except AllowedCountry.DoesNotExist:
                 messages.error(request, "❌ Entry not found.")
         elif delete_all:
-            count = AllowedCountry.objects.count()
-            AllowedCountry.objects.all().delete()
+            count = countries_qs.count()
+            countries_qs.delete()
             invalidate_tracker_rule_caches()
             messages.error(request, f"🧹 Deleted {count} country codes.")
         else:
@@ -53,7 +56,7 @@ def allowed_country_view(request):
         return logs_after_post_htmx_or_redirect(
             request,
             get_q=list_search_q,
-            ordered_qs=AllowedCountry.objects.all().order_by("code"),
+            ordered_qs=allowed_countries_queryset(request.user).order_by("code"),
             apply_filter=apply_country_code_filter,
             list_key="allowed_countries",
             partial_template="tracker/partials/allowed_country_partial.html",
@@ -63,7 +66,7 @@ def allowed_country_view(request):
     return logs_render_full_page(
         request,
         get_q=list_search_q,
-        ordered_qs=AllowedCountry.objects.all().order_by("code"),
+        ordered_qs=countries_qs,
         apply_filter=apply_country_code_filter,
         list_key="allowed_countries",
         template="tracker/allowed_country.html",
@@ -71,24 +74,24 @@ def allowed_country_view(request):
     )
 
 
-@superuser_required
+@login_required
 def allowed_country_partial(request):
     return logs_render_partial(
         request,
         get_q=list_search_q,
-        ordered_qs=AllowedCountry.objects.all().order_by("code"),
+        ordered_qs=allowed_countries_queryset(request.user).order_by("code"),
         apply_filter=apply_country_code_filter,
         list_key="allowed_countries",
         partial_template="tracker/partials/allowed_country_partial.html",
     )
 
 
-@superuser_required
+@login_required
 def allowed_country_table(request):
     return logs_render_table(
         request,
         get_q=list_search_q,
-        ordered_qs=AllowedCountry.objects.all().order_by("code"),
+        ordered_qs=allowed_countries_queryset(request.user).order_by("code"),
         apply_filter=apply_country_code_filter,
         list_key="allowed_countries",
         table_template="tracker/partials/allowed_country_table.html",

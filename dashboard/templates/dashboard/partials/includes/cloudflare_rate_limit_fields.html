@@ -1,0 +1,44 @@
+{# Per-domain rate limit (http_ratelimit ruleset). Pass `domain` (model or defaults). #}
+<fieldset class="ds-fieldset border-t border-[var(--ds-color-border)] pt-4 mt-2">
+  <legend class="text-sm font-medium text-[var(--ds-color-text)] mb-3">Rate limit (synced to Cloudflare WAF)</legend>
+
+  <label class="ds-check-row mb-4">
+    <input type="checkbox" name="rate_limit_enabled" {% if domain.rate_limit_enabled %}checked{% endif %} class="ds-checkbox h-4 w-4 shrink-0">
+    Enable rate limit rule
+  </label>
+
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+    <div class="ds-field">
+      <label class="ds-label">Requests</label>
+      <input type="number" name="rate_limit_requests" min="1" step="1"
+             value="{{ domain.rate_limit_requests|default:30 }}"
+             class="ds-input" placeholder="30">
+      <p class="text-xs text-[var(--ds-color-text-muted)] mt-1">Max requests in the window</p>
+    </div>
+    <div class="ds-field">
+      <label class="ds-label">Per (seconds)</label>
+      <input type="number" name="rate_limit_period_seconds" min="1" step="1"
+             value="{{ domain.rate_limit_period_seconds|default:10 }}"
+             class="ds-input" placeholder="10">
+      <p class="text-xs text-[var(--ds-color-text-muted)] mt-1">Counting window</p>
+    </div>
+    <div class="ds-field">
+      <label class="ds-label">Action</label>
+      <select name="rate_limit_action" class="ds-select">
+        {% for value, label in domain.RATE_LIMIT_ACTION_CHOICES %}
+        <option value="{{ value }}" {% if domain.rate_limit_action == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="ds-field">
+      <label class="ds-label">Duration (seconds)</label>
+      <input type="number" name="rate_limit_duration_seconds" min="1" step="1"
+             value="{{ domain.rate_limit_duration_seconds|default:10 }}"
+             class="ds-input" placeholder="10">
+      <p class="text-xs text-[var(--ds-color-text-muted)] mt-1">Mitigation timeout after trigger</p>
+    </div>
+  </div>
+  <p class="text-xs text-[var(--ds-color-text-muted)] mt-3">
+    Pushed as rule <code class="text-xs">antibot:rate-limit</code> on the <code class="text-xs">http_ratelimit</code> phase (per client IP).
+  </p>
+</fieldset>

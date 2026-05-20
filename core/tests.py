@@ -54,6 +54,25 @@ _HEALTH_CACHES = {
 
 
 @override_settings(CACHES=_HEALTH_CACHES)
+class RootRedirectTests(TestCase):
+    def test_anonymous_redirects_to_login(self):
+        r = self.client.get("/")
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.url, "/accounts/login/")
+
+    def test_authenticated_redirects_to_dashboard(self):
+        from django.contrib.auth import get_user_model
+
+        user = get_user_model().objects.create_user(
+            username="root_redirect_user",
+            password="pass-123",
+        )
+        self.client.force_login(user)
+        r = self.client.get("/")
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.url, "/dashboard/")
+
+
 class HealthEndpointTests(TestCase):
     def test_health_ok_json(self):
         r = self.client.get("/health/")

@@ -5,6 +5,7 @@ import importlib.util
 import os
 import warnings
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 from dotenv import load_dotenv
 
@@ -79,20 +80,64 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'analytics_project.wsgi.application'
 
-# Database: PostgreSQL when DB_NAME is set; otherwise SQLite (local dev / simple deploys).
-_db_name = (os.environ.get("DB_NAME") or "").strip()
-if _db_name:
-    DATABASES = {
-        "default": {
+def _postgres_config():
+    """Build PostgreSQL settings from DATABASE_URL, POSTGRES_*, or legacy DB_* env vars."""
+    database_url = (os.environ.get("DATABASE_URL") or "").strip()
+    if database_url:
+        parsed = urlparse(database_url)
+        if parsed.scheme not in ("postgres", "postgresql"):
+            raise ValueError(
+                f"DATABASE_URL scheme must be postgres or postgresql, got {parsed.scheme!r}"
+            )
+        return {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": _db_name,
-            "USER": os.environ.get("DB_USER", "postgres"),
-            "PASSWORD": os.environ.get("DB_PASSWORD", ""),
-            "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
-            "PORT": os.environ.get("DB_PORT", "5432"),
+            "NAME": unquote(parsed.path.lstrip("/")),
+            "USER": unquote(parsed.username or ""),
+            "PASSWORD": unquote(parsed.password or ""),
+            "HOST": parsed.hostname or "127.0.0.1",
+            "PORT": str(parsed.port or 5432),
             "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "0")),
         }
+
+    name = (
+        os.environ.get("POSTGRES_DB")
+        or os.environ.get("DB_NAME")
+        or ""
+    ).strip()
+    if not name:
+        return None
+
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": name,
+        "USER": (
+            os.environ.get("POSTGRES_USER")
+            or os.environ.get("DB_USER")
+            or "postgres"
+        ),
+        "PASSWORD": (
+            os.environ.get("POSTGRES_PASSWORD")
+            or os.environ.get("DB_PASSWORD")
+            or ""
+        ),
+        "HOST": (
+            os.environ.get("POSTGRES_HOST")
+            or os.environ.get("DB_HOST")
+            or "127.0.0.1"
+        ),
+        "PORT": (
+            os.environ.get("POSTGRES_PORT")
+            or os.environ.get("DB_PORT")
+            or "5432"
+        ),
+        "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "0")),
     }
+
+
+# Database: PostgreSQL when DATABASE_URL / POSTGRES_* / DB_* is set; else SQLite (local dev).
+_pg = _postgres_config()
+if _pg:
+    DATABASES = {"default": _pg}
 else:
     DATABASES = {
         "default": {
@@ -162,6 +207,13 @@ SERVE_MEDIA = os.environ.get("DJANGO_SERVE_MEDIA", "").strip().lower() in (
 )
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# WhatsApp number validator (Node / Baileys under project whatsapp/)
+WHATSAPP_ROOT = BASE_DIR / "whatsapp"
+WHATSAPP_NODE_BIN = os.environ.get("NODE_BIN", "node")
+WHATSAPP_DEFAULT_SPEED = os.environ.get("WHATSAPP_SPEED", "normal")
+WHATSAPP_LOCAL_TRUNK_COUNTRY = os.environ.get("LOCAL_TRUNK_COUNTRY", "").strip()
+
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'

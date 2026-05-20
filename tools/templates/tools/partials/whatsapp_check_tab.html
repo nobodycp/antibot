@@ -1,0 +1,118 @@
+{% if not linked_accounts %}
+<div class="ds-card mb-2">
+  <div class="ds-card__body text-sm table-cell--muted py-2">
+    No linked WhatsApp accounts yet.
+    <a href="{% url 'tools:whatsapp_check' %}?tab=accounts" class="ds-text-primary underline">Add an account</a> first.
+  </div>
+</div>
+{% endif %}
+
+<div class="wa-check-workspace">
+  <section class="wa-check-workspace__form">
+    <div class="wa-check-form-body">
+      <form method="post" class="wa-check-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="start_check" />
+
+        <div class="wa-check-form__numbers">
+          <label class="mb-0.5 block text-xs font-medium table-cell--muted">{{ check_form.numbers.label }}</label>
+          {{ check_form.numbers }}
+          <div class="wa-check-form__prefix mt-1.5">
+            <label class="mb-0.5 block text-xs font-medium table-cell--muted">{{ check_form.country_prefix.label }}</label>
+            {{ check_form.country_prefix }}
+            {% if check_form.country_prefix.help_text %}
+            <p class="mt-0.5 text-xs table-cell--muted">{{ check_form.country_prefix.help_text }}</p>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if linked_accounts %}
+        <div class="wa-check-form__accounts">
+          <p class="mb-0.5 text-xs font-medium table-cell--muted">{{ check_form.accounts.label }}</p>
+          <p class="mb-1 text-xs table-cell--muted">{{ check_form.accounts.help_text }}</p>
+          <div class="flex flex-wrap gap-2">
+            {% for checkbox in check_form.accounts %}
+            <label class="inline-flex items-center gap-1.5 text-sm">{{ checkbox.tag }} {{ checkbox.choice_label }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="wa-check-form__controls">
+          <div class="wa-check-form__speed">
+            <label class="mb-0.5 block text-xs font-medium table-cell--muted">{{ check_form.speed.label }}</label>
+            <select name="speed" class="ds-input ds-input--compact">
+              {% for value, label in check_form.fields.speed.choices %}
+              <option value="{{ value }}"{% if check_form.speed.value == value or not check_form.speed.value and value == 'normal' %} selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <label class="inline-flex items-center gap-2 text-sm">
+            {{ check_form.fetch_presence }}
+            {{ check_form.fetch_presence.label }}
+          </label>
+        </div>
+
+        <div class="wa-check-form__actions">
+          <button type="submit" class="ds-btn ds-btn--primary ds-btn--sm"
+                  {% if not linked_accounts or active_job %}disabled{% endif %}>
+            Start check
+          </button>
+          {% if active_job %}
+          <p class="text-xs ds-text-warning">A job is already running.</p>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </section>
+
+  {% include "tools/partials/whatsapp_check_results_wrapper.html" with job=poll_job snapshot=job_snapshot %}
+</div>
+
+{% if jobs %}
+<section class="ds-card ds-card--table mt-2">
+  <div class="ds-card__head py-1.5">
+    <h2 class="text-sm font-semibold">Recent jobs</h2>
+  </div>
+  <div class="table-container dash-surface dash-table-shell overflow-hidden rounded-xl">
+    <div class="table-container__scroll">
+      <table class="table ds-table min-w-[32rem] text-left text-sm">
+        <thead class="table-header">
+          <tr>
+            <th class="px-3 py-2">ID</th>
+            <th class="px-3 py-2">Status</th>
+            <th class="px-3 py-2">Accounts</th>
+            <th class="px-3 py-2">Valid</th>
+            <th class="px-3 py-2">Checked</th>
+            <th class="px-3 py-2">Started</th>
+            <th class="table-actions px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in jobs %}
+          <tr>
+            <td class="px-3 py-2 table-cell--mono">#{{ job.id }}</td>
+            <td class="px-3 py-2">{{ job.get_status_display }}</td>
+            <td class="px-3 py-2 text-xs">{{ job.account_names|join:", " }}</td>
+            <td class="px-3 py-2">{{ job.live_count }}</td>
+            <td class="px-3 py-2">{{ job.checked_count }}</td>
+            <td class="px-3 py-2 text-xs table-cell--muted">{{ job.started_at|default:"—" }}</td>
+            <td class="table-actions px-3 py-2">
+              <a href="{% url 'tools:whatsapp_check' %}?tab=check&job={{ job.id }}" class="ds-btn ds-btn--ghost ds-btn--xs">View</a>
+              {% if job.status == 'running' %}
+              <form method="post" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="cancel_job" />
+                <input type="hidden" name="job_id" value="{{ job.id }}" />
+                <button type="submit" class="ds-btn ds-btn--ghost ds-btn--xs ds-text-danger">Cancel</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endif %}

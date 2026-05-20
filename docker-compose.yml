@@ -1,0 +1,27 @@
+# Local prod-like stack: PostgreSQL only (Django still runs on the host or in your venv).
+# Usage:
+#   docker compose up -d
+#   export DATABASE_URL=postgres://antibot:antibot@127.0.0.1:5432/antibot
+#   export DJANGO_ENV=production
+#   python manage.py migrate
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: antibot
+      POSTGRES_USER: antibot
+      POSTGRES_PASSWORD: antibot
+    ports:
+      - "5432:5432"
+    volumes:
+      - antibot_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U antibot -d antibot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  antibot_pgdata:

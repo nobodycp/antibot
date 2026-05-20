@@ -1,0 +1,17 @@
+{
+  "name": "whatsapp-multi-validator",
+  "version": "1.0.0",
+  "description": "Advanced Multi-Account WhatsApp Number Validator using Baileys",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "fs-extra": "^11.2.0",
+    "pino": "^9.5.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

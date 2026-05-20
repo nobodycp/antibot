@@ -37,3 +37,50 @@ class RedirectCheck(models.Model):
     def __str__(self):
         return f"{self.url} | {self.keyword}"
 
+
+class WhatsAppCheckJob(models.Model):
+    STATUS_PENDING = "pending"
+    STATUS_RUNNING = "running"
+    STATUS_COMPLETED = "completed"
+    STATUS_FAILED = "failed"
+    STATUS_CANCELLED = "cancelled"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_RUNNING, "Running"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_FAILED, "Failed"),
+        (STATUS_CANCELLED, "Cancelled"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="whatsapp_check_jobs",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+    )
+    numbers_text = models.TextField()
+    local_trunk_country = models.CharField(max_length=8, blank=True)
+    account_names = models.JSONField(default=list, blank=True)
+    speed = models.CharField(max_length=16, default="normal")
+    fetch_presence = models.BooleanField(default=False)
+    pid = models.IntegerField(null=True, blank=True)
+    run_dir = models.CharField(max_length=512, blank=True)
+    checked_count = models.PositiveIntegerField(default=0)
+    live_count = models.PositiveIntegerField(default=0)
+    error_count = models.PositiveIntegerField(default=0)
+    error_message = models.TextField(blank=True)
+    result_summary = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"WhatsApp job #{self.pk} ({self.status})"
+

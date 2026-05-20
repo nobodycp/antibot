@@ -1,0 +1,91 @@
+<div class="wa-check-accounts mb-4 space-y-2"
+     x-data="waAccountsStatusPoll()"
+     x-init="init()">
+  <h2 class="ds-kicker">Linked accounts</h2>
+
+  <form id="wa-status-interval-form"
+        class="wa-check-accounts-interval flex min-w-0 flex-nowrap items-center gap-1.5 mb-1"
+        @submit.prevent>
+    <label for="wa-status-interval" class="text-xs font-medium table-cell--muted shrink-0">
+      Status check interval (seconds)
+    </label>
+    <input id="wa-status-interval"
+           type="number"
+           name="seconds"
+           x-model.number="seconds"
+           min="5"
+           max="300"
+           step="1"
+           class="ds-input ds-input--compact w-20 shrink-0 font-mono text-xs"
+           @change="onIntervalChange()" />
+  </form>
+
+  <form method="post" class="wa-check-accounts-add flex min-w-0 flex-nowrap items-center gap-1.5">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add_account" />
+    <input id="wa-account-name" type="text" name="account_name" placeholder="acc_2 (optional)"
+           class="ds-input ds-input--compact min-w-0 max-w-[16rem] shrink font-mono text-xs" />
+    <button type="submit" class="ds-btn ds-btn--primary ds-btn--sm ds-btn--px3 shrink-0">Add account</button>
+  </form>
+
+  {% include "tracker/partials/includes/tracker_list_table_open.html" %}
+        <tr>
+          <th class="px-2 py-1.5">Name</th>
+          <th class="px-2 py-1.5">Status</th>
+          <th class="table-actions px-2 py-1.5">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="wa-accounts-tbody">
+        {% include "tools/partials/whatsapp_accounts_table_body.html" with account_rows=account_rows %}
+      </tbody>
+  {% include "tracker/partials/includes/tracker_list_table_close.html" %}
+</div>
+
+{% if pairing_account %}
+<section class="ds-card dash-surface wa-check-accounts-pairing mb-4" id="wa-pairing-panel"
+         hx-get="{% url 'tools:whatsapp_pairing_status' pairing_account %}"
+         hx-trigger="load, every 3s"
+         hx-swap="outerHTML">
+  {% include "tools/partials/whatsapp_pairing_status.html" with account_name=pairing_account pairing=pairing %}
+</section>
+{% endif %}
+
+<script>
+function waAccountsStatusPoll() {
+  const statusUrl = "{% url 'tools:whatsapp_accounts_status' %}";
+  const storageKey = "wa_status_interval";
+  return {
+    seconds: {{ status_interval|default:30 }},
+    timer: null,
+    init() {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const parsed = parseInt(stored, 10);
+        if (!Number.isNaN(parsed)) {
+          this.seconds = Math.min(300, Math.max(5, parsed));
+        }
+      }
+      this.schedulePoll();
+    },
+    onIntervalChange() {
+      this.seconds = Math.min(300, Math.max(5, parseInt(this.seconds, 10) || 30));
+      localStorage.setItem(storageKey, String(this.seconds));
+      this.schedulePoll();
+    },
+    schedulePoll() {
+      if (this.timer) {
+        clearTimeout(this.timer);
+      }
+      const poll = () => {
+        const params = new URLSearchParams({ seconds: String(this.seconds) });
+        htmx.ajax("GET", statusUrl + "?" + params.toString(), {
+          target: "#wa-accounts-tbody",
+          swap: "innerHTML",
+        });
+        this.timer = setTimeout(poll, this.seconds * 1000);
+      };
+      poll();
+    },
+  };
+}
+</script>

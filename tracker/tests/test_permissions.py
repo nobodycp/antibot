@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from tracker.models import IPInfo, RejectedVisitor, Visitor
+from tracker.models import AllowedCountry, IPInfo, RejectedVisitor, Visitor
 
 User = get_user_model()
 
@@ -218,6 +218,30 @@ class TrackerOwnershipAndPermissionsTestCase(TestCase):
             {"delete_id": str(ia.pk)},
         )
         self.assertEqual(IPInfo.objects.filter(ip_address="192.0.2.91").count(), 0)
+
+    # --- Allowed countries: per-user via login ---
+
+    def test_regular_user_can_access_allowed_countries_page(self):
+        self.client.force_login(self.user_a)
+        r = self.client.get(reverse("tracker:allowed_country"))
+        self.assertEqual(r.status_code, 200)
+
+    def test_regular_user_can_add_own_allowed_country(self):
+        self.client.force_login(self.user_a)
+        r = self.client.post(reverse("tracker:allowed_country"), {"country": "JO"})
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(
+            AllowedCountry.objects.filter(owner=self.user_a, code="JO").exists()
+        )
+
+    def test_user_cannot_delete_other_users_allowed_country(self):
+        row = AllowedCountry.objects.create(owner=self.user_b, code="US")
+        self.client.force_login(self.user_a)
+        self.client.post(
+            reverse("tracker:allowed_country"),
+            {"delete_id": str(row.pk)},
+        )
+        self.assertTrue(AllowedCountry.objects.filter(pk=row.pk).exists())
 
     # --- Group 3.9: block rules superuser-only ---
 
