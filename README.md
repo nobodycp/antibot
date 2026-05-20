@@ -388,7 +388,7 @@ Use a **Bearer API token** only (paste the token string; the app sends `Authoriz
 | **Recommended** | Zone | Firewall Services | Edit | Same rulesets API path; include if WAF-only token gets 403 on sync |
 | **Recommended** | Zone | Bot Management | Edit | `GET`/`PUT /zones/{id}/bot_management` (Bot Fight, AI bots, Labyrinth, crawl control) |
 | **Recommended** | Zone | WAF | Edit | `GET`/`PUT` `rulesets/.../http_ratelimit/entrypoint` (`antibot:rate-limit`) |
-| **Recommended** | Account | Account Filter Lists | Edit | `GET`/`POST`/`PUT /zones/{id}/rules/lists*` when **>25** global blocked subnets (IP list `antibot_subnet_block`) |
+| **Recommended** | Account | Account Filter Lists | Edit | `GET`/`POST`/`DELETE /accounts/{id}/rules/lists*` when **>25** global blocked subnets (IP list `antibot_subnet_block`) |
 
 Cloudflare’s UI may label access as **Edit** or **Write** depending on template age; use the write level for each row.
 

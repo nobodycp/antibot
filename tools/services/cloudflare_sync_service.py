@@ -260,10 +260,25 @@ def _rule_payload_matches(existing: dict, desired: dict) -> bool:
     )
 
 
+def _account_lists_base(token: str, zone_id: str) -> tuple[bool, str, str, str]:
+    """
+    Cloudflare Rules Lists are account-scoped (not /zones/{id}/rules/lists).
+
+    Returns (ok, account_id, lists_base_path, error_message).
+    """
+    ok, account_id, err = _account_id_for_zone(token, zone_id)
+    if not ok:
+        return False, "", "", err
+    return True, account_id, f"/accounts/{account_id}/rules/lists", ""
+
+
 def _find_ip_list_id(token: str, zone_id: str) -> Optional[str]:
+    ok, _account_id, lists_base, err = _account_lists_base(token, zone_id)
+    if not ok:
+        raise RuntimeError(f"Could not list IP lists: {err}")
     ok, payload, err = _cf_request(
         "GET",
-        f"/zones/{zone_id}/rules/lists",
+        lists_base,
         token,
     )
     if not ok:
@@ -279,7 +294,10 @@ def _fetch_ip_list_items_by_ip(
     token: str, zone_id: str, list_id: str
 ) -> dict[str, str]:
     """Return mapping of CIDR/IP string -> Cloudflare item id (paginated GET)."""
-    path = f"/zones/{zone_id}/rules/lists/{list_id}/items"
+    ok, _account_id, lists_base, err = _account_lists_base(token, zone_id)
+    if not ok:
+        raise RuntimeError(f"Could not fetch IP list items: {err}")
+    path = f"{lists_base}/{list_id}/items"
     items_by_ip: dict[str, str] = {}
     cursor: Optional[str] = None
 
@@ -414,11 +432,11 @@ def _post_ip_list_items_batches(
     list_id: str,
     cidrs: list[str],
 ) -> tuple[bool, str]:
-    ok, account_id, err = _account_id_for_zone(token, zone_id)
+    ok, account_id, lists_base, err = _account_lists_base(token, zone_id)
     if not ok:
         return False, err
 
-    path = f"/zones/{zone_id}/rules/lists/{list_id}/items"
+    path = f"{lists_base}/{list_id}/items"
     items = [{"ip": c} for c in sorted(cidrs)]
     total = len(items)
 
@@ -442,11 +460,11 @@ def _delete_ip_list_items_batches(
 ) -> tuple[bool, str]:
     if not item_ids:
         return True, ""
-    ok, account_id, err = _account_id_for_zone(token, zone_id)
+    ok, account_id, lists_base, err = _account_lists_base(token, zone_id)
     if not ok:
         return False, err
 
-    path = f"/zones/{zone_id}/rules/lists/{list_id}/items"
+    path = f"{lists_base}/{list_id}/items"
     total = len(item_ids)
 
     for offset in range(0, total, IP_LIST_DELETE_BATCH_SIZE):
@@ -471,9 +489,12 @@ def _ensure_ip_list_id(token: str, zone_id: str) -> str:
     if list_id:
         return list_id
 
+    ok, _account_id, lists_base, err = _account_lists_base(token, zone_id)
+    if not ok:
+        raise RuntimeError(f"Could not create IP list: {err}")
     ok, payload, err = _cf_request(
         "POST",
-        f"/zones/{zone_id}/rules/lists",
+        lists_base,
         token,
         json_body={
             "name": IP_LIST_NAME,
