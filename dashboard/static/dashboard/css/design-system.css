@@ -841,10 +841,6 @@ aside.dash-app-sidebar > div:first-child:not(.dash-sidebar-brand) {
   color: var(--ds-color-success);
 }
 
-.wa-check-list-card--valid .wa-check-list-textarea.ds-input {
-  border-color: color-mix(in srgb, var(--ds-color-success) 35%, var(--ds-color-border-subtle));
-}
-
 .wa-check-list-card--error {
   border-color: var(--ds-color-danger);
 }
@@ -856,10 +852,6 @@ aside.dash-app-sidebar > div:first-child:not(.dash-sidebar-brand) {
 
 .wa-check-list-card--error .wa-check-list-card__head h3 {
   color: var(--ds-color-danger);
-}
-
-.wa-check-list-card--error .wa-check-list-textarea.ds-input {
-  border-color: color-mix(in srgb, var(--ds-color-danger) 35%, var(--ds-color-border-subtle));
 }
 
 .wa-check-list-card--skipped,
@@ -876,11 +868,6 @@ aside.dash-app-sidebar > div:first-child:not(.dash-sidebar-brand) {
 .wa-check-list-card--skipped .wa-check-list-card__head h3,
 .wa-check-list-card--previous .wa-check-list-card__head h3 {
   color: var(--ds-color-warning);
-}
-
-.wa-check-list-card--skipped .wa-check-list-textarea.ds-input,
-.wa-check-list-card--previous .wa-check-list-textarea.ds-input {
-  border-color: color-mix(in srgb, var(--ds-color-warning) 35%, var(--ds-color-border-subtle));
 }
 
 .wa-check-results__status {
@@ -908,9 +895,42 @@ aside.dash-app-sidebar > div:first-child:not(.dash-sidebar-brand) {
   align-items: center;
   justify-content: space-between;
   gap: var(--ds-space-2);
-  padding: var(--ds-space-1) var(--ds-space-2);
+  min-height: 0;
+  padding: 0.125rem 0.5rem;
   border-bottom: 1px solid var(--ds-color-border-muted);
   background: transparent;
+}
+
+.wa-check-list-card__head h3 {
+  margin: 0;
+  line-height: 1.25;
+}
+
+.wa-check-list-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex-shrink: 0;
+}
+
+.wa-check-list-card__count {
+  min-width: 1.25rem;
+  text-align: right;
+  line-height: 1.25;
+}
+
+.wa-check-list-card__head .ds-icon-btn {
+  height: 1.5rem;
+  width: 1.5rem;
+}
+
+.wa-check-copy-toast-anchor {
+  margin-bottom: var(--ds-space-1);
+}
+
+.wa-check-copy-toast-anchor:empty {
+  display: none;
+  margin-bottom: 0;
 }
 
 .wa-check-list-card__body {
@@ -927,11 +947,20 @@ aside.dash-app-sidebar > div:first-child:not(.dash-sidebar-brand) {
   flex: 1 1 auto;
   margin: 0;
   resize: none;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  padding: 0;
+  color: var(--ds-color-text);
+  font-size: var(--ds-text-xs);
+  line-height: 1.4;
 }
 
-.wa-check-list-textarea.ds-input {
-  padding: var(--ds-space-1) var(--ds-space-2);
-  border-width: 1px;
+.wa-check-list-textarea:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
 }
 
 /* WhatsApp Check — Accounts tab add-account toolbar (ds-input is width:100% by default) */

@@ -156,6 +156,48 @@ function parseNumberLine(line, defaultCc) {
   return { fileDigits, queryDigits };
 }
 
+async function loadResumeProgress() {
+  if (!RESUME_JOB) return;
+  if (!(await fs.pathExists(PROGRESS_FILE))) return;
+  try {
+    const data = await fs.readJson(PROGRESS_FILE);
+    if (data.totals && Number.isFinite(data.totals.total) && data.totals.total > 0) {
+      progressTotalInput = data.totals.total;
+    }
+    if (Array.isArray(data.results)) {
+      for (const row of data.results) {
+        if (!row || !row.account) continue;
+        progressByAccount.set(row.account, {
+          account: row.account,
+          checked: row.checked || 0,
+          live: row.live || 0,
+          errors: row.errors || 0,
+          invalid: row.invalid || Math.max(0, (row.checked || 0) - (row.live || 0) - (row.errors || 0)),
+          pending: row.pending || 0,
+        });
+      }
+    }
+    log(
+      'SYSTEM',
+      `Resume: restored progress (checked=${data.totals?.checked || 0}, total=${progressTotalInput || '?'})`
+    );
+  } catch (e) {
+    log('SYSTEM', `Resume: could not load progress.json: ${e?.message || e}`);
+  }
+}
+
+async function readNumbersForJob() {
+  if (RESUME_JOB) {
+    const pending = await readPendingParsed();
+    if (pending.length > 0) {
+      log('SYSTEM', `Resume: ${pending.length} number(s) from pending_numbers.txt`);
+      await writePendingParsed([]);
+      return pending;
+    }
+  }
+  return readNumbers();
+}
+
 async function readNumbers() {
   if (!(await fs.pathExists(NUMBERS_FILE))) {
     throw new Error(`numbers.txt not found at ${NUMBERS_FILE}`);
@@ -290,6 +332,7 @@ function isConnectionErrorMessage(msg) {
 const progressMutex = { busy: false, queue: [] };
 const progressByAccount = new Map();
 let progressTotalInput = 0;
+const RESUME_JOB = process.env.RESUME_JOB === '1';
 
 async function flushProgressFile(extra = {}) {
   const results = [...progressByAccount.values()].sort((a, b) =>
@@ -1177,9 +1220,17 @@ async function start() {
   await fs.ensureFile(ERROR_NUMBERS_FILE);
   await fs.ensureFile(PENDING_NUMBERS_FILE);
 
-  const numbers = await readNumbers();
-  progressTotalInput = numbers.length;
-  log('SYSTEM', `Loaded ${numbers.length} unique numbers from numbers.txt`);
+  await loadResumeProgress();
+  const numbers = await readNumbersForJob();
+  if (!progressTotalInput) {
+    progressTotalInput = numbers.length;
+  }
+  log(
+    'SYSTEM',
+    RESUME_JOB
+      ? `Resume: processing ${numbers.length} remaining number(s) (job total ${progressTotalInput})`
+      : `Loaded ${numbers.length} unique numbers from numbers.txt`
+  );
   if (LOCAL_TRUNK_CC) {
     log('SYSTEM', `LOCAL_TRUNK_COUNTRY=${LOCAL_TRUNK_CC} (05XXXXXXXX → ${LOCAL_TRUNK_CC}5XXXXXXXX)`);
   }

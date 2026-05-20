@@ -23,9 +23,9 @@
 
 {% if job %}
 <div class="wa-check-results__status text-xs table-cell--muted">
-  Job #{{ job.id }} — {{ job.get_status_display }}
+  Job #{{ job.id }} — {{ job.status_label }}
   {% if job.status == 'running' %}
-  <span class="ml-1">· every 5s</span>
+  <span class="ml-1">· every 30s</span>
   {% endif %}
   {% if job.error_message %}
   <span class="ds-text-danger ml-2">{{ job.error_message }}</span>
@@ -37,6 +37,11 @@
     <input type="hidden" name="job_id" value="{{ job.id }}" />
     <button type="submit" class="ds-btn ds-btn--ghost ds-btn--xs ds-text-danger">Cancel</button>
   </form>
+  {% elif job.is_resumable %}
+  <form method="post" action="{% url 'tools:whatsapp_check_continue' job.id %}" class="inline ml-2">
+    {% csrf_token %}
+    <button type="submit" class="ds-btn ds-btn--primary ds-btn--xs">Continue</button>
+  </form>
   {% endif %}
 </div>
 {% endif %}
@@ -45,10 +50,18 @@
   <section class="wa-check-list-card wa-check-list-card--valid">
     <header class="wa-check-list-card__head">
       <h3 class="text-xs font-semibold">Valid numbers</h3>
-      <span class="text-xs ds-text-success">{{ snapshot.valid_numbers|length }}</span>
+      <div class="wa-check-list-card__actions">
+        <span class="wa-check-list-card__count text-xs ds-text-success">{{ snapshot.valid_numbers|length }}</span>
+        <button type="button"
+                class="ds-icon-btn"
+                title="Copy all"
+                onclick="waCheckCopyList('wa-check-valid-numbers')">
+          {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="action_copy" icon_size_class="h-4 w-4" %}
+        </button>
+      </div>
     </header>
     <div class="wa-check-list-card__body">
-      <textarea readonly class="wa-check-list-textarea ds-input font-mono text-xs">{% for n in snapshot.valid_numbers %}{{ n }}{% if not forloop.last %}
+      <textarea readonly id="wa-check-valid-numbers" class="wa-check-list-textarea font-mono text-xs">{% for n in snapshot.valid_numbers %}{{ n }}{% if not forloop.last %}
 {% endif %}{% endfor %}</textarea>
     </div>
   </section>
@@ -57,10 +70,18 @@
     <section class="wa-check-list-card wa-check-list-card--error">
       <header class="wa-check-list-card__head">
         <h3 class="text-xs font-semibold">Error numbers</h3>
-        <span class="text-xs ds-text-danger">{{ snapshot.error_numbers|length }}</span>
+        <div class="wa-check-list-card__actions">
+          <span class="wa-check-list-card__count text-xs ds-text-danger">{{ snapshot.error_numbers|length }}</span>
+          <button type="button"
+                  class="ds-icon-btn"
+                  title="Copy all"
+                  onclick="waCheckCopyList('wa-check-error-numbers')">
+            {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="action_copy" icon_size_class="h-4 w-4" %}
+          </button>
+        </div>
       </header>
       <div class="wa-check-list-card__body">
-        <textarea readonly class="wa-check-list-textarea ds-input font-mono text-xs">{% for n in snapshot.error_numbers %}{{ n }}{% if not forloop.last %}
+        <textarea readonly id="wa-check-error-numbers" class="wa-check-list-textarea font-mono text-xs">{% for n in snapshot.error_numbers %}{{ n }}{% if not forloop.last %}
 {% endif %}{% endfor %}</textarea>
       </div>
     </section>
@@ -68,10 +89,18 @@
     <section class="wa-check-list-card wa-check-list-card--skipped">
       <header class="wa-check-list-card__head">
         <h3 class="text-xs font-semibold">Previously checked</h3>
-        <span class="text-xs ds-text-warning">{{ snapshot.previously_checked_numbers|length }}</span>
+        <div class="wa-check-list-card__actions">
+          <span class="wa-check-list-card__count text-xs ds-text-warning">{{ snapshot.previously_checked_numbers|length }}</span>
+          <button type="button"
+                  class="ds-icon-btn"
+                  title="Copy all"
+                  onclick="waCheckCopyList('wa-check-skipped-numbers')">
+            {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="action_copy" icon_size_class="h-4 w-4" %}
+          </button>
+        </div>
       </header>
       <div class="wa-check-list-card__body">
-        <textarea readonly class="wa-check-list-textarea ds-input font-mono text-xs">{% for n in snapshot.previously_checked_numbers %}{{ n }}{% if not forloop.last %}
+        <textarea readonly id="wa-check-skipped-numbers" class="wa-check-list-textarea font-mono text-xs">{% for n in snapshot.previously_checked_numbers %}{{ n }}{% if not forloop.last %}
 {% endif %}{% endfor %}</textarea>
       </div>
     </section>

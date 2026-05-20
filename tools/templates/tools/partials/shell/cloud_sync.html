@@ -38,7 +38,7 @@
              id="cloud-sync-status"
              {% if latest_run and latest_run.status == "running" %}
              hx-get="{% url 'tools:cloud_sync_status' %}"
-             hx-trigger="every 3s"
+             hx-trigger="every 30s"
              hx-swap="innerHTML"
              {% endif %}>
           {% include "tools/partials/cloud_sync_status.html" %}

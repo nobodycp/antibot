@@ -1,6 +1,4 @@
-<div class="wa-check-accounts mb-4 space-y-2"
-     x-data="waAccountsStatusPoll()"
-     x-init="init()">
+<div class="wa-check-accounts mb-4 space-y-2">
   <div class="wa-check-accounts-toolbar flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 mb-1">
     <form method="post" class="wa-check-accounts-add flex min-w-0 flex-nowrap items-center gap-1.5">
       {% csrf_token %}
@@ -26,7 +24,7 @@
                maxlength="3"
                value="{{ status_interval|default:30 }}"
                x-model.number="seconds"
-               min="5"
+               min="30"
                max="300"
                step="1"
                class="ds-input ds-input--compact font-mono text-xs"
@@ -55,48 +53,8 @@
 {% if pairing_account %}
 <section class="ds-card dash-surface wa-check-accounts-pairing mb-4" id="wa-pairing-panel"
          hx-get="{% url 'tools:whatsapp_pairing_status' pairing_account %}"
-         hx-trigger="load, every 3s"
+         hx-trigger="every 30s"
          hx-swap="outerHTML">
   {% include "tools/partials/whatsapp_pairing_status.html" with account_name=pairing_account pairing=pairing %}
 </section>
 {% endif %}
-
-<script>
-function waAccountsStatusPoll() {
-  const statusUrl = "{% url 'tools:whatsapp_accounts_status' %}";
-  const storageKey = "wa_status_interval";
-  return {
-    seconds: {{ status_interval|default:30 }},
-    timer: null,
-    init() {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed = parseInt(stored, 10);
-        if (!Number.isNaN(parsed)) {
-          this.seconds = Math.min(300, Math.max(5, parsed));
-        }
-      }
-      this.schedulePoll();
-    },
-    onIntervalChange() {
-      this.seconds = Math.min(300, Math.max(5, parseInt(this.seconds, 10) || 30));
-      localStorage.setItem(storageKey, String(this.seconds));
-      this.schedulePoll();
-    },
-    schedulePoll() {
-      if (this.timer) {
-        clearTimeout(this.timer);
-      }
-      const poll = () => {
-        const params = new URLSearchParams({ seconds: String(this.seconds) });
-        htmx.ajax("GET", statusUrl + "?" + params.toString(), {
-          target: "#wa-accounts-tbody",
-          swap: "innerHTML",
-        });
-        this.timer = setTimeout(poll, this.seconds * 1000);
-      };
-      poll();
-    },
-  };
-}
-</script>

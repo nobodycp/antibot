@@ -1,7 +1,7 @@
 <section class="ds-card dash-surface wa-check-accounts-pairing mb-4" id="wa-pairing-panel"
          {% if pairing.status == 'qr' or pairing.status == 'connecting' %}
          hx-get="{% url 'tools:whatsapp_pairing_status' account_name %}"
-         hx-trigger="every 3s"
+         hx-trigger="every 30s"
          hx-swap="outerHTML"
          {% endif %}>
   <div class="ds-card__head wa-check-accounts-pairing__head">

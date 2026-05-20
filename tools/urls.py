@@ -23,6 +23,7 @@ from .views.cloudflare_domains_views import (
 from .views.rsa_decrypt_views import rsa_decrypt_view
 from .views.whatsapp_views import (
     whatsapp_accounts_status_partial,
+    whatsapp_check_continue,
     whatsapp_check_recent_jobs_partial,
     whatsapp_check_status_partial,
     whatsapp_check_view,
@@ -88,6 +89,11 @@ urlpatterns = [
         'whatsapp-check/jobs/<int:job_id>/status/',
         whatsapp_check_status_partial,
         name='whatsapp_check_status',
+    ),
+    path(
+        'whatsapp-check/jobs/<int:job_id>/continue/',
+        whatsapp_check_continue,
+        name='whatsapp_check_continue',
     ),
     path(
         'whatsapp-check/jobs/recent/',

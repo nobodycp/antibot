@@ -32,7 +32,7 @@ def _parse_status_interval(request) -> int:
         value = int(raw)
     except (TypeError, ValueError):
         value = 30
-    return max(5, min(300, value))
+    return max(30, min(300, value))
 
 
 def _accounts_table_rows(
@@ -72,6 +72,7 @@ def _recent_jobs_for_user(user):
         ):
             wa.sync_job_from_disk(job)
             job.save()
+    # Re-query after disk sync — stale in-memory status may block the UI.
     active = WhatsAppCheckJob.objects.filter(
         user=user,
         status=WhatsAppCheckJob.STATUS_RUNNING,
@@ -216,12 +217,27 @@ def whatsapp_check_view(request):
 
         if action == "cancel_job":
             job = _get_job(user, request.POST.get("job_id"))
+            wa.sync_job_from_disk(job)
             wa.terminate_process(job.pid)
-            job.status = WhatsAppCheckJob.STATUS_CANCELLED
-            job.finished_at = timezone.now()
             job.pid = None
+            if job.status in (
+                WhatsAppCheckJob.STATUS_RUNNING,
+                WhatsAppCheckJob.STATUS_PENDING,
+            ):
+                job.status = WhatsAppCheckJob.STATUS_CANCELLED
+            job.finished_at = job.finished_at or timezone.now()
+            remaining = wa.remaining_numbers_for_job(job)
+            if remaining:
+                run_path = wa.job_run_dir(job.id)
+                run_path.mkdir(parents=True, exist_ok=True)
+                (run_path / "pending_numbers.txt").write_text(
+                    "\n".join(remaining) + "\n", encoding="utf-8"
+                )
             job.save()
-            messages.info(request, "Check cancelled.")
+            messages.info(request, "Check cancelled. You can continue it later.")
+            job_id = request.POST.get("job_id")
+            if job_id:
+                return redirect(_wa_url(tab="check", job=job_id))
             return redirect(_wa_url(tab="check"))
 
         if action == "add_account":
@@ -293,6 +309,9 @@ def whatsapp_check_view(request):
             highlight_job = None
 
     poll_job = highlight_job or active_job
+    continue_job = None
+    if poll_job and poll_job.is_resumable:
+        continue_job = poll_job
     if poll_job and job_snapshot is None:
         job_snapshot = wa.build_job_snapshot(poll_job)
     if job_snapshot is None:
@@ -326,6 +345,7 @@ def whatsapp_check_view(request):
         "active_job": active_job,
         "highlight_job": highlight_job,
         "poll_job": poll_job,
+        "continue_job": continue_job,
         "job_snapshot": job_snapshot,
         "pairing_account": pairing_account,
         "pairing": pairing_status,
@@ -338,6 +358,51 @@ def whatsapp_check_view(request):
         shell_template="tools/partials/shell/whatsapp_check.html",
         context=ctx,
     )
+
+
+@superuser_required
+@require_POST
+def whatsapp_check_continue(request, job_id: int):
+    job = _get_job(request.user, job_id)
+    wa.sync_job_from_disk(job)
+    job.save()
+
+    if not job.is_resumable:
+        messages.error(request, "This job cannot be continued.")
+        return redirect(_wa_url(tab="check", job=job.id))
+
+    if _user_has_running_job(request.user):
+        messages.warning(
+            request, "A check is already running. Wait or cancel it before continuing."
+        )
+        return redirect(_wa_url(tab="check", job=job.id))
+
+    remaining = wa.remaining_numbers_for_job(job)
+    try:
+        proc = wa.resume_check_job(job)
+    except (FileNotFoundError, ValueError) as exc:
+        messages.error(request, str(exc))
+        return redirect(_wa_url(tab="check", job=job.id))
+
+    job.pid = proc.pid
+    job.status = WhatsAppCheckJob.STATUS_RUNNING
+    job.started_at = job.started_at or timezone.now()
+    job.finished_at = None
+    job.error_message = ""
+    job.save(
+        update_fields=[
+            "pid",
+            "status",
+            "started_at",
+            "finished_at",
+            "error_message",
+        ]
+    )
+    messages.success(
+        request,
+        f"Continued check for {len(remaining)} remaining number(s) on job #{job.id}.",
+    )
+    return redirect(_wa_url(tab="check", job=job.id))
 
 
 @superuser_required
@@ -357,7 +422,8 @@ def whatsapp_check_status_partial(request, job_id: int):
         request=request,
     )
     response = HttpResponse(html)
-    response["HX-Trigger"] = "waRecentJobsRefresh"
+    if job.status != WhatsAppCheckJob.STATUS_RUNNING:
+        response["HX-Trigger"] = "waRecentJobsRefresh"
     return response
 
 

@@ -105,6 +105,21 @@ class WhatsAppCheckJob(models.Model):
     class Meta:
         ordering = ["-created_at"]
 
+    @property
+    def status_label(self) -> str:
+        """Human-readable status; handles legacy/invalid DB values."""
+        labels = dict(self.STATUS_CHOICES)
+        if self.status in labels:
+            return labels[self.status]
+        raw = (self.status or "").strip()
+        return raw.replace("_", " ").title() if raw else "Unknown"
+
+    @property
+    def is_resumable(self) -> bool:
+        from tools.services import whatsapp_service as wa
+
+        return wa.job_is_resumable(self)
+
     def __str__(self):
         return f"WhatsApp job #{self.pk} ({self.status})"
 

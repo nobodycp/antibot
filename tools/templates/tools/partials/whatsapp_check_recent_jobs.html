@@ -2,7 +2,7 @@
 <section class="ds-card ds-card--table mt-2"
          id="wa-check-recent-jobs"
          hx-get="{% url 'tools:whatsapp_check_recent_jobs' %}"
-         hx-trigger="waRecentJobsRefresh from:body{% if active_job %}, every 5s{% endif %}"
+         hx-trigger="waRecentJobsRefresh from:body"
          hx-swap="outerHTML">
   <div class="ds-card__head py-1.5">
     <h2 class="text-sm font-semibold">Recent jobs</h2>
@@ -36,6 +36,12 @@
             <td class="px-3 py-2 text-xs table-cell--muted">{{ job.started_at|default:"—" }}</td>
             <td class="table-actions px-3 py-2">
               <a href="{% url 'tools:whatsapp_check' %}?tab=check&job={{ job.id }}" class="ds-btn ds-btn--ghost ds-btn--xs">View</a>
+              {% if job.is_resumable %}
+              <form method="post" action="{% url 'tools:whatsapp_check_continue' job.id %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="ds-btn ds-btn--primary ds-btn--xs">Continue</button>
+              </form>
+              {% endif %}
               {% if job.status == 'running' %}
               <form method="post" class="inline">
                 {% csrf_token %}

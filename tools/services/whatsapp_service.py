@@ -328,6 +328,32 @@ def start_pairing(account_name: str) -> subprocess.Popen:
     )
 
 
+def _pid_commandline(pid: int) -> str:
+    try:
+        result = subprocess.run(
+            ["ps", "-p", str(pid), "-o", "command="],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    if result.returncode != 0:
+        return ""
+    return (result.stdout or "").strip()
+
+
+def _pid_belongs_to_check_job(pid: int, job_id: int) -> bool:
+    """True if ``pid`` is still running the Node validator for this job's run dir."""
+    cmd = _pid_commandline(pid)
+    if not cmd:
+        return False
+    run_dir = str(job_run_dir(job_id))
+    root = str(whatsapp_root())
+    return run_dir in cmd or str(root / "index.js") in cmd or "index.js" in cmd
+
+
 def _reap_child_exit_code(pid: int | None) -> int | None:
     """Reap our direct child if it has exited; return exit code or None if still running."""
     if not pid:
@@ -348,7 +374,7 @@ def _reap_child_exit_code(pid: int | None) -> int | None:
     return -1
 
 
-def is_process_running(pid: int | None) -> bool:
+def is_process_running(pid: int | None, *, job_id: int | None = None) -> bool:
     if not pid:
         return False
     if _reap_child_exit_code(pid) is not None:
@@ -357,6 +383,13 @@ def is_process_running(pid: int | None) -> bool:
         os.kill(pid, 0)
     except OSError:
         return False
+    try:
+        if os.waitpid(pid, os.WNOHANG)[0] == 0:
+            return True
+    except ChildProcessError:
+        pass
+    if job_id is not None:
+        return _pid_belongs_to_check_job(pid, job_id)
     return True
 
 
@@ -586,6 +619,159 @@ def start_check_job(
     return _spawn_node([], env)
 
 
+def _processed_query_digits(job_id: int, default_cc: str = "") -> set[str]:
+    """Query-digit keys for numbers already checked in this job's run dir."""
+    done: set[str] = set()
+    run_path = job_run_dir(job_id)
+    for filename in (
+        "verified_active_numbers.txt",
+        "not_registered_numbers.txt",
+    ):
+        for line in _read_number_lines(run_path / filename):
+            parsed = parse_number_line(line, default_cc)
+            if parsed:
+                done.add(parsed.query_digits)
+    for line in _read_number_lines(run_path / "check_error_numbers.txt"):
+        number, _ = parse_error_number_line(line)
+        parsed = parse_number_line(number, default_cc)
+        if parsed:
+            done.add(parsed.query_digits)
+    return done
+
+
+def _previously_skipped_query_digits(job) -> set[str]:
+    cc = job.local_trunk_country or ""
+    skipped: set[str] = set()
+    for line in job.previously_checked_numbers or []:
+        parsed = parse_number_line(line, cc)
+        if parsed:
+            skipped.add(parsed.query_digits)
+    return skipped
+
+
+def remaining_numbers_for_job(job) -> list[str]:
+    """Original input lines still to check (pending file first, else recompute)."""
+    run_path = job_run_dir(job.id)
+    cc = job.local_trunk_country or ""
+    pending_path = run_path / "pending_numbers.txt"
+    if pending_path.is_file():
+        pending_lines = _read_number_lines(pending_path)
+        if pending_lines:
+            out: list[str] = []
+            seen: set[str] = set()
+            for line in pending_lines:
+                parsed = parse_number_line(line, cc)
+                key = parsed.query_digits if parsed else sanitize_number(line) or line
+                if key in seen:
+                    continue
+                seen.add(key)
+                out.append(line)
+            return out
+
+    skipped = _previously_skipped_query_digits(job)
+    done = _processed_query_digits(job.id, cc)
+    remaining: list[str] = []
+    seen: set[str] = set()
+    for line in parse_numbers_text(job.numbers_text):
+        parsed = parse_number_line(line, cc)
+        if not parsed:
+            continue
+        if parsed.query_digits in skipped or parsed.query_digits in done:
+            continue
+        if parsed.query_digits in seen:
+            continue
+        seen.add(parsed.query_digits)
+        remaining.append(line)
+    return remaining
+
+
+def job_is_resumable(job) -> bool:
+    """True when a stopped job still has numbers to check and no live validator."""
+    from tools.models import WhatsAppCheckJob
+
+    if job.status == WhatsAppCheckJob.STATUS_COMPLETED:
+        return False
+    if is_process_running(job.pid, job_id=job.id):
+        return False
+    if job.status == WhatsAppCheckJob.STATUS_PENDING:
+        return False
+
+    if remaining_numbers_for_job(job):
+        return True
+
+    progress = read_job_progress(job.id)
+    totals = _progress_totals(progress)
+    total = int(totals.get("total") or 0)
+    if not total:
+        total = len(parse_numbers_text(job.numbers_text)) - len(
+            job.previously_checked_numbers or []
+        )
+    checked = int(totals.get("checked") or job.checked_count or 0)
+    pending = int(totals.get("pending") or 0)
+    if pending > 0:
+        return True
+    if total > 0 and checked < total:
+        return job.status in (
+            WhatsAppCheckJob.STATUS_FAILED,
+            WhatsAppCheckJob.STATUS_CANCELLED,
+        )
+    return False
+
+
+def _mark_progress_not_done(job_id: int) -> None:
+    path = job_run_dir(job_id) / "progress.json"
+    if not path.is_file():
+        return
+    try:
+        progress = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return
+    if progress.get("done") is True:
+        progress["done"] = False
+        path.write_text(json.dumps(progress, indent=2), encoding="utf-8")
+
+
+def resume_check_job(job) -> subprocess.Popen:
+    """Restart Node for an existing job, checking only remaining numbers."""
+    remaining = remaining_numbers_for_job(job)
+    if not remaining:
+        raise ValueError("No numbers left to check for this job.")
+
+    account_names = list(job.account_names or [])
+    if not account_names:
+        raise ValueError("This job has no WhatsApp accounts configured.")
+
+    run_path = job_run_dir(job.id)
+    run_path.mkdir(parents=True, exist_ok=True)
+    numbers_file = run_path / "numbers.txt"
+    numbers_file.write_text("\n".join(remaining) + "\n", encoding="utf-8")
+    (run_path / "pending_numbers.txt").write_text(
+        "\n".join(remaining) + "\n", encoding="utf-8"
+    )
+    _mark_progress_not_done(job.id)
+
+    speed_key = job.speed if job.speed in ("safe", "normal", "fast") else "normal"
+    env = {
+        "NON_INTERACTIVE": "1",
+        "RESUME_JOB": "1",
+        "ACCOUNTS": ",".join(account_names),
+        "RUN_DIR": str(run_path),
+        "NUMBERS_FILE": str(numbers_file),
+        "OUTPUT_FILE": str(run_path / "verified_active_numbers.txt"),
+        "DETAILS_FILE": str(run_path / "verified_details.csv"),
+        "PROGRESS_FILE": str(run_path / "progress.json"),
+        "INVALID_FILE": str(run_path / "not_registered_numbers.txt"),
+        "ERROR_NUMBERS_FILE": str(run_path / "check_error_numbers.txt"),
+        "PENDING_NUMBERS_FILE": str(run_path / "pending_numbers.txt"),
+        "SPEED": speed_key,
+        "FETCH_PRESENCE": "1" if job.fetch_presence else "0",
+    }
+    cc = normalize_country_prefix(job.local_trunk_country or "")
+    if cc:
+        env["LOCAL_TRUNK_COUNTRY"] = cc
+    return _spawn_node([], env)
+
+
 def read_job_progress(job_id: int) -> dict[str, Any] | None:
     path = job_run_dir(job_id) / "progress.json"
     if not path.is_file():
@@ -650,6 +836,37 @@ def is_progress_complete(progress: dict[str, Any] | None) -> bool:
     total = int(totals.get("total") or 0)
     checked = int(totals.get("checked") or 0)
     return total > 0 and checked >= total
+
+
+def _progress_terminal_status(progress: dict[str, Any] | None) -> str | None:
+    if not progress:
+        return None
+    raw = progress.get("status")
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    return raw.strip().lower()
+
+
+def _progress_message(progress: dict[str, Any] | None) -> str:
+    if not progress:
+        return ""
+    for key in ("message", "error", "reason"):
+        val = progress.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+    return ""
+
+
+def _incomplete_progress_message(progress: dict[str, Any] | None, job) -> str:
+    totals = _progress_totals(progress)
+    total = int(totals.get("total") or 0) or len(parse_numbers_text(job.numbers_text))
+    checked = int(totals.get("checked") or 0)
+    if total:
+        return (
+            f"Check stopped before finishing "
+            f"({checked:,} of {total:,} numbers processed)."
+        )
+    return "Check stopped before completion."
 
 
 def _progress_totals(progress: dict[str, Any] | None) -> dict[str, int]:
@@ -721,7 +938,8 @@ def build_job_snapshot(job) -> dict[str, Any]:
         "error_numbers": error_numbers,
         "previously_checked_numbers": previously_checked,
         "is_running": (
-            job.status == job.STATUS_RUNNING and is_process_running(job.pid)
+            job.status == job.STATUS_RUNNING
+            and is_process_running(job.pid, job_id=job.id)
         ),
     }
 
@@ -749,10 +967,14 @@ def sync_job_from_disk(job) -> None:
         job.result_summary = progress
 
     complete = is_progress_complete(progress)
-    running = is_process_running(job.pid)
+    running = is_process_running(job.pid, job_id=job.id)
 
     if running and not complete:
-        job.status = WhatsAppCheckJob.STATUS_RUNNING
+        if job.status in (
+            WhatsAppCheckJob.STATUS_RUNNING,
+            WhatsAppCheckJob.STATUS_PENDING,
+        ):
+            job.status = WhatsAppCheckJob.STATUS_RUNNING
         return
 
     if job.status not in (
@@ -762,15 +984,38 @@ def sync_job_from_disk(job) -> None:
         return
 
     now = datetime.now(timezone.utc)
-    if complete or progress:
+    if complete:
         was_completed = job.status == WhatsAppCheckJob.STATUS_COMPLETED
         job.status = WhatsAppCheckJob.STATUS_COMPLETED
         job.finished_at = job.finished_at or now
         job.pid = None
         if not was_completed:
             record_verified_from_job(job)
-    elif job.pid:
+        return
+
+    had_pid = bool(job.pid)
+    job.pid = None
+    job.finished_at = job.finished_at or now
+    prog_status = _progress_terminal_status(progress)
+
+    if prog_status == "cancelled":
+        job.status = WhatsAppCheckJob.STATUS_CANCELLED
+        job.error_message = _progress_message(progress) or "Check was cancelled."
+    elif prog_status in ("failed", "error"):
         job.status = WhatsAppCheckJob.STATUS_FAILED
-        job.error_message = job.error_message or "Validator process exited unexpectedly."
-        job.finished_at = job.finished_at or now
-        job.pid = None
+        job.error_message = _progress_message(progress) or "Check failed."
+    elif progress:
+        job.status = WhatsAppCheckJob.STATUS_FAILED
+        job.error_message = (
+            job.error_message or _incomplete_progress_message(progress, job)
+        )
+    elif had_pid:
+        job.status = WhatsAppCheckJob.STATUS_FAILED
+        job.error_message = (
+            job.error_message or "Validator process exited unexpectedly."
+        )
+    else:
+        job.status = WhatsAppCheckJob.STATUS_FAILED
+        job.error_message = (
+            job.error_message or "Check did not produce progress output."
+        )

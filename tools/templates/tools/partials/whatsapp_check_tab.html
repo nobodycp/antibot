@@ -54,10 +54,20 @@
         </div>
 
         <div class="wa-check-form__actions">
+          {% if continue_job %}
+          <form method="post" action="{% url 'tools:whatsapp_check_continue' continue_job.id %}" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="ds-btn ds-btn--primary ds-btn--sm"
+                    {% if not linked_accounts or active_job %}disabled{% endif %}>
+              Continue
+            </button>
+          </form>
+          {% else %}
           <button type="submit" class="ds-btn ds-btn--primary ds-btn--sm"
                   {% if not linked_accounts or active_job %}disabled{% endif %}>
             Start check
           </button>
+          {% endif %}
           {% if active_job %}
           <p class="text-xs ds-text-warning">A job is already running.</p>
           {% endif %}

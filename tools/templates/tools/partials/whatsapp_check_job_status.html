@@ -1,11 +1,11 @@
 {% if job.status == 'completed' %}
-<span class="ds-text-success">{{ job.get_status_display }}</span>
+<span class="ds-text-success">{{ job.status_label }}</span>
 {% elif job.status == 'running' %}
-<span class="ds-text-warning">{{ job.get_status_display }}</span>
+<span class="ds-text-warning">{{ job.status_label }}</span>
 {% elif job.status == 'failed' or job.status == 'cancelled' %}
-<span class="ds-text-danger">{{ job.get_status_display }}</span>
+<span class="ds-text-danger">{{ job.status_label }}</span>
 {% elif job.status == 'pending' %}
-<span class="table-cell--muted">{{ job.get_status_display }}</span>
+<span class="table-cell--muted">{{ job.status_label }}</span>
 {% else %}
-{{ job.get_status_display }}
+<span class="table-cell--muted">{{ job.status_label }}</span>
 {% endif %}

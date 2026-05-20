@@ -2,7 +2,7 @@
      id="wa-check-results-panel"
      {% if job and job.status == 'running' %}
      hx-get="{% url 'tools:whatsapp_check_status' job.id %}"
-     hx-trigger="load, every 5s"
+     hx-trigger="every 30s"
      hx-swap="outerHTML"
      {% endif %}>
   {% include "tools/partials/whatsapp_check_results_panel.html" %}
