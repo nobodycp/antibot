@@ -8,6 +8,9 @@ from dashboard.cloudflare_token_crypto import encrypt_cloudflare_token
 from dashboard.helpers.cloudflare_zone import ERR_TOKEN_NO_ACCESS
 from dashboard.models import UserCloudflareDomain
 from tools.services.cloudflare_sync_service import (
+    IP_LIST_DELETE_BATCH_SIZE,
+    IP_LIST_ITEMS_PER_PAGE,
+    IP_LIST_POST_BATCH_SIZE,
     SUBNET_RULE_DESC,
     build_country_expression,
     build_inline_subnet_expression,
@@ -17,6 +20,7 @@ from tools.services.cloudflare_sync_service import (
     sync_domain,
     sync_global_subnets_for_zones,
     sync_subnet_for_domain,
+    _sync_ip_list_items,
 )
 
 User = get_user_model()
@@ -228,7 +232,7 @@ class CloudflareSyncDomainTests(TestCase):
         mock_cidrs.return_value = many_cidrs
         list_expr = build_subnet_expression(many_cidrs, "token", "zone123")
         existing_on_cf = [f"10.0.{i}.0/24" for i in range(28)]
-        list_put_bodies = []
+        list_post_bodies = []
 
         def cf_side_effect(method, path, token, **kwargs):
             zone_resp = _cf_zone_settings_response(method, path, self.domain)
@@ -256,11 +260,16 @@ class CloudflareSyncDomainTests(TestCase):
                 }, ""
             if method == "GET" and "/rules/lists/list1/items" in path:
                 return True, {
-                    "result": [{"ip": c} for c in existing_on_cf]
+                    "result": [
+                        {"id": f"id-{i}", "ip": c}
+                        for i, c in enumerate(existing_on_cf)
+                    ]
                 }, ""
-            if method == "PUT" and "/rules/lists/list1/items" in path:
-                list_put_bodies.append(kwargs.get("json_body"))
+            if method == "POST" and "/rules/lists/list1/items" in path:
+                list_post_bodies.append(kwargs.get("json_body"))
                 return True, {}, ""
+            if method == "PUT" and "/rules/lists/list1/items" in path:
+                self.fail("Full list PUT should not run; use batched POST instead")
             if method == "PUT" and "rulesets" in path:
                 self.fail("Ruleset PUT should not run when only IP list items differ")
             return False, None, f"unexpected {method} {path}"
@@ -270,9 +279,9 @@ class CloudflareSyncDomainTests(TestCase):
         result = sync_subnet_for_domain(self.domain)
         self.assertTrue(result.ok)
         self.assertFalse(result.skipped)
-        self.assertEqual(len(list_put_bodies), 1)
-        uploaded = {item["ip"] for item in list_put_bodies[0]}
-        self.assertEqual(uploaded, set(many_cidrs))
+        self.assertEqual(len(list_post_bodies), 1)
+        uploaded = {item["ip"] for item in list_post_bodies[0]}
+        self.assertEqual(uploaded, {"10.0.28.0/24", "10.0.29.0/24"})
         self.assertIn("IP list updated", result.message)
 
     @patch("tools.services.cloudflare_sync_service.sync_zone_settings")
@@ -513,6 +522,152 @@ class CloudflareSyncDomainTests(TestCase):
         self.assertEqual(mock_sync_subnet.call_count, 1)
         self.assertEqual(len(results), 1)
         self.assertIn("[SUBNET]", results[0].message)
+
+
+class CloudflareIpListBatchTests(TestCase):
+    @patch("tools.services.cloudflare_sync_service._cf_request")
+    def test_sync_ip_list_items_paginated_get_and_batched_post(self, mock_cf):
+        desired = [f"192.0.2.{i}/32" for i in range(150)]
+        page1 = [
+            {"id": f"old-{i}", "ip": f"10.0.{i}.0/24"} for i in range(100)
+        ]
+        page2 = [{"id": "old-100", "ip": "10.0.100.0/24"}]
+        post_batches: list[list] = []
+        get_calls = 0
+
+        def cf_side_effect(method, path, token, **kwargs):
+            nonlocal get_calls
+            if method == "GET" and path.endswith("/rules/lists"):
+                return True, {
+                    "result": [{"id": "list1", "name": "antibot_subnet_block"}]
+                }, ""
+            if method == "GET" and "/rules/lists/list1/items" in path:
+                get_calls += 1
+                params = kwargs.get("query_params") or {}
+                if get_calls == 1:
+                    self.assertEqual(params.get("per_page"), IP_LIST_ITEMS_PER_PAGE)
+                    return True, {
+                        "result": page1,
+                        "result_info": {"cursors": {"after": "cursor-2"}},
+                    }, ""
+                self.assertEqual(params.get("cursor"), "cursor-2")
+                return True, {"result": page2}, ""
+            if method == "DELETE" and "/rules/lists/list1/items" in path:
+                body = kwargs.get("json_body") or {}
+                self.assertEqual(len(body.get("items", [])), 101)
+                return True, {}, ""
+            if method == "POST" and "/rules/lists/list1/items" in path:
+                post_batches.append(kwargs.get("json_body"))
+                return True, {}, ""
+            if method == "PUT" and "/rules/lists/list1/items" in path:
+                self.fail("Full list PUT should not be used for large sync")
+            return False, None, f"unexpected {method} {path}"
+
+        mock_cf.side_effect = cf_side_effect
+
+        ok, changed, err, _warning = _sync_ip_list_items(
+            "token", "zone123", desired
+        )
+        self.assertTrue(ok, err)
+        self.assertTrue(changed)
+        self.assertEqual(get_calls, 2)
+        self.assertEqual(len(post_batches), 1)
+        self.assertEqual(len(post_batches[0]), len(desired))
+        self.assertEqual(
+            {item["ip"] for item in post_batches[0]},
+            set(desired),
+        )
+
+    @patch("tools.services.cloudflare_sync_service._cf_request")
+    def test_sync_ip_list_items_batched_post_over_batch_size(self, mock_cf):
+        count = IP_LIST_POST_BATCH_SIZE + 50
+        desired = [f"203.0.113.{i}/32" for i in range(count)]
+        post_batches: list[list] = []
+
+        def cf_side_effect(method, path, token, **kwargs):
+            if method == "GET" and path.endswith("/rules/lists"):
+                return True, {
+                    "result": [{"id": "list1", "name": "antibot_subnet_block"}]
+                }, ""
+            if method == "GET" and "/rules/lists/list1/items" in path:
+                return True, {"result": []}, ""
+            if method == "POST" and "/rules/lists/list1/items" in path:
+                post_batches.append(kwargs.get("json_body"))
+                return True, {}, ""
+            return False, None, f"unexpected {method} {path}"
+
+        mock_cf.side_effect = cf_side_effect
+
+        ok, changed, err, _warning = _sync_ip_list_items(
+            "token", "zone123", desired
+        )
+        self.assertTrue(ok, err)
+        self.assertTrue(changed)
+        self.assertEqual(len(post_batches), 2)
+        self.assertEqual(len(post_batches[0]), IP_LIST_POST_BATCH_SIZE)
+        self.assertEqual(len(post_batches[1]), 50)
+
+    @patch("tools.services.cloudflare_sync_service._cf_request")
+    def test_sync_ip_list_payload_too_large_error_message(self, mock_cf):
+        desired = [f"198.51.100.{i}/32" for i in range(10)]
+
+        def cf_side_effect(method, path, token, **kwargs):
+            if method == "GET" and path.endswith("/rules/lists"):
+                return True, {
+                    "result": [{"id": "list1", "name": "antibot_subnet_block"}]
+                }, ""
+            if method == "GET" and "/rules/lists/list1/items" in path:
+                return True, {"result": []}, ""
+            if method == "POST" and "/rules/lists/list1/items" in path:
+                return (
+                    False,
+                    {"errors": [{"message": "Request body too large"}]},
+                    "Request body too large",
+                )
+            return False, None, f"unexpected {method} {path}"
+
+        mock_cf.side_effect = cf_side_effect
+
+        ok, changed, err, _warning = _sync_ip_list_items(
+            "token", "zone123", desired
+        )
+        self.assertFalse(ok)
+        self.assertFalse(changed)
+        self.assertIn("Too many subnets (10)", err)
+        self.assertIn(str(IP_LIST_POST_BATCH_SIZE), err)
+
+    @patch("tools.services.cloudflare_sync_service._cf_request")
+    def test_sync_ip_list_clear_uses_batched_delete(self, mock_cf):
+        existing = [
+            {"id": f"id-{i}", "ip": f"10.1.{i}.0/24"}
+            for i in range(IP_LIST_DELETE_BATCH_SIZE + 10)
+        ]
+        delete_batches: list[list] = []
+
+        def cf_side_effect(method, path, token, **kwargs):
+            if method == "GET" and path.endswith("/rules/lists"):
+                return True, {
+                    "result": [{"id": "list1", "name": "antibot_subnet_block"}]
+                }, ""
+            if method == "GET" and "/rules/lists/list1/items" in path:
+                return True, {"result": existing}, ""
+            if method == "DELETE" and "/rules/lists/list1/items" in path:
+                delete_batches.append(
+                    [item["id"] for item in (kwargs.get("json_body") or {}).get("items", [])]
+                )
+                return True, {}, ""
+            if method == "PUT" and "/rules/lists/list1/items" in path:
+                self.fail("Clearing list should use DELETE batches, not PUT []")
+            return False, None, f"unexpected {method} {path}"
+
+        mock_cf.side_effect = cf_side_effect
+
+        ok, changed, err, _warning = _sync_ip_list_items("token", "zone123", [])
+        self.assertTrue(ok, err)
+        self.assertTrue(changed)
+        self.assertEqual(len(delete_batches), 2)
+        self.assertEqual(len(delete_batches[0]), IP_LIST_DELETE_BATCH_SIZE)
+        self.assertEqual(len(delete_batches[1]), 10)
 
 
 class CloudSyncPermissionTests(TestCase):

@@ -8,6 +8,7 @@ and only writes to Cloudflare when something differs.
 from __future__ import annotations
 
 import logging
+import os
 import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -32,6 +33,12 @@ ANTIBOT_DESC_PREFIX = "antibot:"
 SUBNET_RULE_DESC = "antibot:subnet-block"
 INLINE_SUBNET_LIMIT = 25
 IP_LIST_NAME = "antibot_subnet_block"
+IP_LIST_ITEMS_PER_PAGE = 100
+IP_LIST_POST_BATCH_SIZE = 500
+IP_LIST_DELETE_BATCH_SIZE = 500
+CF_DEFAULT_REQUEST_TIMEOUT = 30
+CF_BATCH_REQUEST_TIMEOUT = 60
+CF_LARGE_REQUEST_TIMEOUT = 120
 
 # Inline IP lists: space-separated CIDRs without quotes (see CF rules language "Values").
 _INLINE_SUBNET_RE = re.compile(r"^ip\.src in \{((?:\S+\s*)+)\}$")
@@ -62,13 +69,46 @@ def _cf_headers(token: str) -> dict[str, str]:
     }
 
 
+def _ip_list_max_items() -> Optional[int]:
+    raw = os.environ.get("CF_IP_LIST_MAX_ITEMS", "").strip()
+    if not raw:
+        return None
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        logger.warning("Invalid CF_IP_LIST_MAX_ITEMS=%r; ignoring cap", raw)
+        return None
+
+
+def _format_ip_list_sync_error(err: str, *, total_count: int, batch_size: int) -> str:
+    lowered = (err or "").lower()
+    if any(
+        marker in lowered
+        for marker in (
+            "payload",
+            "too large",
+            "request body",
+            "entity too large",
+            "413",
+            "exceeds",
+            "maximum",
+        )
+    ):
+        return (
+            f"Too many subnets ({total_count}); Cloudflare list sync supports "
+            f"batches up to {batch_size}"
+        )
+    return err
+
+
 def _cf_request(
     method: str,
     path: str,
     token: str,
     *,
-    json_body: Optional[dict] = None,
-    timeout: int = 30,
+    json_body: Any = None,
+    query_params: Optional[dict[str, Any]] = None,
+    timeout: int = CF_DEFAULT_REQUEST_TIMEOUT,
 ) -> tuple[bool, Any, str]:
     url = f"{CF_API_BASE}{path}"
     try:
@@ -77,6 +117,7 @@ def _cf_request(
             url,
             headers=_cf_headers(token),
             json=json_body,
+            params=query_params,
             timeout=timeout,
         )
     except requests.RequestException as exc:
@@ -229,21 +270,111 @@ def _find_ip_list_id(token: str, zone_id: str) -> Optional[str]:
     return None
 
 
-def _get_ip_list_cidrs(token: str, zone_id: str, list_id: str) -> set[str]:
-    ok, payload, err = _cf_request(
-        "GET",
-        f"/zones/{zone_id}/rules/lists/{list_id}/items",
-        token,
-    )
-    if not ok:
-        raise RuntimeError(f"Could not fetch IP list items: {err}")
+def _fetch_ip_list_items_by_ip(
+    token: str, zone_id: str, list_id: str
+) -> dict[str, str]:
+    """Return mapping of CIDR/IP string -> Cloudflare item id (paginated GET)."""
+    path = f"/zones/{zone_id}/rules/lists/{list_id}/items"
+    items_by_ip: dict[str, str] = {}
+    cursor: Optional[str] = None
 
-    cidrs: set[str] = set()
-    for item in (payload or {}).get("result") or []:
-        ip_val = item.get("ip") or item.get("value") or ""
-        if ip_val:
-            cidrs.add(ip_val.strip())
-    return cidrs
+    while True:
+        params: dict[str, Any] = {"per_page": IP_LIST_ITEMS_PER_PAGE}
+        if cursor:
+            params["cursor"] = cursor
+        ok, payload, err = _cf_request(
+            "GET",
+            path,
+            token,
+            query_params=params,
+            timeout=CF_LARGE_REQUEST_TIMEOUT,
+        )
+        if not ok:
+            raise RuntimeError(f"Could not fetch IP list items: {err}")
+
+        for item in (payload or {}).get("result") or []:
+            ip_val = (item.get("ip") or item.get("value") or "").strip()
+            item_id = (item.get("id") or "").strip()
+            if ip_val and item_id:
+                items_by_ip[ip_val] = item_id
+
+        result_info = (payload or {}).get("result_info") or {}
+        cursors = result_info.get("cursors") or {}
+        cursor = (cursors.get("after") or "").strip() or None
+        if not cursor:
+            break
+
+    return items_by_ip
+
+
+def _get_ip_list_cidrs(token: str, zone_id: str, list_id: str) -> set[str]:
+    return set(_fetch_ip_list_items_by_ip(token, zone_id, list_id).keys())
+
+
+def _apply_ip_list_cap(desired_cidrs: list[str]) -> tuple[list[str], Optional[str]]:
+    max_items = _ip_list_max_items()
+    normalized = _normalize_cidrs(desired_cidrs)
+    if max_items is None or len(normalized) <= max_items:
+        return normalized, None
+    warning = (
+        f"Blocked subnets capped at {max_items} for Cloudflare sync "
+        f"(CF_IP_LIST_MAX_ITEMS); database has {len(normalized)}."
+    )
+    logger.warning("%s", warning)
+    return normalized[:max_items], warning
+
+
+def _post_ip_list_items_batches(
+    token: str,
+    zone_id: str,
+    list_id: str,
+    cidrs: list[str],
+) -> tuple[bool, str]:
+    path = f"/zones/{zone_id}/rules/lists/{list_id}/items"
+    items = [{"ip": c} for c in sorted(cidrs)]
+    total = len(items)
+
+    for offset in range(0, total, IP_LIST_POST_BATCH_SIZE):
+        batch = items[offset : offset + IP_LIST_POST_BATCH_SIZE]
+        ok, _, err = _cf_request(
+            "POST",
+            path,
+            token,
+            json_body=batch,
+            timeout=CF_BATCH_REQUEST_TIMEOUT,
+        )
+        if not ok:
+            return False, _format_ip_list_sync_error(
+                err, total_count=total, batch_size=IP_LIST_POST_BATCH_SIZE
+            )
+    return True, ""
+
+
+def _delete_ip_list_items_batches(
+    token: str,
+    zone_id: str,
+    list_id: str,
+    item_ids: list[str],
+) -> tuple[bool, str]:
+    if not item_ids:
+        return True, ""
+    path = f"/zones/{zone_id}/rules/lists/{list_id}/items"
+    total = len(item_ids)
+
+    for offset in range(0, total, IP_LIST_DELETE_BATCH_SIZE):
+        batch_ids = item_ids[offset : offset + IP_LIST_DELETE_BATCH_SIZE]
+        ok, _, err = _cf_request(
+            "DELETE",
+            path,
+            token,
+            json_body={"items": [{"id": item_id} for item_id in batch_ids]},
+            timeout=CF_BATCH_REQUEST_TIMEOUT,
+        )
+        if not ok:
+            return False, _format_ip_list_sync_error(
+                err, total_count=total, batch_size=IP_LIST_DELETE_BATCH_SIZE
+            )
+    return True, ""
 
 
 def _ensure_ip_list_id(token: str, zone_id: str) -> str:
@@ -273,47 +404,65 @@ def _sync_ip_list_items(
     token: str,
     zone_id: str,
     desired_cidrs: list[str],
-) -> tuple[bool, bool, str]:
+) -> tuple[bool, bool, str, Optional[str]]:
     """
     Ensure the antibot IP list matches ``desired_cidrs``.
 
-    Returns (success, changed, error_message).
+    Uses paginated GET and batched POST/DELETE (not one giant PUT).
+
+    Returns (success, changed, error_message, cap_warning).
     """
-    desired_set = set(_normalize_cidrs(desired_cidrs))
+    capped, cap_warning = _apply_ip_list_cap(desired_cidrs)
+    desired_set = set(capped)
     list_id = _find_ip_list_id(token, zone_id)
 
     if not desired_set:
         if not list_id:
-            return True, False, ""
-        current = _get_ip_list_cidrs(token, zone_id, list_id)
-        if not current:
-            return True, False, ""
-        ok, _, err = _cf_request(
-            "PUT",
-            f"/zones/{zone_id}/rules/lists/{list_id}/items",
-            token,
-            json_body=[],
+            return True, False, "", cap_warning
+        try:
+            current_items = _fetch_ip_list_items_by_ip(token, zone_id, list_id)
+        except RuntimeError as exc:
+            return False, False, str(exc), cap_warning
+        if not current_items:
+            return True, False, "", cap_warning
+        ok, err = _delete_ip_list_items_batches(
+            token, zone_id, list_id, list(current_items.values())
         )
-        return ok, ok, err
+        return ok, ok, err, cap_warning
 
     if not list_id:
         list_id = _ensure_ip_list_id(token, zone_id)
-        current: set[str] = set()
+        current_items: dict[str, str] = {}
     else:
-        current = _get_ip_list_cidrs(token, zone_id, list_id)
+        try:
+            current_items = _fetch_ip_list_items_by_ip(token, zone_id, list_id)
+        except RuntimeError as exc:
+            return False, False, str(exc), cap_warning
 
-    if current == desired_set:
-        logger.debug("IP list %s already matches DB (%d items)", IP_LIST_NAME, len(desired_set))
-        return True, False, ""
+    current_set = set(current_items.keys())
+    if current_set == desired_set:
+        logger.debug(
+            "IP list %s already matches DB (%d items)", IP_LIST_NAME, len(desired_set)
+        )
+        return True, False, "", cap_warning
 
-    items = [{"ip": c} for c in sorted(desired_set)]
-    ok, _, err = _cf_request(
-        "PUT",
-        f"/zones/{zone_id}/rules/lists/{list_id}/items",
-        token,
-        json_body=items,
-    )
-    return ok, ok, err
+    to_remove = current_set - desired_set
+    to_add = sorted(desired_set - current_set)
+
+    if to_remove:
+        remove_ids = [current_items[cidr] for cidr in sorted(to_remove)]
+        ok, err = _delete_ip_list_items_batches(
+            token, zone_id, list_id, remove_ids
+        )
+        if not ok:
+            return False, False, err, cap_warning
+
+    if to_add:
+        ok, err = _post_ip_list_items_batches(token, zone_id, list_id, to_add)
+        if not ok:
+            return False, False, err, cap_warning
+
+    return True, True, "", cap_warning
 
 
 def _subnet_state_matches(
@@ -496,13 +645,13 @@ def _sync_subnet_ip_lists(
     token: str,
     zone_id: str,
     cidrs: list[str],
-) -> tuple[bool, bool, str]:
-    """Sync global subnet IP list items when needed. Returns (ok, changed, error)."""
+) -> tuple[bool, bool, str, Optional[str]]:
+    """Sync global subnet IP list items when needed. Returns (ok, changed, error, cap_warning)."""
     if len(cidrs) > INLINE_SUBNET_LIMIT:
         return _sync_ip_list_items(token, zone_id, cidrs)
     if not cidrs:
         return _sync_ip_list_items(token, zone_id, [])
-    return True, False, ""
+    return True, False, "", None
 
 
 def _waf_subnet_needs_update(
@@ -583,8 +732,13 @@ def sync_subnet_for_domain(domain: UserCloudflareDomain) -> DomainSyncResult:
     cidrs = _get_blocked_cidrs()
     existing_subnet_rule = _find_rule_by_description(existing_rules, SUBNET_RULE_DESC)
 
+    ip_warnings: list[str] = []
     try:
-        ok, ip_list_changed, err = _sync_subnet_ip_lists(token, domain.zone_id, cidrs)
+        ok, ip_list_changed, err, cap_warning = _sync_subnet_ip_lists(
+            token, domain.zone_id, cidrs
+        )
+        if cap_warning:
+            ip_warnings.append(cap_warning)
         if not ok:
             raise RuntimeError(f"Subnet IP list: {err}")
     except RuntimeError as exc:
@@ -594,6 +748,7 @@ def sync_subnet_for_domain(domain: UserCloudflareDomain) -> DomainSyncResult:
             ok=False,
             status=UserCloudflareDomain.SYNC_ERROR,
             message=str(exc),
+            warnings=ip_warnings,
         )
 
     subnet_expr = build_subnet_expression(cidrs, token, domain.zone_id)
@@ -612,6 +767,7 @@ def sync_subnet_for_domain(domain: UserCloudflareDomain) -> DomainSyncResult:
             status=UserCloudflareDomain.SYNC_OK,
             message="Already synced (no subnet changes).",
             skipped=True,
+            warnings=ip_warnings,
         )
 
     merged = _merge_waf_rules(
@@ -630,12 +786,18 @@ def sync_subnet_for_domain(domain: UserCloudflareDomain) -> DomainSyncResult:
             if parts
             else "Already synced (no WAF rule changes)."
         )
+        status = (
+            UserCloudflareDomain.SYNC_WARNING
+            if ip_warnings
+            else UserCloudflareDomain.SYNC_OK
+        )
         return DomainSyncResult(
             domain_id=domain.pk,
             domain_name=name,
             ok=True,
-            status=UserCloudflareDomain.SYNC_OK,
+            status=status,
             message=msg,
+            warnings=ip_warnings,
             skipped=not ip_list_changed,
         )
 
@@ -647,6 +809,7 @@ def sync_subnet_for_domain(domain: UserCloudflareDomain) -> DomainSyncResult:
             ok=False,
             status=UserCloudflareDomain.SYNC_ERROR,
             message=err,
+            warnings=ip_warnings,
         )
 
     parts = []
@@ -655,12 +818,18 @@ def sync_subnet_for_domain(domain: UserCloudflareDomain) -> DomainSyncResult:
     if rules_need_update:
         parts.append("subnet WAF rule updated")
     msg = "Subnet synced." + (" (" + ", ".join(parts) + ")" if parts else "")
+    status = (
+        UserCloudflareDomain.SYNC_WARNING
+        if ip_warnings
+        else UserCloudflareDomain.SYNC_OK
+    )
     return DomainSyncResult(
         domain_id=domain.pk,
         domain_name=name,
         ok=True,
-        status=UserCloudflareDomain.SYNC_OK,
+        status=status,
         message=msg,
+        warnings=ip_warnings,
     )
 
 
@@ -727,9 +896,11 @@ def sync_domain(
     try:
         if include_subnet:
             cidrs = _get_blocked_cidrs()
-            ok, ip_list_changed, err = _sync_subnet_ip_lists(
+            ok, ip_list_changed, err, cap_warning = _sync_subnet_ip_lists(
                 token, domain.zone_id, cidrs
             )
+            if cap_warning:
+                warnings.append(cap_warning)
             if not ok:
                 raise RuntimeError(f"Subnet IP list: {err}")
     except RuntimeError as exc:
@@ -740,6 +911,7 @@ def sync_domain(
             ok=False,
             status=UserCloudflareDomain.SYNC_ERROR,
             message=str(exc),
+            warnings=warnings,
         )
 
     subnet_expr = (
