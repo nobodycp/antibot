@@ -45,6 +45,36 @@ class WhatsAppCheckPermissionTests(TestCase):
         self.assertContains(r, "WhatsApp Check")
 
 
+class ToolsSidebarWhatsAppNavTests(TestCase):
+    """Sidebar must list WhatsApp Check for any logged-in user (same tier as Cloudflare Domains)."""
+
+    def setUp(self):
+        self.client = Client(enforce_csrf_checks=False)
+        self.regular = User.objects.create_user(username="nav_reg", password="pass")
+        self.superuser = User.objects.create_superuser(
+            username="nav_super",
+            password="pass-s",
+            email="nav_super@example.com",
+        )
+
+    def test_regular_user_dashboard_sidebar_shows_whatsapp_and_cloudflare(self):
+        self.client.force_login(self.regular)
+        r = self.client.get(reverse("dashboard:home"))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "WhatsApp Check")
+        self.assertContains(r, 'hx-get="/tools/whatsapp-check/"')
+        self.assertContains(r, "Cloudflare Domains")
+        self.assertContains(r, 'hx-get="/tools/cloudflare-domains/"')
+        self.assertNotContains(r, 'hx-get="/tools/google-safe-check/"')
+
+    def test_regular_user_cloudflare_page_sidebar_still_shows_whatsapp(self):
+        self.client.force_login(self.regular)
+        r = self.client.get(reverse("tools:cloudflare_domains"))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "WhatsApp Check")
+        self.assertContains(r, 'hx-get="/tools/whatsapp-check/"')
+
+
 class WhatsAppServiceTests(TestCase):
     def test_parse_numbers_dedupes(self):
         text = "966501234567\n966501234567\n# comment\n\n972:0531234567"
