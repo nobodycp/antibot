@@ -7,6 +7,7 @@ import os
 import re
 import signal
 import subprocess
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -265,6 +266,7 @@ def get_pairing_status(
     data = _read_pairing_json(path)
     creds = session_path / "creds.json"
     if creds.is_file() and data.get("status") not in ("qr", "connecting"):
+        clear_pairing_pid(name)
         return {
             "status": "connected",
             "message": "Session is linked.",
@@ -312,6 +314,7 @@ def delete_account(account_name: str) -> None:
     import shutil
 
     name = validate_account_name(account_name)
+    terminate_process(read_pairing_pid(name))
     path = sessions_dir() / name
     if path.is_dir():
         shutil.rmtree(path)
@@ -340,13 +343,79 @@ def _node_env(extra: dict[str, str] | None = None) -> dict[str, str]:
     return env
 
 
-def _spawn_node(args: list[str], env: dict[str, str] | None = None) -> subprocess.Popen:
+def _detach_process(proc: subprocess.Popen) -> int:
+    """Return child PID; keep it running after the Popen object is discarded.
+
+    Gunicorn workers must not keep subprocess.Popen handles in ``_active`` — worker
+    recycle / shutdown can otherwise stop Node jobs started from a web request.
+    """
+    pid = proc.pid
+    proc._child_created = False
+    for stream in (proc.stdin, proc.stdout, proc.stderr):
+        if stream is None or stream in (subprocess.DEVNULL, subprocess.PIPE):
+            continue
+        try:
+            stream.close()
+        except OSError:
+            pass
+    proc.stdin = proc.stdout = proc.stderr = None
+    return pid
+
+
+def _pairing_pid_path(session_path: Path) -> Path:
+    return session_path / "pairing.pid"
+
+
+def read_pairing_pid(account_name: str) -> int | None:
+    try:
+        name = validate_account_name(account_name)
+    except ValueError:
+        return None
+    path = _pairing_pid_path(sessions_dir() / name)
+    if not path.is_file():
+        return None
+    try:
+        raw = path.read_text(encoding="utf-8").strip()
+        return int(raw) if raw else None
+    except (OSError, ValueError):
+        return None
+
+
+def write_pairing_pid(account_name: str, pid: int) -> None:
+    name = validate_account_name(account_name)
+    path = _pairing_pid_path(sessions_dir() / name)
+    path.write_text(str(pid), encoding="utf-8")
+
+
+def clear_pairing_pid(account_name: str) -> None:
+    try:
+        name = validate_account_name(account_name)
+    except ValueError:
+        return
+    _pairing_pid_path(sessions_dir() / name).unlink(missing_ok=True)
+
+
+def resolve_pairing_pid(
+    account_name: str, session_pid: int | None = None
+) -> int | None:
+    """Pairing PID from session and/or on-disk file (survives refresh / worker change)."""
+    candidates: list[int] = []
+    for raw in (session_pid, read_pairing_pid(account_name)):
+        if isinstance(raw, int) and raw > 0 and raw not in candidates:
+            candidates.append(raw)
+    for pid in candidates:
+        if is_process_running(pid):
+            return pid
+    return candidates[0] if candidates else None
+
+
+def _spawn_node(args: list[str], env: dict[str, str] | None = None) -> int:
     root = whatsapp_root()
     index = root / "index.js"
     if not index.is_file():
         raise FileNotFoundError(f"WhatsApp validator not found at {index}")
     cmd = [settings.WHATSAPP_NODE_BIN, str(index), *args]
-    return subprocess.Popen(
+    proc = subprocess.Popen(
         cmd,
         cwd=str(root),
         env=_node_env(env),
@@ -354,12 +423,16 @@ def _spawn_node(args: list[str], env: dict[str, str] | None = None) -> subproces
         stderr=subprocess.DEVNULL,
         start_new_session=True,
     )
+    return _detach_process(proc)
 
 
-def start_pairing(account_name: str) -> subprocess.Popen:
+def start_pairing(account_name: str) -> int:
     name = validate_account_name(account_name)
     session_path = sessions_dir() / name
     session_path.mkdir(parents=True, exist_ok=True)
+    old_pid = read_pairing_pid(name)
+    terminate_process(old_pid)
+    clear_pairing_pid(name)
     pairing_path = session_path / "pairing.json"
     if pairing_path.is_file():
         pairing_path.unlink()
@@ -370,7 +443,7 @@ def start_pairing(account_name: str) -> subprocess.Popen:
     if not index.is_file():
         raise FileNotFoundError(f"WhatsApp validator not found at {index}")
     stderr_file = stderr_path.open("a", encoding="utf-8")
-    return subprocess.Popen(
+    proc = subprocess.Popen(
         [settings.WHATSAPP_NODE_BIN, str(index)],
         cwd=str(root),
         env=_node_env(
@@ -383,6 +456,25 @@ def start_pairing(account_name: str) -> subprocess.Popen:
         stderr=stderr_file,
         start_new_session=True,
     )
+    stderr_file.close()
+    pid = _detach_process(proc)
+    write_pairing_pid(name, pid)
+    return pid
+
+
+def _pid_cmdline(pid: int) -> str:
+    proc_cmdline = Path(f"/proc/{pid}/cmdline")
+    if proc_cmdline.is_file():
+        try:
+            parts = proc_cmdline.read_bytes().split(b"\x00")
+            return " ".join(
+                part.decode("utf-8", errors="replace")
+                for part in parts
+                if part
+            ).strip()
+        except OSError:
+            pass
+    return _pid_commandline(pid)
 
 
 def _pid_commandline(pid: int) -> str:
@@ -401,14 +493,44 @@ def _pid_commandline(pid: int) -> str:
     return (result.stdout or "").strip()
 
 
+def _pid_environ_contains(pid: int, key: str, value: str) -> bool:
+    needle = f"{key}={value}"
+    proc_environ = Path(f"/proc/{pid}/environ")
+    if proc_environ.is_file():
+        try:
+            blob = proc_environ.read_bytes()
+        except OSError:
+            return False
+        return needle.encode() in blob
+    try:
+        result = subprocess.run(
+            ["ps", "eww", "-p", str(pid)],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    if result.returncode != 0:
+        return False
+    return needle in (result.stdout or "")
+
+
 def _pid_belongs_to_check_job(pid: int, job_id: int) -> bool:
     """True if ``pid`` is still running the Node validator for this job's run dir."""
-    cmd = _pid_commandline(pid)
-    if not cmd:
-        return False
     run_dir = str(job_run_dir(job_id))
     root = str(whatsapp_root())
-    return run_dir in cmd or str(root / "index.js") in cmd or "index.js" in cmd
+    cmd = _pid_cmdline(pid)
+    if cmd and (
+        run_dir in cmd
+        or str(Path(root) / "index.js") in cmd
+        or "index.js" in cmd
+    ):
+        return True
+    if _pid_environ_contains(pid, "RUN_DIR", run_dir):
+        return True
+    return False
 
 
 def _reap_child_exit_code(pid: int | None) -> int | None:
@@ -448,6 +570,146 @@ def is_process_running(pid: int | None, *, job_id: int | None = None) -> bool:
     if job_id is not None:
         return _pid_belongs_to_check_job(pid, job_id)
     return True
+
+
+VALIDATOR_PID_FILENAME = "validator.pid"
+# Max gap between progress.json writes before treating the job as idle (safe speed).
+PROGRESS_ACTIVE_MAX_AGE_SECONDS = 300
+
+
+def validator_pid_path(job_id: int) -> Path:
+    return job_run_dir(job_id) / VALIDATOR_PID_FILENAME
+
+
+def write_validator_pid(job_id: int, pid: int) -> None:
+    run_path = job_run_dir(job_id)
+    run_path.mkdir(parents=True, exist_ok=True)
+    validator_pid_path(job_id).write_text(str(int(pid)), encoding="utf-8")
+
+
+def read_validator_pid(job_id: int) -> int | None:
+    path = validator_pid_path(job_id)
+    if not path.is_file():
+        return None
+    try:
+        return int(path.read_text(encoding="utf-8").strip())
+    except (ValueError, OSError):
+        return None
+
+
+def clear_validator_pid(job_id: int) -> None:
+    validator_pid_path(job_id).unlink(missing_ok=True)
+
+
+def _coerce_child_pid(pid_or_proc) -> int:
+    if hasattr(pid_or_proc, "pid"):
+        return int(pid_or_proc.pid)
+    return int(pid_or_proc)
+
+
+def register_job_validator_pid(job, pid_or_proc) -> None:
+    """Persist validator PID on the job and in the run directory."""
+    pid = _coerce_child_pid(pid_or_proc)
+    job.pid = pid
+    write_validator_pid(job.id, pid)
+
+
+def _find_validator_pid_by_run_dir(job_id: int) -> int | None:
+    run_dir = str(job_run_dir(job_id))
+    try:
+        result = subprocess.run(
+            ["pgrep", "-f", run_dir],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+    for line in (result.stdout or "").strip().splitlines():
+        try:
+            pid = int(line.strip())
+        except ValueError:
+            continue
+        if _pid_belongs_to_check_job(pid, job_id):
+            return pid
+    return None
+
+
+def resolve_validator_pid(job) -> int | None:
+    """Best-effort PID for the Node validator (DB, pid file, or process scan)."""
+    candidates: list[int] = []
+    if job.pid:
+        candidates.append(int(job.pid))
+    disk_pid = read_validator_pid(job.id)
+    if disk_pid:
+        candidates.append(disk_pid)
+    found = _find_validator_pid_by_run_dir(job.id)
+    if found:
+        candidates.append(found)
+    seen: set[int] = set()
+    for pid in candidates:
+        if pid in seen:
+            continue
+        seen.add(pid)
+        if is_process_running(pid, job_id=job.id):
+            return pid
+    return None
+
+
+def _progress_update_age_seconds(progress: dict[str, Any] | None) -> float | None:
+    if not progress:
+        return None
+    raw = progress.get("timestamp")
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    text = raw.strip().replace("Z", "+00:00")
+    try:
+        updated = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if updated.tzinfo is None:
+        updated = updated.replace(tzinfo=timezone.utc)
+    return time.time() - updated.timestamp()
+
+
+def is_progress_recently_active(
+    job_id: int, *, max_age_seconds: int = PROGRESS_ACTIVE_MAX_AGE_SECONDS
+) -> bool:
+    """True when progress.json shows a recent, incomplete update (Node still working)."""
+    progress = read_job_progress(job_id)
+    if not progress:
+        return False
+    if is_progress_complete(progress):
+        return False
+    prog_status = _progress_terminal_status(progress)
+    if prog_status in ("cancelled", "failed", "error"):
+        return False
+    age = _progress_update_age_seconds(progress)
+    if age is None:
+        path = job_run_dir(job_id) / "progress.json"
+        try:
+            age = time.time() - path.stat().st_mtime
+        except OSError:
+            return False
+    return age <= max_age_seconds
+
+
+def is_validator_running(job) -> bool:
+    """True when the Node validator is still working on this job."""
+    from tools.models import WhatsAppCheckJob
+
+    if resolve_validator_pid(job) is not None:
+        return True
+    # Fresh progress alone must not resurrect a terminal job (e.g. after refresh).
+    if job.status in (
+        WhatsAppCheckJob.STATUS_RUNNING,
+        WhatsAppCheckJob.STATUS_PENDING,
+    ):
+        return is_progress_recently_active(job.id)
+    return False
 
 
 def terminate_process(pid: int | None) -> None:
@@ -644,7 +906,7 @@ def start_check_job(
     speed: str,
     fetch_presence: bool,
     local_trunk_country: str = "",
-) -> subprocess.Popen:
+) -> int:
     if not account_names:
         raise ValueError("Select at least one WhatsApp account.")
     if not numbers:
@@ -748,7 +1010,7 @@ def job_is_resumable(job) -> bool:
 
     if job.status == WhatsAppCheckJob.STATUS_COMPLETED:
         return False
-    if is_process_running(job.pid, job_id=job.id):
+    if resolve_validator_pid(job) is not None:
         return False
     if job.status == WhatsAppCheckJob.STATUS_PENDING:
         return False
@@ -788,7 +1050,7 @@ def _mark_progress_not_done(job_id: int) -> None:
         path.write_text(json.dumps(progress, indent=2), encoding="utf-8")
 
 
-def resume_check_job(job) -> subprocess.Popen:
+def resume_check_job(job) -> int:
     """Restart Node for an existing job, checking only remaining numbers."""
     remaining = remaining_numbers_for_job(job)
     if not remaining:
@@ -918,6 +1180,8 @@ def _incomplete_progress_message(progress: dict[str, Any] | None, job) -> str:
     totals = _progress_totals(progress)
     total = int(totals.get("total") or 0) or len(parse_numbers_text(job.numbers_text))
     checked = int(totals.get("checked") or 0)
+    cc = job.local_trunk_country or ""
+    checked = max(checked, len(_processed_query_digits(job.id, cc)))
     if total:
         return (
             f"Check stopped before finishing "
@@ -994,10 +1258,7 @@ def build_job_snapshot(job) -> dict[str, Any]:
         "valid_numbers": valid_numbers,
         "error_numbers": error_numbers,
         "previously_checked_numbers": previously_checked,
-        "is_running": (
-            job.status == job.STATUS_RUNNING
-            and is_process_running(job.pid, job_id=job.id)
-        ),
+        "is_running": is_validator_running(job),
     }
 
 
@@ -1024,14 +1285,22 @@ def sync_job_from_disk(job) -> None:
         job.result_summary = progress
 
     complete = is_progress_complete(progress)
-    running = is_process_running(job.pid, job_id=job.id)
+    running = is_validator_running(job)
 
     if running and not complete:
+        pid = resolve_validator_pid(job)
+        if not pid:
+            return
+        register_job_validator_pid(job, pid)
+        reconnected = job.status == WhatsAppCheckJob.STATUS_FAILED
         if job.status in (
             WhatsAppCheckJob.STATUS_RUNNING,
             WhatsAppCheckJob.STATUS_PENDING,
-        ):
+        ) or reconnected:
             job.status = WhatsAppCheckJob.STATUS_RUNNING
+            job.error_message = ""
+            if reconnected:
+                job.finished_at = None
         return
 
     if job.status not in (
@@ -1046,12 +1315,14 @@ def sync_job_from_disk(job) -> None:
         job.status = WhatsAppCheckJob.STATUS_COMPLETED
         job.finished_at = job.finished_at or now
         job.pid = None
+        clear_validator_pid(job.id)
         if not was_completed:
             record_verified_from_job(job)
         return
 
-    had_pid = bool(job.pid)
+    had_pid = bool(job.pid) or read_validator_pid(job.id) is not None
     job.pid = None
+    clear_validator_pid(job.id)
     job.finished_at = job.finished_at or now
     prog_status = _progress_terminal_status(progress)
 

@@ -1,9 +1,9 @@
 <div class="wa-check-workspace__results"
      id="wa-check-results-panel"
-     {% if job and job.status == 'running' %}
+     {% if job %}{% if job.status == 'running' or snapshot.is_running %}
      hx-get="{% url 'tools:whatsapp_check_status' job.id %}"
      hx-trigger="every 30s"
      hx-swap="outerHTML"
-     {% endif %}>
+     {% endif %}{% endif %}>
   {% include "tools/partials/whatsapp_check_results_panel.html" %}
 </div>

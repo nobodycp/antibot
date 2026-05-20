@@ -1,3 +1,4 @@
+import gc
 import json
 import os
 import subprocess
@@ -124,7 +125,7 @@ class WhatsAppServiceTests(TestCase):
         (run_path / "verified_active_numbers.txt").write_text(
             "966501234567\n", encoding="utf-8"
         )
-        with patch.object(wa, "is_process_running", return_value=False):
+        with patch.object(wa, "is_validator_running", return_value=False):
             wa.sync_job_from_disk(job)
         self.assertEqual(job.status, WhatsAppCheckJob.STATUS_COMPLETED)
         self.assertTrue(
@@ -185,6 +186,68 @@ class WhatsAppServiceTests(TestCase):
         proc.wait()
         self.assertFalse(wa.is_process_running(pid))
 
+    def test_detach_process_survives_popen_gc(self):
+        proc = subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(2)"],
+            start_new_session=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        pid = wa._detach_process(proc)
+        del proc
+        gc.collect()
+        self.assertTrue(wa.is_process_running(pid))
+        wa.terminate_process(pid)
+        try:
+            os.waitpid(pid, 0)
+        except ChildProcessError:
+            pass
+
+    def test_resolve_pairing_pid_reads_disk_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session = root / "sessions" / "acc_1"
+            session.mkdir(parents=True)
+            proc = subprocess.Popen(
+                [sys.executable, "-c", "import time; time.sleep(3)"],
+                start_new_session=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            pid = wa._detach_process(proc)
+            with override_settings(WHATSAPP_ROOT=root):
+                wa.write_pairing_pid("acc_1", pid)
+                resolved = wa.resolve_pairing_pid("acc_1", session_pid=None)
+            self.assertEqual(resolved, pid)
+            wa.terminate_process(pid)
+            try:
+                os.waitpid(pid, 0)
+            except ChildProcessError:
+                pass
+
+    def test_pid_belongs_to_check_job_via_proc_environ(self):
+        proc_cmdline = Path("/proc/self/cmdline")
+        if not proc_cmdline.is_file():
+            self.skipTest("/proc not available on this platform")
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "runs" / "42"
+            run_dir.mkdir(parents=True)
+            env = os.environ.copy()
+            env["RUN_DIR"] = str(run_dir)
+            proc = subprocess.Popen(
+                [sys.executable, "-c", "import time; time.sleep(2)"],
+                env=env,
+                start_new_session=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            pid = proc.pid
+            with override_settings(WHATSAPP_ROOT=Path(tmp)):
+                with patch.object(wa, "job_run_dir", return_value=run_dir):
+                    self.assertTrue(wa._pid_belongs_to_check_job(pid, 42))
+            proc.terminate()
+            proc.wait()
+
     def test_is_process_running_false_when_pid_not_validator(self):
         """PID reuse: another process holds the pid; not our Node validator."""
         with patch.object(os, "waitpid", side_effect=ChildProcessError()):
@@ -217,6 +280,7 @@ class WhatsAppServiceTests(TestCase):
         (run_path / "progress.json").write_text(
             json.dumps(
                 {
+                    "timestamp": "2020-01-01T00:00:00.000Z",
                     "done": False,
                     "totals": {
                         "total": 2000,
@@ -230,13 +294,105 @@ class WhatsAppServiceTests(TestCase):
             ),
             encoding="utf-8",
         )
-        with patch.object(wa, "is_process_running", return_value=False):
+        with patch.object(wa, "is_validator_running", return_value=False):
             wa.sync_job_from_disk(job)
         self.assertEqual(job.status, WhatsAppCheckJob.STATUS_FAILED)
         self.assertIn("stopped before finishing", job.error_message)
         self.assertIsNone(job.pid)
         self.assertIsNotNone(job.finished_at)
         self.assertTrue(wa.job_is_resumable(job))
+
+    def test_sync_job_reconnects_failed_when_validator_still_active(self):
+        user = User.objects.create_superuser(
+            username="reconn_u", password="x", email="reconn@e.com"
+        )
+        job = WhatsAppCheckJob.objects.create(
+            user=user,
+            numbers_text="966501234567\n966509876543",
+            status=WhatsAppCheckJob.STATUS_FAILED,
+            pid=999999,
+            error_message="Check stopped before finishing (1 of 2 numbers processed).",
+        )
+        run_path = wa.job_run_dir(job.id)
+        run_path.mkdir(parents=True, exist_ok=True)
+        (run_path / "progress.json").write_text(
+            json.dumps(
+                {
+                    "done": False,
+                    "totals": {
+                        "total": 2,
+                        "checked": 1,
+                        "live": 1,
+                        "errors": 0,
+                        "invalid": 0,
+                    },
+                    "results": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.object(wa, "is_validator_running", return_value=True):
+            with patch.object(wa, "resolve_validator_pid", return_value=424242):
+                wa.sync_job_from_disk(job)
+        self.assertEqual(job.status, WhatsAppCheckJob.STATUS_RUNNING)
+        self.assertEqual(job.error_message, "")
+        self.assertEqual(job.pid, 424242)
+        self.assertIsNone(job.finished_at)
+
+    def test_sync_job_uses_disk_pid_when_db_pid_stale(self):
+        user = User.objects.create_superuser(
+            username="diskpid_u", password="x", email="diskpid@e.com"
+        )
+        job = WhatsAppCheckJob.objects.create(
+            user=user,
+            numbers_text="966501234567",
+            status=WhatsAppCheckJob.STATUS_RUNNING,
+            pid=999999,
+        )
+        run_path = wa.job_run_dir(job.id)
+        run_path.mkdir(parents=True, exist_ok=True)
+        wa.write_validator_pid(job.id, 424243)
+        (run_path / "progress.json").write_text(
+            json.dumps(
+                {
+                    "done": False,
+                    "totals": {
+                        "total": 1,
+                        "checked": 0,
+                        "live": 0,
+                        "errors": 0,
+                        "invalid": 0,
+                    },
+                    "results": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        def fake_running(pid, *, job_id=None):
+            return pid == 424243
+
+        with patch.object(wa, "is_process_running", side_effect=fake_running):
+            wa.sync_job_from_disk(job)
+        self.assertEqual(job.status, WhatsAppCheckJob.STATUS_RUNNING)
+        self.assertEqual(job.pid, 424243)
+
+    def test_is_progress_recently_active_false_when_complete(self):
+        user = User.objects.create_superuser(
+            username="prog_u", password="x", email="prog@e.com"
+        )
+        job = WhatsAppCheckJob.objects.create(
+            user=user,
+            numbers_text="966501234567",
+            status=WhatsAppCheckJob.STATUS_RUNNING,
+        )
+        run_path = wa.job_run_dir(job.id)
+        run_path.mkdir(parents=True, exist_ok=True)
+        (run_path / "progress.json").write_text(
+            json.dumps({"done": True, "totals": {"total": 1, "checked": 1, "live": 1}}),
+            encoding="utf-8",
+        )
+        self.assertFalse(wa.is_progress_recently_active(job.id))
 
     def test_job_is_resumable_when_pending_numbers_exist(self):
         user = User.objects.create_superuser(
@@ -490,7 +646,7 @@ class WhatsAppServiceTests(TestCase):
 
     @patch("tools.services.whatsapp_service._spawn_node")
     def test_start_check_job_sets_trunk_env(self, mock_spawn):
-        mock_spawn.return_value = MagicMock(pid=1)
+        mock_spawn.return_value = 4242
         wa.start_check_job(
             job_id=99,
             numbers=["0512345678"],
@@ -504,7 +660,7 @@ class WhatsAppServiceTests(TestCase):
 
     @patch("tools.services.whatsapp_service._spawn_node")
     def test_start_check_job_omits_trunk_env_when_empty(self, mock_spawn):
-        mock_spawn.return_value = MagicMock(pid=1)
+        mock_spawn.return_value = 4243
         wa.start_check_job(
             job_id=100,
             numbers=["966501234567"],
@@ -673,7 +829,7 @@ class WhatsAppCheckJobTests(TestCase):
     @patch("tools.views.whatsapp_views.wa.start_check_job")
     @patch("tools.views.whatsapp_views._linked_account_names", return_value=["acc_1"])
     def test_start_check_creates_job(self, _linked, mock_start):
-        mock_start.return_value = MagicMock(pid=4242)
+        mock_start.return_value = 4242
         r = self.client.post(
             reverse("tools:whatsapp_check"),
             {
@@ -686,6 +842,7 @@ class WhatsAppCheckJobTests(TestCase):
         job = WhatsAppCheckJob.objects.get()
         self.assertEqual(job.status, WhatsAppCheckJob.STATUS_RUNNING)
         self.assertEqual(job.pid, 4242)
+        self.assertTrue(wa.validator_pid_path(job.id).is_file())
         mock_start.assert_called_once()
         kwargs = mock_start.call_args.kwargs
         self.assertEqual(kwargs.get("local_trunk_country"), "")
@@ -694,7 +851,7 @@ class WhatsAppCheckJobTests(TestCase):
     @patch("tools.views.whatsapp_views._linked_account_names", return_value=["acc_1"])
     def test_start_check_skips_previously_verified(self, _linked, mock_start):
         WhatsAppVerifiedNumber.objects.create(phone="966501234567")
-        mock_start.return_value = MagicMock(pid=4242)
+        mock_start.return_value = 4242
         self.client.post(
             reverse("tools:whatsapp_check"),
             {
@@ -730,7 +887,7 @@ class WhatsAppCheckJobTests(TestCase):
     @patch("tools.views.whatsapp_views.wa.start_check_job")
     @patch("tools.views.whatsapp_views._linked_account_names", return_value=["acc_1"])
     def test_start_check_passes_country_prefix(self, _linked, mock_start):
-        mock_start.return_value = MagicMock(pid=4242)
+        mock_start.return_value = 4242
         self.client.post(
             reverse("tools:whatsapp_check"),
             {
@@ -750,7 +907,7 @@ class WhatsAppCheckJobTests(TestCase):
     @patch("tools.views.whatsapp_views.wa.start_check_job")
     @patch("tools.views.whatsapp_views._linked_account_names", return_value=["acc_1"])
     def test_page_reconciles_stuck_running_job(self, _linked, mock_start):
-        mock_start.return_value = MagicMock(pid=4242)
+        mock_start.return_value = 4242
         proc = subprocess.Popen(
             [sys.executable, "-c", "pass"],
             start_new_session=True,
@@ -786,6 +943,45 @@ class WhatsAppCheckJobTests(TestCase):
         self.assertEqual(job.status, WhatsAppCheckJob.STATUS_COMPLETED)
         self.assertNotContains(r, "A job is already running")
 
+    def test_page_reconnects_failed_job_after_refresh(self):
+        job = WhatsAppCheckJob.objects.create(
+            user=self.superuser,
+            numbers_text="966501234567\n966509876543",
+            status=WhatsAppCheckJob.STATUS_FAILED,
+            error_message="Check stopped before finishing (1 of 2 numbers processed).",
+            account_names=["acc_1"],
+        )
+        run_path = wa.job_run_dir(job.id)
+        run_path.mkdir(parents=True, exist_ok=True)
+        (run_path / "progress.json").write_text(
+            json.dumps(
+                {
+                    "done": False,
+                    "totals": {
+                        "total": 2,
+                        "checked": 1,
+                        "live": 1,
+                        "errors": 0,
+                        "invalid": 0,
+                    },
+                    "results": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.object(wa, "resolve_validator_pid", return_value=7777):
+            with patch.object(wa, "is_validator_running", return_value=True):
+                r = self.client.get(
+                    reverse("tools:whatsapp_check"), {"tab": "check", "job": job.id}
+                )
+        self.assertEqual(r.status_code, 200)
+        job.refresh_from_db()
+        self.assertEqual(job.status, WhatsAppCheckJob.STATUS_RUNNING)
+        self.assertEqual(job.error_message, "")
+        self.assertEqual(job.pid, 7777)
+        self.assertContains(r, reverse("tools:whatsapp_check_status", args=[job.id]))
+        self.assertNotContains(r, "stopped before finishing")
+
     def test_results_panel_shows_previously_checked_section(self):
         job = WhatsAppCheckJob.objects.create(
             user=self.superuser,
@@ -812,7 +1008,7 @@ class WhatsAppCheckJobTests(TestCase):
 
     @patch("tools.views.whatsapp_views.wa.resume_check_job")
     def test_continue_job_restarts_validator(self, mock_resume):
-        mock_resume.return_value = MagicMock(pid=5151)
+        mock_resume.return_value = 5151
         job = WhatsAppCheckJob.objects.create(
             user=self.superuser,
             numbers_text="966501234567\n966509876543",
@@ -851,6 +1047,7 @@ class WhatsAppCheckJobTests(TestCase):
         (run_path / "progress.json").write_text(
             json.dumps(
                 {
+                    "timestamp": "2020-01-01T00:00:00.000Z",
                     "done": False,
                     "totals": {
                         "total": 2,
@@ -1041,9 +1238,8 @@ class WhatsAppAccountOwnershipTests(TestCase):
         self.assertEqual(wa_accounts.jobs_queryset_for_user(self.admin).count(), 2)
         self.assertEqual(wa_accounts.jobs_queryset_for_user(self.regular).count(), 1)
 
-    @patch("tools.views.whatsapp_views.wa.start_check_job")
-    def test_add_account_registers_owner(self, mock_start):
-        mock_start.return_value = MagicMock(pid=1)
+    @patch("tools.views.whatsapp_views.wa.start_pairing", return_value=1)
+    def test_add_account_registers_owner(self, _mock_pair):
         client = Client(enforce_csrf_checks=False)
         client.force_login(self.admin)
         with tempfile.TemporaryDirectory() as tmp:

@@ -24,13 +24,13 @@
 {% if job %}
 <div class="wa-check-results__status text-xs table-cell--muted">
   Job #{{ job.id }} — {{ job.status_label }}
-  {% if job.status == 'running' %}
+  {% if job.status == 'running' or snapshot.is_running %}
   <span class="ml-1">· every 30s</span>
   {% endif %}
   {% if job.error_message %}
   <span class="ds-text-danger ml-2">{{ job.error_message }}</span>
   {% endif %}
-  {% if job.status == 'running' %}
+  {% if job.status == 'running' or snapshot.is_running %}
   <form method="post" class="inline ml-2">
     {% csrf_token %}
     <input type="hidden" name="action" value="cancel_job" />

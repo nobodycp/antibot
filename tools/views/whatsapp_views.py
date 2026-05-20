@@ -82,6 +82,7 @@ def _recent_jobs_for_user(user):
         if job.status in (
             WhatsAppCheckJob.STATUS_RUNNING,
             WhatsAppCheckJob.STATUS_PENDING,
+            WhatsAppCheckJob.STATUS_FAILED,
         ):
             wa.sync_job_from_disk(job)
             job.save()
@@ -215,7 +216,7 @@ def whatsapp_check_view(request):
                 messages.error(request, str(exc))
                 return redirect(_wa_url(tab="check"))
 
-            job.pid = proc.pid
+            wa.register_job_validator_pid(job, proc)
             job.status = WhatsAppCheckJob.STATUS_RUNNING
             job.started_at = timezone.now()
             job.save()
@@ -231,8 +232,10 @@ def whatsapp_check_view(request):
         if action == "cancel_job":
             job = _get_job(user, request.POST.get("job_id"))
             wa.sync_job_from_disk(job)
-            wa.terminate_process(job.pid)
+            pid = wa.resolve_validator_pid(job) or job.pid
+            wa.terminate_process(pid)
             job.pid = None
+            wa.clear_validator_pid(job.id)
             if job.status in (
                 WhatsAppCheckJob.STATUS_RUNNING,
                 WhatsAppCheckJob.STATUS_PENDING,
@@ -268,12 +271,12 @@ def whatsapp_check_view(request):
                 wa_accounts.register_account(name, user)
 
             try:
-                proc = wa.start_pairing(name)
+                pair_pid = wa.start_pairing(name)
             except (FileNotFoundError, ValueError) as exc:
                 messages.error(request, str(exc))
                 return redirect(_wa_url(tab="accounts"))
 
-            request.session[f"wa_pair_pid_{name}"] = proc.pid
+            request.session[f"wa_pair_pid_{name}"] = pair_pid
             messages.success(request, f"Pairing started for {name}. Scan the QR code below.")
             return redirect(_wa_url(tab="accounts", pairing=name))
 
@@ -295,7 +298,12 @@ def whatsapp_check_view(request):
 
     if pairing_account and tab == "accounts" and request.method == "GET":
         creds_path = wa.sessions_dir() / pairing_account / "creds.json"
-        pair_pid = request.session.get(f"wa_pair_pid_{pairing_account}")
+        pair_pid = wa.resolve_pairing_pid(
+            pairing_account,
+            request.session.get(f"wa_pair_pid_{pairing_account}"),
+        )
+        if pair_pid:
+            request.session[f"wa_pair_pid_{pairing_account}"] = pair_pid
         pairing_status_early = wa.get_pairing_status(
             pairing_account, pair_pid=pair_pid
         )
@@ -305,8 +313,8 @@ def whatsapp_check_view(request):
             and not wa.is_process_running(pair_pid)
         ):
             try:
-                proc = wa.start_pairing(pairing_account)
-                request.session[f"wa_pair_pid_{pairing_account}"] = proc.pid
+                pair_pid = wa.start_pairing(pairing_account)
+                request.session[f"wa_pair_pid_{pairing_account}"] = pair_pid
             except (FileNotFoundError, ValueError) as exc:
                 messages.error(request, str(exc))
 
@@ -343,7 +351,12 @@ def whatsapp_check_view(request):
 
     pairing_status = None
     if pairing_account:
-        pair_pid = request.session.get(f"wa_pair_pid_{pairing_account}")
+        pair_pid = wa.resolve_pairing_pid(
+            pairing_account,
+            request.session.get(f"wa_pair_pid_{pairing_account}"),
+        )
+        if pair_pid:
+            request.session[f"wa_pair_pid_{pairing_account}"] = pair_pid
         pairing_status = wa.get_pairing_status(
             pairing_account, pair_pid=pair_pid
         )
@@ -389,7 +402,14 @@ def whatsapp_check_continue(request, job_id: int):
         messages.error(request, "This job cannot be continued.")
         return redirect(_wa_url(tab="check", job=job.id))
 
-    if _user_has_running_job(request.user):
+    if (
+        WhatsAppCheckJob.objects.filter(
+            user=request.user,
+            status=WhatsAppCheckJob.STATUS_RUNNING,
+        )
+        .exclude(pk=job.pk)
+        .exists()
+    ):
         messages.warning(
             request, "A check is already running. Wait or cancel it before continuing."
         )
@@ -402,7 +422,7 @@ def whatsapp_check_continue(request, job_id: int):
         messages.error(request, str(exc))
         return redirect(_wa_url(tab="check", job=job.id))
 
-    job.pid = proc.pid
+    wa.register_job_validator_pid(job, proc)
     job.status = WhatsAppCheckJob.STATUS_RUNNING
     job.started_at = job.started_at or timezone.now()
     job.finished_at = None
@@ -489,7 +509,12 @@ def whatsapp_pairing_status_partial(request, account_name: str):
         return HttpResponseForbidden("Invalid account name.")
     if not wa_accounts.user_can_access_account(request.user, account_name):
         return HttpResponseForbidden("You do not have access to this account.")
-    pair_pid = request.session.get(f"wa_pair_pid_{account_name}")
+    pair_pid = wa.resolve_pairing_pid(
+        account_name,
+        request.session.get(f"wa_pair_pid_{account_name}"),
+    )
+    if pair_pid:
+        request.session[f"wa_pair_pid_{account_name}"] = pair_pid
     status = wa.get_pairing_status(account_name, pair_pid=pair_pid)
     html = render_to_string(
         "tools/partials/whatsapp_pairing_status.html",
