@@ -76,6 +76,8 @@ def _build_check_form(user, data=None) -> WhatsAppCheckForm:
 
 
 def _recent_jobs_for_user(user):
+    if not _jobs_schema_ready():
+        return [], None
     jobs_qs = wa_accounts.jobs_queryset_for_user(user)
     jobs = list(jobs_qs[:20])
     for job in jobs:
@@ -87,10 +89,7 @@ def _recent_jobs_for_user(user):
             wa.sync_job_from_disk(job)
             job.save()
     # Re-query after disk sync — stale in-memory status may block the UI.
-    active = WhatsAppCheckJob.objects.filter(
-        user=user,
-        status=WhatsAppCheckJob.STATUS_RUNNING,
-    ).first()
+    active = jobs_qs.filter(status=WhatsAppCheckJob.STATUS_RUNNING).first()
     return jobs, active
 
 
@@ -99,15 +98,29 @@ def _get_job(user, job_id):
 
 
 def _user_has_running_job(user) -> bool:
+    if not wa_accounts.whatsapp_job_line_counts_schema_ready():
+        return False
     return WhatsAppCheckJob.objects.filter(
         user=user,
         status=WhatsAppCheckJob.STATUS_RUNNING,
     ).exists()
 
 
+def _jobs_schema_ready() -> bool:
+    return wa_accounts.whatsapp_job_line_counts_schema_ready()
+
+
+def _warn_jobs_schema_pending(request) -> None:
+    if not _jobs_schema_ready():
+        messages.warning(request, wa_accounts.WA_JOBS_MIGRATE_HINT)
+
+
 @login_required
 def whatsapp_check_view(request):
     user = request.user
+    jobs_schema_ready = _jobs_schema_ready()
+    if not jobs_schema_ready:
+        _warn_jobs_schema_pending(request)
     is_admin = wa_accounts.is_wa_admin(user)
     tab = request.GET.get("tab", "check")
     if tab not in ("check", "accounts"):
@@ -129,6 +142,10 @@ def whatsapp_check_view(request):
 
     if request.method == "POST":
         action = request.POST.get("action", "")
+
+        if not jobs_schema_ready:
+            messages.error(request, wa_accounts.WA_JOBS_MIGRATE_HINT)
+            return redirect(_wa_url(tab=tab))
 
         if action == "start_check":
             form = _build_check_form(user, request.POST)
@@ -389,6 +406,7 @@ def whatsapp_check_view(request):
         "pairing": pairing_status,
         "linked_accounts": _linked_account_names(user),
         "node_available": _whatsapp_node_ready(),
+        "wa_jobs_schema_ready": jobs_schema_ready,
     }
     return render_page_or_shell(
         request,
@@ -401,6 +419,9 @@ def whatsapp_check_view(request):
 @login_required
 @require_POST
 def whatsapp_check_continue(request, job_id: int):
+    if not _jobs_schema_ready():
+        messages.error(request, wa_accounts.WA_JOBS_MIGRATE_HINT)
+        return redirect(_wa_url(tab="check", job=job_id))
     job = _get_job(request.user, job_id)
     wa.sync_job_from_disk(job)
     job.save()
@@ -453,6 +474,12 @@ def whatsapp_check_continue(request, job_id: int):
 @login_required
 @require_GET
 def whatsapp_check_status_partial(request, job_id: int):
+    if not _jobs_schema_ready():
+        return HttpResponse(
+            '<p class="text-sm ds-text-warning">'
+            + wa_accounts.WA_JOBS_MIGRATE_HINT
+            + "</p>"
+        )
     job = _get_job(request.user, job_id)
     wa.sync_job_from_disk(job)
     job.save()
@@ -475,6 +502,8 @@ def whatsapp_check_status_partial(request, job_id: int):
 @login_required
 @require_GET
 def whatsapp_check_recent_jobs_partial(request):
+    if not _jobs_schema_ready():
+        return HttpResponse("")
     jobs, active_job = _recent_jobs_for_user(request.user)
     html = render_to_string(
         "tools/partials/whatsapp_check_recent_jobs.html",

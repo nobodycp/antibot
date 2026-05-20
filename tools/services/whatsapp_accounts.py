@@ -97,7 +97,46 @@ def owner_username_for(account_name: str) -> str | None:
     return record.owner.username if record.owner_id else None
 
 
+_LINE_COUNT_COLUMNS = ("input_line_count", "unique_number_count")
+_schema_line_counts_ready: bool | None = None
+
+WA_JOBS_MIGRATE_HINT = (
+    "WhatsApp Check database schema is out of date. "
+    "On the server run: python manage.py migrate tools"
+)
+
+
+def whatsapp_job_line_counts_schema_ready() -> bool:
+    """True when migration 0012 line-count columns exist on WhatsAppCheckJob."""
+    global _schema_line_counts_ready
+    if _schema_line_counts_ready is not None:
+        return _schema_line_counts_ready
+    from django.db import connection
+
+    table = WhatsAppCheckJob._meta.db_table
+    try:
+        with connection.cursor() as cursor:
+            description = connection.introspection.get_table_description(
+                cursor, table
+            )
+        names = {col.name for col in description}
+        _schema_line_counts_ready = all(
+            col in names for col in _LINE_COUNT_COLUMNS
+        )
+    except Exception:
+        _schema_line_counts_ready = False
+    return _schema_line_counts_ready
+
+
+def clear_whatsapp_job_schema_cache() -> None:
+    """Reset schema probe cache (tests only)."""
+    global _schema_line_counts_ready
+    _schema_line_counts_ready = None
+
+
 def jobs_queryset_for_user(user):
+    if not whatsapp_job_line_counts_schema_ready():
+        return WhatsAppCheckJob.objects.none()
     qs = WhatsAppCheckJob.objects.select_related("user")
     if is_wa_admin(user):
         return qs

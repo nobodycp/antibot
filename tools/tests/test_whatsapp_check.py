@@ -28,6 +28,18 @@ class WhatsAppCheckPermissionTests(TestCase):
             email="super@example.com",
         )
 
+    def test_page_ok_when_line_count_migration_missing(self):
+        """GET must not 500 before tools.0012 is applied on the server."""
+        self.client.force_login(self.user)
+        with patch(
+            "tools.views.whatsapp_views._jobs_schema_ready",
+            return_value=False,
+        ):
+            r = self.client.get(reverse("tools:whatsapp_check"))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "migrate tools")
+        self.assertContains(r, "WhatsApp Check")
+
     def test_anonymous_redirected(self):
         r = self.client.get(reverse("tools:whatsapp_check"))
         self.assertEqual(r.status_code, 302)
