@@ -5,7 +5,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from dashboard.cloudflare_token_crypto import encrypt_cloudflare_token
-from dashboard.helpers.cloudflare_zone import ERR_TOKEN_NO_ACCESS
+from dashboard.helpers.cloudflare_zone import ERR_TOKEN_NO_ACCESS, ERR_ZONE_NOT_FOUND
 from dashboard.models import UserCloudflareDomain
 from tools.services.cloudflare_sync_service import (
     IP_LIST_DELETE_BATCH_SIZE,
@@ -553,6 +553,42 @@ class CloudflareSyncDomainTests(TestCase):
 class CloudflareIpListBatchTests(TestCase):
     def setUp(self):
         _clear_cf_account_id_cache()
+
+    @patch("tools.services.cloudflare_sync_service._get_blocked_cidrs")
+    @patch("tools.services.cloudflare_sync_service._cf_request")
+    def test_subnet_sync_lists_403_shows_cf_message_not_zone_not_found(
+        self, mock_cf, mock_cidrs
+    ):
+        many_cidrs = [f"10.0.{i}.0/24" for i in range(30)]
+        mock_cidrs.return_value = many_cidrs
+        user = User.objects.create_user(username="lists403", password="pass")
+        domain = UserCloudflareDomain.objects.create(
+            user=user,
+            domain_name="postderlviry.info",
+            zone_id=CF_TEST_ZONE_ID,
+            api_token_ciphertext=encrypt_cloudflare_token(user.id, "token"),
+            is_active=True,
+        )
+
+        def cf_side_effect(method, path, token, **kwargs):
+            if method == "GET" and path == f"/zones/{CF_TEST_ZONE_ID}":
+                return _cf_zone_account_lookup()
+            if method == "GET" and "http_request_firewall_custom" in path:
+                return True, {"result": {"id": "rs1", "rules": []}}, ""
+            if method == "GET" and path.endswith("/rules/lists"):
+                return (
+                    False,
+                    {"errors": [{"code": 10000, "message": "Insufficient permissions"}]},
+                    "Insufficient permissions",
+                )
+            return False, None, f"unexpected {method} {path}"
+
+        mock_cf.side_effect = cf_side_effect
+
+        result = sync_subnet_for_domain(domain)
+        self.assertFalse(result.ok)
+        self.assertIn("Insufficient permissions", result.message)
+        self.assertNotIn(ERR_ZONE_NOT_FOUND, result.message)
 
     @patch("tools.services.cloudflare_sync_service._cf_request")
     def test_sync_ip_list_items_paginated_get_and_batched_post(self, mock_cf):

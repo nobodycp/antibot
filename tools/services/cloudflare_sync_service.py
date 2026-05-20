@@ -145,10 +145,12 @@ def _cf_request(
             except (TypeError, ValueError):
                 code = None
             msg = (err.get("message") or str(err)).strip()
+        lists_operation = "/rules/lists" in path
         return False, payload, map_cf_api_error(
             code=code,
             message=msg,
             http_status=resp.status_code,
+            lists_operation=lists_operation,
         )
 
     return True, payload, ""

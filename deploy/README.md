@@ -115,7 +115,11 @@ After pulling a newer `install.sh`, you can re-run the inner installer phase on 
 
 ## Cloudflare blocked-subnet IP list
 
-When a zone has more than **25** blocked subnets, antibot syncs them to a zone IP list (`antibot_subnet_block`) via the Cloudflare API in **batches** (paginated GET, batched POST/DELETE), not a single giant request.
+When global blocked subnets exceed **25**, antibot syncs them to an **account** IP list (`antibot_subnet_block`) via `GET`/`POST`/`DELETE /accounts/{account_id}/rules/lists*` (paginated GET, batched POST/DELETE with bulk-operation polling).
+
+The API token needs **Account → Account Filter Lists → Edit** in addition to zone WAF permissions. Domain save runs a lists access check so missing permission is caught before sync.
+
+See the **Cloudflare API token permissions** table in the project `README.md` for the full matrix.
 
 Optional cap in `/etc/antibot/env` (or project `.env`):
 
