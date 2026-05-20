@@ -1554,10 +1554,15 @@ if (process.env.STATUS_PROBE === '1') {
     });
 } else if (process.env.PAIR_ONLY === '1') {
   const pairAccount = (process.env.PAIR_ACCOUNT || 'acc_1').trim();
+  const safePairAccount = String(pairAccount).replace(/[^a-zA-Z0-9_-]/g, '') || 'acc_1';
   runPairOnly(pairAccount)
     .then(() => process.exit(0))
     .catch(async (err) => {
-      log('PAIR', `Fatal: ${err?.message || err}`);
+      const msg = err?.message || String(err);
+      log('PAIR', `Fatal: ${msg}`);
+      try {
+        await writePairingStatus(safePairAccount, { status: 'error', message: msg });
+      } catch (_) {}
       process.exit(1);
     });
 } else {

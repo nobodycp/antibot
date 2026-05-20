@@ -245,11 +245,25 @@ def get_account_status(
     return "unknown"
 
 
-def get_pairing_status(account_name: str) -> dict[str, Any]:
+def _read_pairing_stderr(session_path: Path) -> str:
+    log_path = session_path / "pairing.stderr.log"
+    if not log_path.is_file():
+        return ""
+    try:
+        text = log_path.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        return ""
+    return text[-500:] if len(text) > 500 else text
+
+
+def get_pairing_status(
+    account_name: str, *, pair_pid: int | None = None
+) -> dict[str, Any]:
     name = validate_account_name(account_name)
-    path = sessions_dir() / name / "pairing.json"
+    session_path = sessions_dir() / name
+    path = session_path / "pairing.json"
     data = _read_pairing_json(path)
-    creds = sessions_dir() / name / "creds.json"
+    creds = session_path / "creds.json"
     if creds.is_file() and data.get("status") not in ("qr", "connecting"):
         return {
             "status": "connected",
@@ -257,10 +271,39 @@ def get_pairing_status(account_name: str) -> dict[str, Any]:
             "qr_data_url": None,
             "updated_at": data.get("updated_at"),
         }
+    status = data.get("status") or ("connected" if creds.is_file() else "idle")
+    message = data.get("message", "")
+    qr_data_url = data.get("qr_data_url")
+    if status == "idle" and not creds.is_file():
+        status = "connecting"
+        message = message or "Starting pairing…"
+    if (
+        pair_pid
+        and not is_process_running(pair_pid)
+        and status in ("connecting", "idle")
+        and not qr_data_url
+        and not creds.is_file()
+    ):
+        stderr_tail = _read_pairing_stderr(session_path)
+        msg = "Pairing stopped before a QR code appeared."
+        if stderr_tail:
+            msg = f"{msg} {stderr_tail}"
+        else:
+            root = whatsapp_root()
+            if not (root / "node_modules").is_dir():
+                msg = (
+                    f"{msg} Run npm install in {root} and set NODE_BIN if needed."
+                )
+        return {
+            "status": "error",
+            "message": msg,
+            "qr_data_url": None,
+            "updated_at": data.get("updated_at"),
+        }
     return {
-        "status": data.get("status") or ("connected" if creds.is_file() else "idle"),
-        "message": data.get("message", ""),
-        "qr_data_url": data.get("qr_data_url"),
+        "status": status,
+        "message": message,
+        "qr_data_url": qr_data_url,
         "updated_at": data.get("updated_at"),
     }
 
@@ -315,16 +358,30 @@ def _spawn_node(args: list[str], env: dict[str, str] | None = None) -> subproces
 
 def start_pairing(account_name: str) -> subprocess.Popen:
     name = validate_account_name(account_name)
-    (sessions_dir() / name).mkdir(parents=True, exist_ok=True)
-    pairing_path = sessions_dir() / name / "pairing.json"
+    session_path = sessions_dir() / name
+    session_path.mkdir(parents=True, exist_ok=True)
+    pairing_path = session_path / "pairing.json"
     if pairing_path.is_file():
         pairing_path.unlink()
-    return _spawn_node(
-        [],
-        {
-            "PAIR_ONLY": "1",
-            "PAIR_ACCOUNT": name,
-        },
+    stderr_path = session_path / "pairing.stderr.log"
+    stderr_path.unlink(missing_ok=True)
+    root = whatsapp_root()
+    index = root / "index.js"
+    if not index.is_file():
+        raise FileNotFoundError(f"WhatsApp validator not found at {index}")
+    stderr_file = stderr_path.open("a", encoding="utf-8")
+    return subprocess.Popen(
+        [settings.WHATSAPP_NODE_BIN, str(index)],
+        cwd=str(root),
+        env=_node_env(
+            {
+                "PAIR_ONLY": "1",
+                "PAIR_ACCOUNT": name,
+            }
+        ),
+        stdout=subprocess.DEVNULL,
+        stderr=stderr_file,
+        start_new_session=True,
     )
 
 

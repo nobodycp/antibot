@@ -51,10 +51,5 @@
 </div>
 
 {% if pairing_account %}
-<section class="ds-card dash-surface wa-check-accounts-pairing mb-4" id="wa-pairing-panel"
-         hx-get="{% url 'tools:whatsapp_pairing_status' pairing_account %}"
-         hx-trigger="every 30s"
-         hx-swap="outerHTML">
-  {% include "tools/partials/whatsapp_pairing_status.html" with account_name=pairing_account pairing=pairing %}
-</section>
+  {% include "tools/partials/whatsapp_pairing_status.html" with account_name=pairing_account pairing=pairing node_available=node_available %}
 {% endif %}

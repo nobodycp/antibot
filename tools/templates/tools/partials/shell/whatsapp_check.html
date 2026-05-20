@@ -9,7 +9,7 @@
   {% if not node_available %}
   <section class="ds-card ds-card--table mb-4 border-amber-500/40">
     <div class="ds-card__body text-sm ds-text-warning">
-      WhatsApp validator (<code>whatsapp/index.js</code>) not found. Run <code>npm install</code> in the <code>whatsapp/</code> folder.
+      Node.js or WhatsApp dependencies missing. On the server, re-run <code>install.sh</code> (installs Node and runs <code>npm install</code> in <code>whatsapp/</code>). Locally: <code>brew install node</code> then <code>cd whatsapp &amp;&amp; npm install</code>.
     </div>
   </section>
   {% endif %}

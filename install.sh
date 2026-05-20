@@ -42,9 +42,50 @@ if [ "${1:-}" = "--inner" ]; then
   PG_DB_HOST="127.0.0.1"
   PG_DB_PORT="5432"
 
-  echo "[1/8] Installing packages (apt, Redis, PostgreSQL, then .env, migrate, Gunicorn, cron)..."
+  _antibot_install_node() {
+    if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+      echo "[node] Found $(node -v) at $(command -v node)"
+      return 0
+    fi
+    case "$(uname -s)" in
+      Darwin)
+        echo "[warn] Node.js not in PATH. On macOS: brew install node"
+        return 1
+        ;;
+    esac
+    if [ ! -f /etc/debian_version ]; then
+      echo "[warn] Automatic Node.js install supports Debian/Ubuntu only."
+      return 1
+    fi
+    echo "[node] Installing Node.js 20.x (NodeSource)..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+    if ! command -v node >/dev/null 2>&1; then
+      echo "[warn] Node.js install failed; WhatsApp checks need Node 18+."
+      return 1
+    fi
+    echo "[node] Installed $(node -v) at $(command -v node)"
+    return 0
+  }
+
+  _antibot_npm_install_whatsapp() {
+    local wa_dir="${INSTALL_DIR}/whatsapp"
+    if [ ! -f "${wa_dir}/package.json" ]; then
+      echo "[node] No ${wa_dir}/package.json — skipping npm install."
+      return 0
+    fi
+    if ! command -v npm >/dev/null 2>&1; then
+      echo "[warn] npm not found — skipping whatsapp/ dependencies."
+      return 1
+    fi
+    echo "[node] npm install in ${wa_dir}..."
+    (cd "${wa_dir}" && npm install --omit=dev)
+  }
+
+  echo "[1/8] Installing packages (apt, Redis, PostgreSQL, Node.js, then .env, migrate, Gunicorn, cron)..."
   sudo apt update
   sudo apt install -y python3 python3-venv python3-pip git curl openssl postgresql postgresql-contrib redis-server
+  _antibot_install_node || true
 
   echo "[2/8] Redis..."
   sudo systemctl enable redis-server
@@ -55,6 +96,10 @@ if [ "${1:-}" = "--inner" ]; then
   "${VENV_PATH}/bin/pip" install --upgrade pip
   [ -f "${INSTALL_DIR}/requirements.txt" ] && \
     "${VENV_PATH}/bin/pip" install -r "${INSTALL_DIR}/requirements.txt"
+
+  _antibot_npm_install_whatsapp || true
+
+  NODE_BIN_VALUE="$(command -v node 2>/dev/null || echo "node")"
 
   echo "[4/8] PostgreSQL and .env file..."
   sudo systemctl enable postgresql
@@ -162,6 +207,7 @@ DB_USER=${PG_DB_USER}
 DB_PASSWORD=${PG_PASSWORD}
 DB_HOST=${PG_DB_HOST}
 DB_PORT=${PG_DB_PORT}
+NODE_BIN=${NODE_BIN_VALUE}
 ENVEOF
   chmod 600 "${ENV_FILE}" || true
   echo "[DB] Wrote ${ENV_FILE} (PostgreSQL database=${PG_DB_NAME} user=${PG_DB_USER})."

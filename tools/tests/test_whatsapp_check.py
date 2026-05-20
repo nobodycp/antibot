@@ -525,6 +525,27 @@ class WhatsAppServiceTests(TestCase):
                     wa.get_account_status("acc_1", probe_if_stale=False), "offline"
                 )
 
+    def test_get_pairing_status_error_when_pair_process_exited(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session = root / "sessions" / "acc_1"
+            session.mkdir(parents=True)
+            (session / "pairing.stderr.log").write_text(
+                "Error: Cannot find module 'qrcode'", encoding="utf-8"
+            )
+            with override_settings(WHATSAPP_ROOT=root):
+                status = wa.get_pairing_status("acc_1", pair_pid=999999)
+                self.assertEqual(status["status"], "error")
+                self.assertIn("qrcode", status["message"])
+
+    def test_get_pairing_status_idle_shows_connecting_while_pairing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "sessions" / "acc_1").mkdir(parents=True)
+            with override_settings(WHATSAPP_ROOT=root):
+                status = wa.get_pairing_status("acc_1")
+                self.assertEqual(status["status"], "connecting")
+
     def test_get_account_status_pairing_from_pairing_json(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

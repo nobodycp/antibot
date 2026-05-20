@@ -1,13 +1,14 @@
 <section class="ds-card dash-surface wa-check-accounts-pairing mb-4" id="wa-pairing-panel"
-         {% if pairing.status == 'qr' or pairing.status == 'connecting' %}
          hx-get="{% url 'tools:whatsapp_pairing_status' account_name %}"
-         hx-trigger="every 30s"
-         hx-swap="outerHTML"
-         {% endif %}>
+         hx-trigger="load, every 3s"
+         hx-swap="outerHTML">
   <div class="ds-card__head wa-check-accounts-pairing__head">
     <h2 class="ds-kicker">Pair account: <span class="font-mono normal-case">{{ account_name }}</span></h2>
   </div>
   <div class="ds-card__body wa-check-accounts-pairing__body text-sm">
+    {% if node_available == False %}
+    <p class="ds-text-danger mb-2">Node.js or whatsapp dependencies are missing. Run <code class="font-mono text-xs">npm install</code> in the <code class="font-mono text-xs">whatsapp/</code> folder and set <code class="font-mono text-xs">NODE_BIN</code> in the environment.</p>
+    {% endif %}
     <p class="table-cell--muted mb-0">{{ pairing.message|default:"Waiting for pairing status…" }}</p>
     {% if pairing.qr_data_url %}
     <div class="wa-check-accounts-pairing__qr">

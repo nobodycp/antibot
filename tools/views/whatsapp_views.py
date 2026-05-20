@@ -1,3 +1,7 @@
+import shutil
+from pathlib import Path
+
+from django.conf import settings
 from django.contrib import messages
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect
@@ -20,6 +24,15 @@ def _wa_url(**query) -> str:
         return base
     parts = "&".join(f"{k}={v}" for k, v in query.items())
     return f"{base}?{parts}"
+
+
+def _whatsapp_node_ready() -> bool:
+    node_bin = settings.WHATSAPP_NODE_BIN
+    if Path(node_bin).is_file():
+        node_ok = True
+    else:
+        node_ok = shutil.which(node_bin) is not None
+    return node_ok and (wa.whatsapp_root() / "node_modules").is_dir()
 
 
 def _linked_account_names(user) -> list[str]:
@@ -282,8 +295,10 @@ def whatsapp_check_view(request):
 
     if pairing_account and tab == "accounts" and request.method == "GET":
         creds_path = wa.sessions_dir() / pairing_account / "creds.json"
-        pairing_status_early = wa.get_pairing_status(pairing_account)
         pair_pid = request.session.get(f"wa_pair_pid_{pairing_account}")
+        pairing_status_early = wa.get_pairing_status(
+            pairing_account, pair_pid=pair_pid
+        )
         if (
             not creds_path.is_file()
             and pairing_status_early.get("status") not in ("qr", "connecting")
@@ -326,9 +341,12 @@ def whatsapp_check_view(request):
             "previously_checked_numbers": [],
         }
 
-    pairing_status = (
-        wa.get_pairing_status(pairing_account) if pairing_account else None
-    )
+    pairing_status = None
+    if pairing_account:
+        pair_pid = request.session.get(f"wa_pair_pid_{pairing_account}")
+        pairing_status = wa.get_pairing_status(
+            pairing_account, pair_pid=pair_pid
+        )
 
     status_interval = _parse_status_interval(request) if tab == "accounts" else 30
 
@@ -350,7 +368,7 @@ def whatsapp_check_view(request):
         "pairing_account": pairing_account,
         "pairing": pairing_status,
         "linked_accounts": _linked_account_names(user),
-        "node_available": (wa.whatsapp_root() / "index.js").is_file(),
+        "node_available": _whatsapp_node_ready(),
     }
     return render_page_or_shell(
         request,
@@ -471,13 +489,18 @@ def whatsapp_pairing_status_partial(request, account_name: str):
         return HttpResponseForbidden("Invalid account name.")
     if not wa_accounts.user_can_access_account(request.user, account_name):
         return HttpResponseForbidden("You do not have access to this account.")
-    status = wa.get_pairing_status(account_name)
+    pair_pid = request.session.get(f"wa_pair_pid_{account_name}")
+    status = wa.get_pairing_status(account_name, pair_pid=pair_pid)
     html = render_to_string(
         "tools/partials/whatsapp_pairing_status.html",
-        {"account_name": account_name, "pairing": status},
+        {
+            "account_name": account_name,
+            "pairing": status,
+            "node_available": _whatsapp_node_ready(),
+        },
         request=request,
     )
     response = HttpResponse(html)
-    if status.get("status") in ("qr", "connecting") and is_htmx_get(request):
+    if status.get("status") in ("qr", "connecting", "idle") and is_htmx_get(request):
         response["HX-Trigger"] = "waPairPoll"
     return response

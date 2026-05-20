@@ -6,6 +6,7 @@ Use **`install.sh`** for an automated server install, or follow these steps when
 
 - Python 3.9+ venv with `pip install -r requirements.txt`
 - PostgreSQL and Redis running
+- Node.js 18+ and `npm install` in `whatsapp/` (automated by **`install.sh`** on Debian/Ubuntu; set `NODE_BIN` in env if `node` is not on default PATH)
 - Nginx (or similar) proxying to `127.0.0.1:8000` — do not expose Gunicorn directly on the public internet
 
 Optional local PostgreSQL for testing:
