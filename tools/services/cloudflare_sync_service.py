@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -39,6 +40,10 @@ IP_LIST_DELETE_BATCH_SIZE = 500
 CF_DEFAULT_REQUEST_TIMEOUT = 30
 CF_BATCH_REQUEST_TIMEOUT = 60
 CF_LARGE_REQUEST_TIMEOUT = 120
+CF_BULK_POLL_INTERVAL = 1.0
+CF_BULK_POLL_MAX_WAIT = 180
+
+_account_id_cache: dict[tuple[str, str], str] = {}
 
 # Inline IP lists: space-separated CIDRs without quotes (see CF rules language "Values").
 _INLINE_SUBNET_RE = re.compile(r"^ip\.src in \{((?:\S+\s*)+)\}$")
@@ -311,6 +316,85 @@ def _get_ip_list_cidrs(token: str, zone_id: str, list_id: str) -> set[str]:
     return set(_fetch_ip_list_items_by_ip(token, zone_id, list_id).keys())
 
 
+def _account_id_for_zone(token: str, zone_id: str) -> tuple[bool, str, str]:
+    """Resolve account id for zone-scoped list bulk-operation status polling."""
+    cache_key = (token, zone_id)
+    cached = _account_id_cache.get(cache_key)
+    if cached:
+        return True, cached, ""
+
+    ok, payload, err = _cf_request("GET", f"/zones/{zone_id}", token)
+    if not ok:
+        return False, "", err
+
+    account = (payload.get("result") or {}).get("account") or {}
+    account_id = (account.get("id") or "").strip()
+    if not account_id:
+        return False, "", "Could not resolve Cloudflare account id for zone"
+
+    _account_id_cache[cache_key] = account_id
+    return True, account_id, ""
+
+
+def _wait_list_bulk_operation(
+    token: str,
+    account_id: str,
+    operation_id: str,
+) -> tuple[bool, str]:
+    """Poll until an async list POST/DELETE batch finishes (1 pending op per account)."""
+    path = f"/accounts/{account_id}/rules/lists/bulk_operations/{operation_id}"
+    deadline = time.monotonic() + CF_BULK_POLL_MAX_WAIT
+
+    while time.monotonic() < deadline:
+        ok, payload, err = _cf_request("GET", path, token)
+        if not ok:
+            return False, err
+
+        result = (payload or {}).get("result") or {}
+        status = (result.get("status") or "").strip().lower()
+        if status == "completed":
+            return True, ""
+        if status == "failed":
+            error = (
+                result.get("error") or "Cloudflare list bulk operation failed"
+            ).strip()
+            return False, error
+        if status in ("pending", "running"):
+            time.sleep(CF_BULK_POLL_INTERVAL)
+            continue
+        if not status:
+            time.sleep(CF_BULK_POLL_INTERVAL)
+            continue
+        return False, f"Unknown Cloudflare list bulk operation status: {status}"
+
+    return False, "Timed out waiting for Cloudflare list bulk operation"
+
+
+def _cf_list_batch_and_wait(
+    token: str,
+    zone_id: str,
+    account_id: str,
+    method: str,
+    path: str,
+    json_body: Any,
+) -> tuple[bool, str]:
+    ok, payload, err = _cf_request(
+        method,
+        path,
+        token,
+        json_body=json_body,
+        timeout=CF_BATCH_REQUEST_TIMEOUT,
+    )
+    if not ok:
+        return False, err
+
+    operation_id = ((payload or {}).get("result") or {}).get("operation_id") or ""
+    operation_id = operation_id.strip()
+    if operation_id:
+        return _wait_list_bulk_operation(token, account_id, operation_id)
+    return True, ""
+
+
 def _apply_ip_list_cap(desired_cidrs: list[str]) -> tuple[list[str], Optional[str]]:
     max_items = _ip_list_max_items()
     normalized = _normalize_cidrs(desired_cidrs)
@@ -330,18 +414,18 @@ def _post_ip_list_items_batches(
     list_id: str,
     cidrs: list[str],
 ) -> tuple[bool, str]:
+    ok, account_id, err = _account_id_for_zone(token, zone_id)
+    if not ok:
+        return False, err
+
     path = f"/zones/{zone_id}/rules/lists/{list_id}/items"
     items = [{"ip": c} for c in sorted(cidrs)]
     total = len(items)
 
     for offset in range(0, total, IP_LIST_POST_BATCH_SIZE):
         batch = items[offset : offset + IP_LIST_POST_BATCH_SIZE]
-        ok, _, err = _cf_request(
-            "POST",
-            path,
-            token,
-            json_body=batch,
-            timeout=CF_BATCH_REQUEST_TIMEOUT,
+        ok, err = _cf_list_batch_and_wait(
+            token, zone_id, account_id, "POST", path, batch
         )
         if not ok:
             return False, _format_ip_list_sync_error(
@@ -358,17 +442,22 @@ def _delete_ip_list_items_batches(
 ) -> tuple[bool, str]:
     if not item_ids:
         return True, ""
+    ok, account_id, err = _account_id_for_zone(token, zone_id)
+    if not ok:
+        return False, err
+
     path = f"/zones/{zone_id}/rules/lists/{list_id}/items"
     total = len(item_ids)
 
     for offset in range(0, total, IP_LIST_DELETE_BATCH_SIZE):
         batch_ids = item_ids[offset : offset + IP_LIST_DELETE_BATCH_SIZE]
-        ok, _, err = _cf_request(
+        ok, err = _cf_list_batch_and_wait(
+            token,
+            zone_id,
+            account_id,
             "DELETE",
             path,
-            token,
-            json_body={"items": [{"id": item_id} for item_id in batch_ids]},
-            timeout=CF_BATCH_REQUEST_TIMEOUT,
+            {"items": [{"id": item_id} for item_id in batch_ids]},
         )
         if not ok:
             return False, _format_ip_list_sync_error(

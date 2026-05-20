@@ -25,6 +25,27 @@ from tools.services.cloudflare_sync_service import (
 
 User = get_user_model()
 
+CF_TEST_ZONE_ID = "zone123"
+CF_TEST_ACCOUNT_ID = "acct-test"
+
+
+def _clear_cf_account_id_cache() -> None:
+    from tools.services import cloudflare_sync_service
+
+    cloudflare_sync_service._account_id_cache.clear()
+
+
+def _cf_zone_account_lookup():
+    return True, {"result": {"account": {"id": CF_TEST_ACCOUNT_ID}}}, ""
+
+
+def _cf_bulk_operation_completed():
+    return True, {"result": {"id": "op-1", "status": "completed"}}, ""
+
+
+def _cf_async_list_write_result():
+    return True, {"result": {"operation_id": "op-1"}}, ""
+
 
 def _cf_zone_settings_response(method: str, path: str, domain: UserCloudflareDomain):
     """Mock GET responses for zone settings + bot_management sync."""
@@ -228,6 +249,7 @@ class CloudflareSyncDomainTests(TestCase):
     def test_sync_subnet_only_updates_ip_list_when_adding_cidrs(
         self, mock_cidrs, mock_cf
     ):
+        _clear_cf_account_id_cache()
         many_cidrs = [f"10.0.{i}.0/24" for i in range(30)]
         mock_cidrs.return_value = many_cidrs
         list_expr = build_subnet_expression(many_cidrs, "token", "zone123")
@@ -235,6 +257,10 @@ class CloudflareSyncDomainTests(TestCase):
         list_post_bodies = []
 
         def cf_side_effect(method, path, token, **kwargs):
+            if method == "GET" and path == f"/zones/{self.domain.zone_id}":
+                return _cf_zone_account_lookup()
+            if method == "GET" and "/bulk_operations/" in path:
+                return _cf_bulk_operation_completed()
             zone_resp = _cf_zone_settings_response(method, path, self.domain)
             if zone_resp is not None:
                 return zone_resp
@@ -267,7 +293,7 @@ class CloudflareSyncDomainTests(TestCase):
                 }, ""
             if method == "POST" and "/rules/lists/list1/items" in path:
                 list_post_bodies.append(kwargs.get("json_body"))
-                return True, {}, ""
+                return _cf_async_list_write_result()
             if method == "PUT" and "/rules/lists/list1/items" in path:
                 self.fail("Full list PUT should not run; use batched POST instead")
             if method == "PUT" and "rulesets" in path:
@@ -525,6 +551,9 @@ class CloudflareSyncDomainTests(TestCase):
 
 
 class CloudflareIpListBatchTests(TestCase):
+    def setUp(self):
+        _clear_cf_account_id_cache()
+
     @patch("tools.services.cloudflare_sync_service._cf_request")
     def test_sync_ip_list_items_paginated_get_and_batched_post(self, mock_cf):
         desired = [f"192.0.2.{i}/32" for i in range(150)]
@@ -537,6 +566,10 @@ class CloudflareIpListBatchTests(TestCase):
 
         def cf_side_effect(method, path, token, **kwargs):
             nonlocal get_calls
+            if method == "GET" and path == f"/zones/{CF_TEST_ZONE_ID}":
+                return _cf_zone_account_lookup()
+            if method == "GET" and "/bulk_operations/" in path:
+                return _cf_bulk_operation_completed()
             if method == "GET" and path.endswith("/rules/lists"):
                 return True, {
                     "result": [{"id": "list1", "name": "antibot_subnet_block"}]
@@ -555,10 +588,10 @@ class CloudflareIpListBatchTests(TestCase):
             if method == "DELETE" and "/rules/lists/list1/items" in path:
                 body = kwargs.get("json_body") or {}
                 self.assertEqual(len(body.get("items", [])), 101)
-                return True, {}, ""
+                return _cf_async_list_write_result()
             if method == "POST" and "/rules/lists/list1/items" in path:
                 post_batches.append(kwargs.get("json_body"))
-                return True, {}, ""
+                return _cf_async_list_write_result()
             if method == "PUT" and "/rules/lists/list1/items" in path:
                 self.fail("Full list PUT should not be used for large sync")
             return False, None, f"unexpected {method} {path}"
@@ -566,7 +599,7 @@ class CloudflareIpListBatchTests(TestCase):
         mock_cf.side_effect = cf_side_effect
 
         ok, changed, err, _warning = _sync_ip_list_items(
-            "token", "zone123", desired
+            "token", CF_TEST_ZONE_ID, desired
         )
         self.assertTrue(ok, err)
         self.assertTrue(changed)
@@ -585,6 +618,10 @@ class CloudflareIpListBatchTests(TestCase):
         post_batches: list[list] = []
 
         def cf_side_effect(method, path, token, **kwargs):
+            if method == "GET" and path == f"/zones/{CF_TEST_ZONE_ID}":
+                return _cf_zone_account_lookup()
+            if method == "GET" and "/bulk_operations/" in path:
+                return _cf_bulk_operation_completed()
             if method == "GET" and path.endswith("/rules/lists"):
                 return True, {
                     "result": [{"id": "list1", "name": "antibot_subnet_block"}]
@@ -593,13 +630,13 @@ class CloudflareIpListBatchTests(TestCase):
                 return True, {"result": []}, ""
             if method == "POST" and "/rules/lists/list1/items" in path:
                 post_batches.append(kwargs.get("json_body"))
-                return True, {}, ""
+                return _cf_async_list_write_result()
             return False, None, f"unexpected {method} {path}"
 
         mock_cf.side_effect = cf_side_effect
 
         ok, changed, err, _warning = _sync_ip_list_items(
-            "token", "zone123", desired
+            "token", CF_TEST_ZONE_ID, desired
         )
         self.assertTrue(ok, err)
         self.assertTrue(changed)
@@ -612,6 +649,8 @@ class CloudflareIpListBatchTests(TestCase):
         desired = [f"198.51.100.{i}/32" for i in range(10)]
 
         def cf_side_effect(method, path, token, **kwargs):
+            if method == "GET" and path == f"/zones/{CF_TEST_ZONE_ID}":
+                return _cf_zone_account_lookup()
             if method == "GET" and path.endswith("/rules/lists"):
                 return True, {
                     "result": [{"id": "list1", "name": "antibot_subnet_block"}]
@@ -629,7 +668,7 @@ class CloudflareIpListBatchTests(TestCase):
         mock_cf.side_effect = cf_side_effect
 
         ok, changed, err, _warning = _sync_ip_list_items(
-            "token", "zone123", desired
+            "token", CF_TEST_ZONE_ID, desired
         )
         self.assertFalse(ok)
         self.assertFalse(changed)
@@ -645,6 +684,10 @@ class CloudflareIpListBatchTests(TestCase):
         delete_batches: list[list] = []
 
         def cf_side_effect(method, path, token, **kwargs):
+            if method == "GET" and path == f"/zones/{CF_TEST_ZONE_ID}":
+                return _cf_zone_account_lookup()
+            if method == "GET" and "/bulk_operations/" in path:
+                return _cf_bulk_operation_completed()
             if method == "GET" and path.endswith("/rules/lists"):
                 return True, {
                     "result": [{"id": "list1", "name": "antibot_subnet_block"}]
@@ -655,19 +698,53 @@ class CloudflareIpListBatchTests(TestCase):
                 delete_batches.append(
                     [item["id"] for item in (kwargs.get("json_body") or {}).get("items", [])]
                 )
-                return True, {}, ""
+                return _cf_async_list_write_result()
             if method == "PUT" and "/rules/lists/list1/items" in path:
                 self.fail("Clearing list should use DELETE batches, not PUT []")
             return False, None, f"unexpected {method} {path}"
 
         mock_cf.side_effect = cf_side_effect
 
-        ok, changed, err, _warning = _sync_ip_list_items("token", "zone123", [])
+        ok, changed, err, _warning = _sync_ip_list_items("token", CF_TEST_ZONE_ID, [])
         self.assertTrue(ok, err)
         self.assertTrue(changed)
         self.assertEqual(len(delete_batches), 2)
         self.assertEqual(len(delete_batches[0]), IP_LIST_DELETE_BATCH_SIZE)
         self.assertEqual(len(delete_batches[1]), 10)
+
+    @patch("tools.services.cloudflare_sync_service.time.sleep")
+    @patch("tools.services.cloudflare_sync_service._cf_request")
+    def test_sync_ip_list_waits_for_bulk_operation_between_batches(
+        self, mock_cf, _mock_sleep
+    ):
+        desired = [f"203.0.113.{i}/32" for i in range(IP_LIST_POST_BATCH_SIZE + 1)]
+        bulk_polls = 0
+
+        def cf_side_effect(method, path, token, **kwargs):
+            nonlocal bulk_polls
+            if method == "GET" and path == f"/zones/{CF_TEST_ZONE_ID}":
+                return _cf_zone_account_lookup()
+            if method == "GET" and "/bulk_operations/" in path:
+                bulk_polls += 1
+                return _cf_bulk_operation_completed()
+            if method == "GET" and path.endswith("/rules/lists"):
+                return True, {
+                    "result": [{"id": "list1", "name": "antibot_subnet_block"}]
+                }, ""
+            if method == "GET" and "/rules/lists/list1/items" in path:
+                return True, {"result": []}, ""
+            if method == "POST" and "/rules/lists/list1/items" in path:
+                return _cf_async_list_write_result()
+            return False, None, f"unexpected {method} {path}"
+
+        mock_cf.side_effect = cf_side_effect
+
+        ok, changed, err, _warning = _sync_ip_list_items(
+            "token", CF_TEST_ZONE_ID, desired
+        )
+        self.assertTrue(ok, err)
+        self.assertTrue(changed)
+        self.assertEqual(bulk_polls, 2)
 
 
 class CloudSyncPermissionTests(TestCase):
