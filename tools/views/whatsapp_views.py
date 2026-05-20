@@ -10,7 +10,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from core.decorators import superuser_required
+from django.contrib.auth.decorators import login_required
 from core.htmx_navigation import is_htmx_get, render_page_or_shell
 
 from ..forms import WhatsAppCheckForm
@@ -105,7 +105,7 @@ def _user_has_running_job(user) -> bool:
     ).exists()
 
 
-@superuser_required
+@login_required
 def whatsapp_check_view(request):
     user = request.user
     is_admin = wa_accounts.is_wa_admin(user)
@@ -398,7 +398,7 @@ def whatsapp_check_view(request):
     )
 
 
-@superuser_required
+@login_required
 @require_POST
 def whatsapp_check_continue(request, job_id: int):
     job = _get_job(request.user, job_id)
@@ -450,7 +450,7 @@ def whatsapp_check_continue(request, job_id: int):
     return redirect(_wa_url(tab="check", job=job.id))
 
 
-@superuser_required
+@login_required
 @require_GET
 def whatsapp_check_status_partial(request, job_id: int):
     job = _get_job(request.user, job_id)
@@ -472,7 +472,7 @@ def whatsapp_check_status_partial(request, job_id: int):
     return response
 
 
-@superuser_required
+@login_required
 @require_GET
 def whatsapp_check_recent_jobs_partial(request):
     jobs, active_job = _recent_jobs_for_user(request.user)
@@ -489,7 +489,7 @@ def whatsapp_check_recent_jobs_partial(request):
     return HttpResponse(html)
 
 
-@superuser_required
+@login_required
 @require_GET
 def whatsapp_accounts_status_partial(request):
     interval = _parse_status_interval(request)
@@ -507,7 +507,7 @@ def whatsapp_accounts_status_partial(request):
     return HttpResponse(html)
 
 
-@superuser_required
+@login_required
 @require_GET
 def whatsapp_pairing_status_partial(request, account_name: str):
     try:

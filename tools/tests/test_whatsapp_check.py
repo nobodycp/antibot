@@ -32,10 +32,11 @@ class WhatsAppCheckPermissionTests(TestCase):
         r = self.client.get(reverse("tools:whatsapp_check"))
         self.assertEqual(r.status_code, 302)
 
-    def test_regular_user_forbidden(self):
+    def test_regular_user_can_open_page(self):
         self.client.force_login(self.user)
         r = self.client.get(reverse("tools:whatsapp_check"))
-        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "WhatsApp Check")
 
     def test_superuser_can_open_page(self):
         self.client.force_login(self.superuser)
@@ -1044,7 +1045,7 @@ class WhatsAppAccountsStatusTests(TestCase):
         )
         self.client.force_login(self.superuser)
 
-    def test_accounts_status_partial_requires_superuser(self):
+    def test_accounts_status_partial_requires_login(self):
         user = User.objects.create_user(username="reg", password="x")
         anon_client = Client(enforce_csrf_checks=False)
         r = anon_client.get(reverse("tools:whatsapp_accounts_status"))
@@ -1052,7 +1053,7 @@ class WhatsAppAccountsStatusTests(TestCase):
         reg_client = Client(enforce_csrf_checks=False)
         reg_client.force_login(user)
         r = reg_client.get(reverse("tools:whatsapp_accounts_status"))
-        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.status_code, 200)
 
     @patch("tools.views.whatsapp_views.wa.refresh_accounts_connection_status")
     @patch("tools.views.whatsapp_views.wa.get_account_status", return_value="online")
