@@ -11,6 +11,7 @@ from core.htmx_navigation import is_htmx_get, render_page_or_shell
 
 from ..forms import WhatsAppCheckForm
 from ..models import WhatsAppCheckJob
+from ..services import whatsapp_accounts as wa_accounts
 from ..services import whatsapp_service as wa
 
 def _wa_url(**query) -> str:
@@ -21,8 +22,8 @@ def _wa_url(**query) -> str:
     return f"{base}?{parts}"
 
 
-def _linked_account_names() -> list[str]:
-    return [a.name for a in wa.list_accounts() if a.has_session]
+def _linked_account_names(user) -> list[str]:
+    return wa_accounts.linked_account_names_for_user(user)
 
 
 def _parse_status_interval(request) -> int:
@@ -34,29 +35,65 @@ def _parse_status_interval(request) -> int:
     return max(5, min(300, value))
 
 
-def _accounts_table_rows(*, max_age_seconds: int = 30, probe: bool = True) -> list[dict]:
-    accounts = wa.list_accounts()
+def _accounts_table_rows(
+    user, *, max_age_seconds: int = 30, probe: bool = True
+) -> list[dict]:
+    accounts = wa_accounts.disk_accounts_for_user(user)
     names = [a.name for a in accounts]
     if probe and names:
         wa.refresh_accounts_connection_status(names, max_age_seconds=max_age_seconds)
-    return [
-        {
+    is_admin = wa_accounts.is_wa_admin(user)
+    rows = []
+    for account in accounts:
+        row = {
             "account": account,
             "status": wa.get_account_status(
                 account.name, max_age_seconds=max_age_seconds, probe_if_stale=False
             ),
         }
-        for account in accounts
-    ]
+        if is_admin:
+            row["owner_username"] = wa_accounts.owner_username_for(account.name)
+        rows.append(row)
+    return rows
 
 
-def _build_check_form(data=None) -> WhatsAppCheckForm:
-    linked = _linked_account_names()
-    return WhatsAppCheckForm(data, account_choices=linked)
+def _build_check_form(user, data=None) -> WhatsAppCheckForm:
+    choices = wa_accounts.account_choices_for_form(user)
+    return WhatsAppCheckForm(data, account_choices=choices)
+
+
+def _recent_jobs_for_user(user):
+    jobs_qs = wa_accounts.jobs_queryset_for_user(user)
+    jobs = list(jobs_qs[:20])
+    for job in jobs:
+        if job.status in (
+            WhatsAppCheckJob.STATUS_RUNNING,
+            WhatsAppCheckJob.STATUS_PENDING,
+        ):
+            wa.sync_job_from_disk(job)
+            job.save()
+    active = WhatsAppCheckJob.objects.filter(
+        user=user,
+        status=WhatsAppCheckJob.STATUS_RUNNING,
+    ).first()
+    return jobs, active
+
+
+def _get_job(user, job_id):
+    return get_object_or_404(wa_accounts.jobs_queryset_for_user(user), pk=job_id)
+
+
+def _user_has_running_job(user) -> bool:
+    return WhatsAppCheckJob.objects.filter(
+        user=user,
+        status=WhatsAppCheckJob.STATUS_RUNNING,
+    ).exists()
 
 
 @superuser_required
 def whatsapp_check_view(request):
+    user = request.user
+    is_admin = wa_accounts.is_wa_admin(user)
     tab = request.GET.get("tab", "check")
     if tab not in ("check", "accounts"):
         tab = "check"
@@ -67,36 +104,35 @@ def whatsapp_check_view(request):
             pairing_account = wa.validate_account_name(pairing_account)
         except ValueError:
             pairing_account = ""
-    accounts = wa.list_accounts()
-    jobs_qs = WhatsAppCheckJob.objects.filter(user=request.user)
-    jobs = list(jobs_qs[:20])
-
-    for job in jobs:
-        if job.status in (
-            WhatsAppCheckJob.STATUS_RUNNING,
-            WhatsAppCheckJob.STATUS_PENDING,
+        if pairing_account and not wa_accounts.user_can_access_account(
+            user, pairing_account
         ):
-            wa.sync_job_from_disk(job)
-            job.save()
+            pairing_account = ""
 
-    active_job = jobs_qs.filter(status=WhatsAppCheckJob.STATUS_RUNNING).first()
+    accounts = wa_accounts.disk_accounts_for_user(user)
+    jobs, active_job = _recent_jobs_for_user(user)
 
     if request.method == "POST":
         action = request.POST.get("action", "")
 
         if action == "start_check":
-            form = _build_check_form(request.POST)
+            form = _build_check_form(user, request.POST)
             if not form.is_valid():
                 messages.error(request, "Fix the form errors and try again.")
                 return redirect(_wa_url(tab="check"))
 
-            linked = _linked_account_names()
+            linked = _linked_account_names(user)
             if not linked:
                 messages.error(request, "Link at least one WhatsApp account first.")
                 return redirect(_wa_url(tab="accounts"))
 
-            selected = form.cleaned_data.get("accounts") or linked
-            selected = [a for a in selected if a in linked]
+            selected = form.cleaned_data.get("accounts") or []
+            if is_admin and not selected:
+                selected = linked
+            elif not selected:
+                selected = linked
+            allowed = set(linked)
+            selected = [a for a in selected if a in allowed]
             if not selected:
                 messages.error(request, "Select at least one linked account.")
                 return redirect(_wa_url(tab="check"))
@@ -106,33 +142,52 @@ def whatsapp_check_view(request):
                 messages.error(request, "Enter at least one valid phone number.")
                 return redirect(_wa_url(tab="check"))
 
-            if WhatsAppCheckJob.objects.filter(
-                user=request.user,
-                status=WhatsAppCheckJob.STATUS_RUNNING,
-            ).exists():
-                messages.warning(request, "A check is already running. Wait or cancel it.")
-                return redirect(_wa_url(tab="check"))
-
             trunk_cc = wa.normalize_country_prefix(
                 form.cleaned_data.get("country_prefix") or ""
             )
+            split = wa.split_numbers_by_verified_history(numbers, trunk_cc)
+            to_check = split.to_check
+            already_verified = split.already_verified
+
+            if not to_check and not already_verified:
+                messages.error(
+                    request,
+                    "No valid phone numbers after parsing. Check format and country prefix.",
+                )
+                return redirect(_wa_url(tab="check"))
+
+            if _user_has_running_job(user):
+                messages.warning(request, "A check is already running. Wait or cancel it.")
+                return redirect(_wa_url(tab="check"))
 
             job = WhatsAppCheckJob.objects.create(
-                user=request.user,
+                user=user,
                 numbers_text=form.cleaned_data["numbers"],
                 local_trunk_country=trunk_cc,
                 account_names=selected,
                 speed=form.cleaned_data["speed"],
                 fetch_presence=form.cleaned_data["fetch_presence"],
                 status=WhatsAppCheckJob.STATUS_PENDING,
+                previously_checked_numbers=already_verified,
             )
             job.run_dir = str(wa.job_run_dir(job.id))
             job.save(update_fields=["run_dir"])
 
+            if not to_check:
+                job.status = WhatsAppCheckJob.STATUS_COMPLETED
+                job.started_at = timezone.now()
+                job.finished_at = timezone.now()
+                job.save()
+                messages.success(
+                    request,
+                    f"All {len(already_verified)} number(s) were already verified — nothing to check.",
+                )
+                return redirect(_wa_url(tab="check", job=job.id))
+
             try:
                 proc = wa.start_check_job(
                     job_id=job.id,
-                    numbers=numbers,
+                    numbers=to_check,
                     account_names=selected,
                     speed=job.speed,
                     fetch_presence=job.fetch_presence,
@@ -150,18 +205,17 @@ def whatsapp_check_view(request):
             job.status = WhatsAppCheckJob.STATUS_RUNNING
             job.started_at = timezone.now()
             job.save()
+            skipped_msg = ""
+            if already_verified:
+                skipped_msg = f" ({len(already_verified)} previously verified, skipped)"
             messages.success(
                 request,
-                f"Started check for {len(numbers)} number(s) on {len(selected)} account(s).",
+                f"Started check for {len(to_check)} number(s) on {len(selected)} account(s){skipped_msg}.",
             )
             return redirect(_wa_url(tab="check", job=job.id))
 
         if action == "cancel_job":
-            job = get_object_or_404(
-                WhatsAppCheckJob,
-                pk=request.POST.get("job_id"),
-                user=request.user,
-            )
+            job = _get_job(user, request.POST.get("job_id"))
             wa.terminate_process(job.pid)
             job.status = WhatsAppCheckJob.STATUS_CANCELLED
             job.finished_at = timezone.now()
@@ -182,6 +236,7 @@ def whatsapp_check_view(request):
                 messages.warning(request, f"Account “{name}” already exists.")
             else:
                 (wa.sessions_dir() / name).mkdir(parents=True, exist_ok=True)
+                wa_accounts.register_account(name, user)
 
             try:
                 proc = wa.start_pairing(name)
@@ -195,14 +250,15 @@ def whatsapp_check_view(request):
 
         if action == "delete_account":
             name = (request.POST.get("account_name") or "").strip()
-            if WhatsAppCheckJob.objects.filter(
-                user=request.user,
-                status=WhatsAppCheckJob.STATUS_RUNNING,
-            ).exists():
+            if not wa_accounts.user_can_access_account(user, name):
+                messages.error(request, "You do not have permission to delete this account.")
+                return redirect(_wa_url(tab="accounts"))
+            if _user_has_running_job(user):
                 messages.error(request, "Cannot delete accounts while a check is running.")
                 return redirect(_wa_url(tab="accounts"))
             try:
                 wa.delete_account(name)
+                wa_accounts.unregister_account(name)
                 messages.success(request, f"Removed account {name}.")
             except ValueError as exc:
                 messages.error(request, str(exc))
@@ -223,13 +279,13 @@ def whatsapp_check_view(request):
             except (FileNotFoundError, ValueError) as exc:
                 messages.error(request, str(exc))
 
-    check_form = _build_check_form()
+    check_form = _build_check_form(user)
     highlight_job = None
     job_snapshot: dict | None = None
     job_id = request.GET.get("job")
     if job_id:
         try:
-            highlight_job = WhatsAppCheckJob.objects.get(pk=int(job_id), user=request.user)
+            highlight_job = _get_job(user, int(job_id))
             wa.sync_job_from_disk(highlight_job)
             highlight_job.save()
             job_snapshot = wa.build_job_snapshot(highlight_job)
@@ -245,8 +301,10 @@ def whatsapp_check_view(request):
             "valid_count": 0,
             "invalid_count": 0,
             "error_count": 0,
+            "skipped_count": 0,
             "valid_numbers": [],
             "error_numbers": [],
+            "previously_checked_numbers": [],
         }
 
     pairing_status = (
@@ -260,8 +318,9 @@ def whatsapp_check_view(request):
         "check_form": check_form,
         "accounts": accounts,
         "account_rows": _accounts_table_rows(
-            max_age_seconds=status_interval, probe=False
+            user, max_age_seconds=status_interval, probe=False
         ),
+        "is_wa_admin": is_admin,
         "status_interval": status_interval,
         "jobs": jobs,
         "active_job": active_job,
@@ -270,7 +329,7 @@ def whatsapp_check_view(request):
         "job_snapshot": job_snapshot,
         "pairing_account": pairing_account,
         "pairing": pairing_status,
-        "linked_accounts": _linked_account_names(),
+        "linked_accounts": _linked_account_names(user),
         "node_available": (wa.whatsapp_root() / "index.js").is_file(),
     }
     return render_page_or_shell(
@@ -284,7 +343,7 @@ def whatsapp_check_view(request):
 @superuser_required
 @require_GET
 def whatsapp_check_status_partial(request, job_id: int):
-    job = get_object_or_404(WhatsAppCheckJob, pk=job_id, user=request.user)
+    job = _get_job(request.user, job_id)
     wa.sync_job_from_disk(job)
     job.save()
     snapshot = wa.build_job_snapshot(job)
@@ -293,6 +352,25 @@ def whatsapp_check_status_partial(request, job_id: int):
         {
             "job": job,
             "snapshot": snapshot,
+            "request": request,
+        },
+        request=request,
+    )
+    response = HttpResponse(html)
+    response["HX-Trigger"] = "waRecentJobsRefresh"
+    return response
+
+
+@superuser_required
+@require_GET
+def whatsapp_check_recent_jobs_partial(request):
+    jobs, active_job = _recent_jobs_for_user(request.user)
+    html = render_to_string(
+        "tools/partials/whatsapp_check_recent_jobs.html",
+        {
+            "jobs": jobs,
+            "active_job": active_job,
+            "is_wa_admin": wa_accounts.is_wa_admin(request.user),
             "request": request,
         },
         request=request,
@@ -308,8 +386,9 @@ def whatsapp_accounts_status_partial(request):
         "tools/partials/whatsapp_accounts_table_body.html",
         {
             "account_rows": _accounts_table_rows(
-                max_age_seconds=interval, probe=True
+                request.user, max_age_seconds=interval, probe=True
             ),
+            "is_wa_admin": wa_accounts.is_wa_admin(request.user),
             "request": request,
         },
         request=request,
@@ -324,6 +403,8 @@ def whatsapp_pairing_status_partial(request, account_name: str):
         wa.validate_account_name(account_name)
     except ValueError:
         return HttpResponseForbidden("Invalid account name.")
+    if not wa_accounts.user_can_access_account(request.user, account_name):
+        return HttpResponseForbidden("You do not have access to this account.")
     status = wa.get_pairing_status(account_name)
     html = render_to_string(
         "tools/partials/whatsapp_pairing_status.html",

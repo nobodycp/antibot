@@ -753,10 +753,10 @@ aside.dash-app-sidebar > div:first-child:not(.dash-sidebar-brand) {
   gap: var(--ds-space-2);
 }
 
-/* Right column: counters + 50/50 valid/error lists */
+/* Right column: counters + valid (top) + error|previously (bottom) */
 .wa-check-workspace__results {
   display: grid;
-  grid-template-rows: auto auto 1fr 1fr;
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: var(--ds-space-1);
   min-height: 0;
   min-width: 0;
@@ -765,7 +765,21 @@ aside.dash-app-sidebar > div:first-child:not(.dash-sidebar-brand) {
 }
 
 .wa-check-workspace__results:not(:has(.wa-check-results__status)) {
-  grid-template-rows: auto 1fr 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.wa-check-results-lists {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--ds-space-1);
+  min-height: 0;
+}
+
+.wa-check-results-lists__bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ds-space-1);
+  min-height: 0;
 }
 
 .wa-check-counters {
@@ -808,6 +822,65 @@ aside.dash-app-sidebar > div:first-child:not(.dash-sidebar-brand) {
 
 .wa-check-counter--error .wa-check-counter__value {
   color: var(--ds-color-danger, #f87171);
+}
+
+.wa-check-counter--skipped .wa-check-counter__value {
+  color: var(--ds-color-info, #38bdf8);
+}
+
+.wa-check-list-card--valid {
+  border-color: var(--ds-color-success);
+}
+
+.wa-check-list-card--valid .wa-check-list-card__head {
+  background-color: color-mix(in srgb, var(--ds-color-success) 12%, var(--ds-color-bg-inset));
+  border-bottom-color: color-mix(in srgb, var(--ds-color-success) 28%, var(--ds-color-border-muted));
+}
+
+.wa-check-list-card--valid .wa-check-list-card__head h3 {
+  color: var(--ds-color-success);
+}
+
+.wa-check-list-card--valid .wa-check-list-textarea.ds-input {
+  border-color: color-mix(in srgb, var(--ds-color-success) 35%, var(--ds-color-border-subtle));
+}
+
+.wa-check-list-card--error {
+  border-color: var(--ds-color-danger);
+}
+
+.wa-check-list-card--error .wa-check-list-card__head {
+  background-color: color-mix(in srgb, var(--ds-color-danger) 12%, var(--ds-color-bg-inset));
+  border-bottom-color: color-mix(in srgb, var(--ds-color-danger) 28%, var(--ds-color-border-muted));
+}
+
+.wa-check-list-card--error .wa-check-list-card__head h3 {
+  color: var(--ds-color-danger);
+}
+
+.wa-check-list-card--error .wa-check-list-textarea.ds-input {
+  border-color: color-mix(in srgb, var(--ds-color-danger) 35%, var(--ds-color-border-subtle));
+}
+
+.wa-check-list-card--skipped,
+.wa-check-list-card--previous {
+  border-color: var(--ds-color-warning);
+}
+
+.wa-check-list-card--skipped .wa-check-list-card__head,
+.wa-check-list-card--previous .wa-check-list-card__head {
+  background-color: color-mix(in srgb, var(--ds-color-warning) 12%, var(--ds-color-bg-inset));
+  border-bottom-color: color-mix(in srgb, var(--ds-color-warning) 28%, var(--ds-color-border-muted));
+}
+
+.wa-check-list-card--skipped .wa-check-list-card__head h3,
+.wa-check-list-card--previous .wa-check-list-card__head h3 {
+  color: var(--ds-color-warning);
+}
+
+.wa-check-list-card--skipped .wa-check-list-textarea.ds-input,
+.wa-check-list-card--previous .wa-check-list-textarea.ds-input {
+  border-color: color-mix(in srgb, var(--ds-color-warning) 35%, var(--ds-color-border-subtle));
 }
 
 .wa-check-results__status {
@@ -865,6 +938,27 @@ aside.dash-app-sidebar > div:first-child:not(.dash-sidebar-brand) {
 .wa-check-accounts-add input.ds-input--compact {
   width: auto !important;
   max-width: 14rem;
+}
+
+.wa-check-accounts-interval {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.wa-check-accounts-interval__input-wrap {
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.wa-check-accounts-interval__input-wrap input.ds-input.ds-input--compact {
+  width: 5ch !important;
+  min-width: 2.5rem !important;
+  max-width: 5ch !important;
+  padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;
+  box-sizing: border-box;
+  text-align: center;
+  overflow: visible;
 }
 
 /* WhatsApp Check — Accounts tab (pairing panel only; list uses tracker table shell) */

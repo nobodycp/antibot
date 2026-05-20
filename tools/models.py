@@ -38,6 +38,27 @@ class RedirectCheck(models.Model):
         return f"{self.url} | {self.keyword}"
 
 
+class WhatsAppAccount(models.Model):
+    """Registry tying session folder names to owning users."""
+
+    account_name = models.CharField(max_length=64, unique=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="whatsapp_accounts",
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["account_name"]
+
+    def __str__(self):
+        owner = self.owner.username if self.owner_id else "unassigned"
+        return f"{self.account_name} ({owner})"
+
+
 class WhatsAppCheckJob(models.Model):
     STATUS_PENDING = "pending"
     STATUS_RUNNING = "running"
@@ -74,6 +95,9 @@ class WhatsAppCheckJob(models.Model):
     error_count = models.PositiveIntegerField(default=0)
     error_message = models.TextField(blank=True)
     result_summary = models.JSONField(null=True, blank=True)
+    previously_checked_numbers = models.JSONField(
+        default=list, blank=True, null=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
@@ -83,4 +107,24 @@ class WhatsAppCheckJob(models.Model):
 
     def __str__(self):
         return f"WhatsApp job #{self.pk} ({self.status})"
+
+
+class WhatsAppVerifiedNumber(models.Model):
+    """Historically verified live WhatsApp numbers (E.164 digits, no +)."""
+
+    phone = models.CharField(max_length=20, unique=True, db_index=True)
+    first_seen = models.DateTimeField(auto_now_add=True)
+    last_job = models.ForeignKey(
+        WhatsAppCheckJob,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="verified_numbers_recorded",
+    )
+
+    class Meta:
+        ordering = ["-first_seen"]
+
+    def __str__(self):
+        return self.phone
 

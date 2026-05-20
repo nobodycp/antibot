@@ -9,7 +9,8 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from tools.models import WhatsAppCheckJob
+from tools.models import WhatsAppAccount, WhatsAppCheckJob, WhatsAppVerifiedNumber
+from tools.services import whatsapp_accounts as wa_accounts
 from tools.services import whatsapp_service as wa
 
 User = get_user_model()
@@ -62,6 +63,118 @@ class WhatsAppServiceTests(TestCase):
         self.assertEqual(wa.normalize_country_prefix("972:"), "972")
         self.assertEqual(wa.normalize_country_prefix(" 972: "), "972")
 
+    def test_parse_number_line_trunk_prefix(self):
+        parsed = wa.parse_number_line("0512345678", "972")
+        self.assertIsNotNone(parsed)
+        assert parsed is not None
+        self.assertEqual(parsed.query_digits, "972512345678")
+        self.assertEqual(parsed.file_digits, "0512345678")
+
+    def test_parse_number_line_per_line_country(self):
+        parsed = wa.parse_number_line("972:0531234567", "")
+        self.assertIsNotNone(parsed)
+        assert parsed is not None
+        self.assertEqual(parsed.query_digits, "972531234567")
+
+    def test_split_numbers_by_verified_history(self):
+        WhatsAppVerifiedNumber.objects.create(phone="966501234567")
+        split = wa.split_numbers_by_verified_history(
+            ["966501234567", "966509876543"], "966"
+        )
+        self.assertEqual(split.already_verified, ["966501234567"])
+        self.assertEqual(split.to_check, ["966509876543"])
+
+    def test_record_verified_from_job(self):
+        user = User.objects.create_superuser(
+            username="rec_u", password="x", email="rec@e.com"
+        )
+        job = WhatsAppCheckJob.objects.create(
+            user=user,
+            numbers_text="966501234567",
+            status=WhatsAppCheckJob.STATUS_COMPLETED,
+        )
+        run_path = wa.job_run_dir(job.id)
+        run_path.mkdir(parents=True, exist_ok=True)
+        (run_path / "verified_active_numbers.txt").write_text(
+            "966501234567\n", encoding="utf-8"
+        )
+        count = wa.record_verified_from_job(job)
+        self.assertEqual(count, 1)
+        self.assertTrue(
+            WhatsAppVerifiedNumber.objects.filter(phone="966501234567").exists()
+        )
+
+    def test_sync_job_records_verified_on_complete(self):
+        user = User.objects.create_superuser(
+            username="sync_rec_u", password="x", email="syncrec@e.com"
+        )
+        job = WhatsAppCheckJob.objects.create(
+            user=user,
+            numbers_text="966501234567",
+            status=WhatsAppCheckJob.STATUS_RUNNING,
+            pid=999999,
+        )
+        run_path = wa.job_run_dir(job.id)
+        run_path.mkdir(parents=True, exist_ok=True)
+        (run_path / "progress.json").write_text(
+            json.dumps({"done": True, "totals": {"total": 1, "checked": 1, "live": 1}}),
+            encoding="utf-8",
+        )
+        (run_path / "verified_active_numbers.txt").write_text(
+            "966501234567\n", encoding="utf-8"
+        )
+        with patch.object(wa, "is_process_running", return_value=False):
+            wa.sync_job_from_disk(job)
+        self.assertEqual(job.status, WhatsAppCheckJob.STATUS_COMPLETED)
+        self.assertTrue(
+            WhatsAppVerifiedNumber.objects.filter(phone="966501234567").exists()
+        )
+
+    def test_jid_to_phone_parses_baileys_me_id(self):
+        self.assertEqual(
+            wa._jid_to_phone("972595108208:1@s.whatsapp.net"), "972595108208"
+        )
+        self.assertIsNone(wa._jid_to_phone("not-a-jid"))
+        self.assertIsNone(wa._jid_to_phone(None))
+
+    def test_get_account_phone_from_creds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session = root / "sessions" / "acc_1"
+            session.mkdir(parents=True)
+            (session / "creds.json").write_text(
+                json.dumps({"me": {"id": "966501234567:1@s.whatsapp.net"}}),
+                encoding="utf-8",
+            )
+            with override_settings(WHATSAPP_ROOT=root):
+                self.assertEqual(wa.get_account_phone("acc_1"), "966501234567")
+
+    def test_get_account_phone_from_connection_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session = root / "sessions" / "acc_1"
+            session.mkdir(parents=True)
+            (session / "connection_status.json").write_text(
+                json.dumps({"phone": "972501234567", "jid": "972501234567:1@s.whatsapp.net"}),
+                encoding="utf-8",
+            )
+            with override_settings(WHATSAPP_ROOT=root):
+                self.assertEqual(wa.get_account_phone("acc_1"), "972501234567")
+
+    def test_list_accounts_includes_phone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session = root / "sessions" / "acc_1"
+            session.mkdir(parents=True)
+            (session / "creds.json").write_text(
+                json.dumps({"me": {"id": "966501234567:1@s.whatsapp.net"}}),
+                encoding="utf-8",
+            )
+            with override_settings(WHATSAPP_ROOT=root):
+                accounts = wa.list_accounts()
+            self.assertEqual(len(accounts), 1)
+            self.assertEqual(accounts[0].phone, "966501234567")
+
     def test_is_process_running_false_after_child_exits(self):
         proc = subprocess.Popen(
             [sys.executable, "-c", "pass"],
@@ -70,6 +183,73 @@ class WhatsAppServiceTests(TestCase):
         pid = proc.pid
         proc.wait()
         self.assertFalse(wa.is_process_running(pid))
+
+    def test_parse_error_number_line_with_reason(self):
+        number, reason = wa.parse_error_number_line("972555544071 --> offline account")
+        self.assertEqual(number, "972555544071")
+        self.assertEqual(reason, "offline account")
+
+    def test_parse_error_number_line_legacy_number_only(self):
+        number, reason = wa.parse_error_number_line("966501234567")
+        self.assertEqual(number, "966501234567")
+        self.assertEqual(reason, "")
+
+    def test_read_error_numbers_formats_display_lines(self):
+        user = User.objects.create_superuser(
+            username="err_u", password="x", email="err@e.com"
+        )
+        job = WhatsAppCheckJob.objects.create(
+            user=user,
+            numbers_text="972555544071",
+            status=WhatsAppCheckJob.STATUS_RUNNING,
+        )
+        run_path = wa.job_run_dir(job.id)
+        run_path.mkdir(parents=True, exist_ok=True)
+        (run_path / "check_error_numbers.txt").write_text(
+            "972555544071 --> offline account\n966501234567 --> rate limited\n",
+            encoding="utf-8",
+        )
+        lines = wa.read_error_numbers(job.id)
+        self.assertEqual(
+            lines,
+            [
+                "972555544071 --> offline account",
+                "966501234567 --> rate limited",
+            ],
+        )
+
+    def test_build_job_snapshot_includes_error_lines_with_reasons(self):
+        job = WhatsAppCheckJob.objects.create(
+            user=User.objects.create_superuser(
+                username="snap_err_u", password="x", email="se@e.com"
+            ),
+            numbers_text="972555544071",
+            status=WhatsAppCheckJob.STATUS_COMPLETED,
+        )
+        run_path = wa.job_run_dir(job.id)
+        run_path.mkdir(parents=True, exist_ok=True)
+        (run_path / "check_error_numbers.txt").write_text(
+            "972555544071 --> offline account\n", encoding="utf-8"
+        )
+        (run_path / "progress.json").write_text(
+            json.dumps(
+                {
+                    "done": True,
+                    "totals": {
+                        "total": 1,
+                        "checked": 1,
+                        "live": 0,
+                        "errors": 1,
+                        "invalid": 0,
+                    },
+                    "results": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        snap = wa.build_job_snapshot(job)
+        self.assertEqual(snap["error_numbers"], ["972555544071 --> offline account"])
+        self.assertEqual(snap["error_count"], 1)
 
     def test_is_progress_complete(self):
         self.assertFalse(wa.is_progress_complete(None))
@@ -301,7 +481,7 @@ class WhatsAppAccountsStatusTests(TestCase):
 
     @patch("tools.views.whatsapp_views.wa.refresh_accounts_connection_status")
     @patch("tools.views.whatsapp_views.wa.get_account_status", return_value="online")
-    @patch("tools.views.whatsapp_views.wa.list_accounts")
+    @patch("tools.services.whatsapp_accounts.wa.list_accounts")
     def test_accounts_status_partial_renders_online(
         self, mock_list, mock_status, mock_refresh
     ):
@@ -309,6 +489,7 @@ class WhatsAppAccountsStatusTests(TestCase):
             wa.WhatsAppAccountInfo(
                 name="acc_1",
                 has_session=True,
+                phone="966501234567",
                 pairing_status=None,
                 pairing_message=None,
                 qr_data_url=None,
@@ -321,6 +502,7 @@ class WhatsAppAccountsStatusTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "Online")
         self.assertContains(r, "acc_1")
+        self.assertContains(r, "966501234567")
         mock_refresh.assert_called_once()
         self.assertEqual(mock_refresh.call_args.kwargs["max_age_seconds"], 45)
 
@@ -329,6 +511,19 @@ class WhatsAppAccountsStatusTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "Status check interval (seconds)")
         self.assertContains(r, 'name="seconds"')
+        self.assertContains(r, ">Phone<")
+        self.assertContains(r, ">Owner<")
+
+    def test_accounts_tab_shows_em_dash_without_phone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "sessions" / "acc_1").mkdir(parents=True)
+            with override_settings(WHATSAPP_ROOT=root):
+                r = self.client.get(
+                    reverse("tools:whatsapp_check"), {"tab": "accounts"}
+                )
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "—")
 
 
 class WhatsAppCheckJobTests(TestCase):
@@ -360,6 +555,43 @@ class WhatsAppCheckJobTests(TestCase):
         mock_start.assert_called_once()
         kwargs = mock_start.call_args.kwargs
         self.assertEqual(kwargs.get("local_trunk_country"), "")
+
+    @patch("tools.views.whatsapp_views.wa.start_check_job")
+    @patch("tools.views.whatsapp_views._linked_account_names", return_value=["acc_1"])
+    def test_start_check_skips_previously_verified(self, _linked, mock_start):
+        WhatsAppVerifiedNumber.objects.create(phone="966501234567")
+        mock_start.return_value = MagicMock(pid=4242)
+        self.client.post(
+            reverse("tools:whatsapp_check"),
+            {
+                "action": "start_check",
+                "numbers": "966501234567\n966509876543",
+                "speed": "normal",
+            },
+        )
+        job = WhatsAppCheckJob.objects.get()
+        self.assertEqual(job.previously_checked_numbers, ["966501234567"])
+        mock_start.assert_called_once()
+        self.assertEqual(
+            mock_start.call_args.kwargs["numbers"], ["966509876543"]
+        )
+
+    @patch("tools.views.whatsapp_views.wa.start_check_job")
+    @patch("tools.views.whatsapp_views._linked_account_names", return_value=["acc_1"])
+    def test_start_check_all_verified_completes_without_node(self, _linked, mock_start):
+        WhatsAppVerifiedNumber.objects.create(phone="966501234567")
+        self.client.post(
+            reverse("tools:whatsapp_check"),
+            {
+                "action": "start_check",
+                "numbers": "966501234567",
+                "speed": "normal",
+            },
+        )
+        job = WhatsAppCheckJob.objects.get()
+        self.assertEqual(job.status, WhatsAppCheckJob.STATUS_COMPLETED)
+        mock_start.assert_not_called()
+        self.assertEqual(job.previously_checked_numbers, ["966501234567"])
 
     @patch("tools.views.whatsapp_views.wa.start_check_job")
     @patch("tools.views.whatsapp_views._linked_account_names", return_value=["acc_1"])
@@ -419,3 +651,193 @@ class WhatsAppCheckJobTests(TestCase):
         job.refresh_from_db()
         self.assertEqual(job.status, WhatsAppCheckJob.STATUS_COMPLETED)
         self.assertNotContains(r, "A job is already running")
+
+    def test_results_panel_shows_previously_checked_section(self):
+        job = WhatsAppCheckJob.objects.create(
+            user=self.superuser,
+            numbers_text="966501234567\n966509876543",
+            status=WhatsAppCheckJob.STATUS_COMPLETED,
+            previously_checked_numbers=["966501234567"],
+        )
+        r = self.client.get(
+            reverse("tools:whatsapp_check"), {"tab": "check", "job": job.id}
+        )
+        self.assertContains(r, "Previously checked")
+        self.assertContains(r, "Previously")
+        self.assertContains(r, "966501234567")
+
+    def test_status_partial_triggers_recent_jobs_refresh(self):
+        job = WhatsAppCheckJob.objects.create(
+            user=self.superuser,
+            numbers_text="966501234567",
+            status=WhatsAppCheckJob.STATUS_RUNNING,
+        )
+        r = self.client.get(reverse("tools:whatsapp_check_status", args=[job.id]))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r["HX-Trigger"], "waRecentJobsRefresh")
+
+    def test_recent_jobs_partial_shows_terminal_status_badges(self):
+        WhatsAppCheckJob.objects.create(
+            user=self.superuser,
+            numbers_text="966501234567",
+            status=WhatsAppCheckJob.STATUS_COMPLETED,
+        )
+        WhatsAppCheckJob.objects.create(
+            user=self.superuser,
+            numbers_text="966509876543",
+            status=WhatsAppCheckJob.STATUS_CANCELLED,
+        )
+        WhatsAppCheckJob.objects.create(
+            user=self.superuser,
+            numbers_text="966501111111",
+            status=WhatsAppCheckJob.STATUS_FAILED,
+        )
+        r = self.client.get(reverse("tools:whatsapp_check_recent_jobs"))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'class="ds-text-success"')
+        self.assertContains(r, "Completed")
+        self.assertContains(r, 'class="ds-text-danger"')
+        self.assertContains(r, "Cancelled")
+        self.assertContains(r, "Failed")
+
+    def test_status_partial_syncs_job_and_recent_jobs_reflects_completion(self):
+        proc = subprocess.Popen(
+            [sys.executable, "-c", "pass"],
+            start_new_session=True,
+        )
+        proc.wait()
+        job = WhatsAppCheckJob.objects.create(
+            user=self.superuser,
+            numbers_text="966501234567",
+            status=WhatsAppCheckJob.STATUS_RUNNING,
+            pid=proc.pid,
+        )
+        run_path = wa.job_run_dir(job.id)
+        run_path.mkdir(parents=True, exist_ok=True)
+        (run_path / "progress.json").write_text(
+            json.dumps(
+                {
+                    "done": True,
+                    "totals": {
+                        "total": 1,
+                        "checked": 1,
+                        "live": 1,
+                        "errors": 0,
+                        "invalid": 0,
+                    },
+                    "results": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        self.client.get(reverse("tools:whatsapp_check_status", args=[job.id]))
+        job.refresh_from_db()
+        self.assertEqual(job.status, WhatsAppCheckJob.STATUS_COMPLETED)
+        r = self.client.get(reverse("tools:whatsapp_check_recent_jobs"))
+        self.assertContains(r, "Completed")
+        self.assertNotContains(r, ">Running<")
+
+    def test_recent_jobs_partial_shows_user_column_for_admin(self):
+        other = User.objects.create_superuser(
+            username="other_admin",
+            password="pass",
+            email="other@example.com",
+        )
+        WhatsAppCheckJob.objects.create(
+            user=other,
+            numbers_text="966501234567",
+            status=WhatsAppCheckJob.STATUS_COMPLETED,
+        )
+        r = self.client.get(reverse("tools:whatsapp_check_recent_jobs"))
+        self.assertContains(r, ">User<")
+        self.assertContains(r, "other_admin")
+
+
+class WhatsAppAccountOwnershipTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username="wa_admin",
+            password="pass",
+            email="admin@example.com",
+        )
+        self.other_admin = User.objects.create_superuser(
+            username="wa_admin2",
+            password="pass",
+            email="admin2@example.com",
+        )
+        self.regular = User.objects.create_user(username="wa_user", password="pass")
+
+    def test_register_account_sets_owner(self):
+        wa_accounts.register_account("acc_1", self.regular)
+        record = WhatsAppAccount.objects.get(account_name="acc_1")
+        self.assertEqual(record.owner, self.regular)
+
+    def test_non_admin_sees_only_owned_linked_accounts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in ("acc_1", "acc_2"):
+                session = root / "sessions" / name
+                session.mkdir(parents=True)
+                (session / "creds.json").write_text("{}", encoding="utf-8")
+            with override_settings(WHATSAPP_ROOT=root):
+                wa_accounts.register_account("acc_1", self.regular)
+                wa_accounts.register_account("acc_2", self.other_admin)
+                names = wa_accounts.linked_account_names_for_user(self.regular)
+        self.assertEqual(names, ["acc_1"])
+
+    def test_admin_sees_all_linked_accounts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in ("acc_1", "acc_2"):
+                session = root / "sessions" / name
+                session.mkdir(parents=True)
+                (session / "creds.json").write_text("{}", encoding="utf-8")
+            with override_settings(WHATSAPP_ROOT=root):
+                wa_accounts.register_account("acc_1", self.regular)
+                wa_accounts.register_account("acc_2", self.other_admin)
+                names = wa_accounts.linked_account_names_for_user(self.admin)
+        self.assertEqual(names, ["acc_1", "acc_2"])
+
+    def test_admin_account_choices_include_owner_label(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session = root / "sessions" / "acc_1"
+            session.mkdir(parents=True)
+            (session / "creds.json").write_text("{}", encoding="utf-8")
+            with override_settings(WHATSAPP_ROOT=root):
+                wa_accounts.register_account("acc_1", self.regular)
+                choices = wa_accounts.account_choices_for_form(self.admin)
+        self.assertEqual(choices, [("acc_1", "acc_1 (wa_user)")])
+
+    def test_non_admin_cannot_access_other_account(self):
+        wa_accounts.register_account("acc_1", self.other_admin)
+        self.assertFalse(wa_accounts.user_can_access_account(self.regular, "acc_1"))
+
+    def test_admin_jobs_queryset_includes_all_users(self):
+        WhatsAppCheckJob.objects.create(
+            user=self.regular,
+            numbers_text="966501234567",
+            status=WhatsAppCheckJob.STATUS_COMPLETED,
+        )
+        WhatsAppCheckJob.objects.create(
+            user=self.admin,
+            numbers_text="966509876543",
+            status=WhatsAppCheckJob.STATUS_COMPLETED,
+        )
+        self.assertEqual(wa_accounts.jobs_queryset_for_user(self.admin).count(), 2)
+        self.assertEqual(wa_accounts.jobs_queryset_for_user(self.regular).count(), 1)
+
+    @patch("tools.views.whatsapp_views.wa.start_check_job")
+    def test_add_account_registers_owner(self, mock_start):
+        mock_start.return_value = MagicMock(pid=1)
+        client = Client(enforce_csrf_checks=False)
+        client.force_login(self.admin)
+        with tempfile.TemporaryDirectory() as tmp:
+            with override_settings(WHATSAPP_ROOT=Path(tmp)):
+                r = client.post(
+                    reverse("tools:whatsapp_check"),
+                    {"action": "add_account", "account_name": "acc_9"},
+                )
+        self.assertEqual(r.status_code, 302)
+        record = WhatsAppAccount.objects.get(account_name="acc_9")
+        self.assertEqual(record.owner, self.admin)

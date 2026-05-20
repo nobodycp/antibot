@@ -1,42 +1,53 @@
 <div class="wa-check-accounts mb-4 space-y-2"
      x-data="waAccountsStatusPoll()"
      x-init="init()">
+  <div class="wa-check-accounts-toolbar flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 mb-1">
+    <form method="post" class="wa-check-accounts-add flex min-w-0 flex-nowrap items-center gap-1.5">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_account" />
+      <input id="wa-account-name" type="text" name="account_name" placeholder="acc_2 (optional)"
+             class="ds-input ds-input--compact min-w-0 max-w-[16rem] shrink font-mono text-xs" />
+      <button type="submit" class="ds-btn ds-btn--primary ds-btn--sm ds-btn--px3 shrink-0">Add account</button>
+    </form>
+
+    <form id="wa-status-interval-form"
+          class="wa-check-accounts-interval inline-flex shrink-0 flex-nowrap items-center gap-1.5"
+          @submit.prevent>
+      <label for="wa-status-interval" class="text-xs font-medium table-cell--muted min-w-0 shrink text-right">
+        <span class="sm:hidden">Interval (s)</span>
+        <span class="hidden sm:inline">Status check interval (seconds)</span>
+      </label>
+      <span class="wa-check-accounts-interval__input-wrap">
+        <input id="wa-status-interval"
+               type="number"
+               name="seconds"
+               inputmode="numeric"
+               size="3"
+               maxlength="3"
+               value="{{ status_interval|default:30 }}"
+               x-model.number="seconds"
+               min="5"
+               max="300"
+               step="1"
+               class="ds-input ds-input--compact font-mono text-xs"
+               @change="onIntervalChange()" />
+      </span>
+    </form>
+  </div>
+
   <h2 class="ds-kicker">Linked accounts</h2>
-
-  <form id="wa-status-interval-form"
-        class="wa-check-accounts-interval flex min-w-0 flex-nowrap items-center gap-1.5 mb-1"
-        @submit.prevent>
-    <label for="wa-status-interval" class="text-xs font-medium table-cell--muted shrink-0">
-      Status check interval (seconds)
-    </label>
-    <input id="wa-status-interval"
-           type="number"
-           name="seconds"
-           x-model.number="seconds"
-           min="5"
-           max="300"
-           step="1"
-           class="ds-input ds-input--compact w-20 shrink-0 font-mono text-xs"
-           @change="onIntervalChange()" />
-  </form>
-
-  <form method="post" class="wa-check-accounts-add flex min-w-0 flex-nowrap items-center gap-1.5">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="add_account" />
-    <input id="wa-account-name" type="text" name="account_name" placeholder="acc_2 (optional)"
-           class="ds-input ds-input--compact min-w-0 max-w-[16rem] shrink font-mono text-xs" />
-    <button type="submit" class="ds-btn ds-btn--primary ds-btn--sm ds-btn--px3 shrink-0">Add account</button>
-  </form>
 
   {% include "tracker/partials/includes/tracker_list_table_open.html" %}
         <tr>
+          <th class="px-2 py-1.5">Phone</th>
           <th class="px-2 py-1.5">Name</th>
+          {% if is_wa_admin %}<th class="px-2 py-1.5">Owner</th>{% endif %}
           <th class="px-2 py-1.5">Status</th>
           <th class="table-actions px-2 py-1.5">Actions</th>
         </tr>
       </thead>
       <tbody id="wa-accounts-tbody">
-        {% include "tools/partials/whatsapp_accounts_table_body.html" with account_rows=account_rows %}
+        {% include "tools/partials/whatsapp_accounts_table_body.html" with account_rows=account_rows is_wa_admin=is_wa_admin %}
       </tbody>
   {% include "tracker/partials/includes/tracker_list_table_close.html" %}
 </div>

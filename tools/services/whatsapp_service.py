@@ -10,7 +10,7 @@ import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Iterable, Literal
 
 AccountStatus = Literal["online", "offline", "pairing", "unknown"]
 
@@ -20,9 +20,23 @@ _ACCOUNT_RE = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 
 
 @dataclass
+class ParsedNumberLine:
+    line: str
+    file_digits: str
+    query_digits: str
+
+
+@dataclass
+class NumberSplitResult:
+    to_check: list[str]
+    already_verified: list[str]
+
+
+@dataclass
 class WhatsAppAccountInfo:
     name: str
     has_session: bool
+    phone: str | None
     pairing_status: str | None
     pairing_message: str | None
     qr_data_url: str | None
@@ -66,6 +80,7 @@ def list_accounts() -> list[WhatsAppAccountInfo]:
             WhatsAppAccountInfo(
                 name=name,
                 has_session=creds.is_file(),
+                phone=get_account_phone(name),
                 pairing_status=pairing.get("status") if pairing else None,
                 pairing_message=pairing.get("message") if pairing else None,
                 qr_data_url=pairing.get("qr_data_url") if pairing else None,
@@ -91,6 +106,36 @@ def _read_pairing_json(path: Path) -> dict[str, Any]:
         return json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return {}
+
+
+def _jid_to_phone(jid: str | None) -> str | None:
+    """E.g. ``972595108208:1@s.whatsapp.net`` → ``972595108208``."""
+    if not jid:
+        return None
+    user_part = jid.split("@", 1)[0]
+    phone = user_part.split(":", 1)[0]
+    return phone if phone.isdigit() else None
+
+
+def get_account_phone(account_name: str) -> str | None:
+    """Linked account phone from session files (no network probe).
+
+    Primary source: ``sessions/<name>/creds.json`` → ``me.id`` (written after QR
+    pairing). Fallback: ``connection_status.json`` ``phone`` / ``jid`` (filled when
+    the status probe connects). Returns ``None`` until the session is linked.
+    """
+    try:
+        name = validate_account_name(account_name)
+    except ValueError:
+        return None
+    session = sessions_dir() / name
+    phone = _jid_to_phone(_read_pairing_json(session / "creds.json").get("me", {}).get("id"))
+    if phone:
+        return phone
+    conn = _read_connection_status(session / "connection_status.json")
+    if conn.get("phone"):
+        return str(conn["phone"])
+    return _jid_to_phone(conn.get("jid"))
 
 
 def _parse_iso_timestamp(value: str | None) -> datetime | None:
@@ -341,6 +386,166 @@ def parse_numbers_text(text: str) -> list[str]:
     return lines
 
 
+def sanitize_number(raw: str) -> str | None:
+    """Match Node ``sanitizeNumber`` — digits only, min length 6."""
+    if not raw:
+        return None
+    digits = re.sub(r"\D", "", str(raw))
+    if len(digits) < 6:
+        return None
+    return digits
+
+
+def apply_trunk_country_code(digits: str, cc: str) -> str:
+    """Match Node ``applyTrunkCountryCode`` for 05X / 5X national mobiles."""
+    if not cc:
+        return digits
+    c = re.sub(r"\D", "", str(cc))
+    if not c:
+        return digits
+    if digits.startswith(c):
+        return digits
+    if len(digits) == 10 and re.fullmatch(r"05\d{8}", digits):
+        return c + digits[1:]
+    if len(digits) == 9 and re.fullmatch(r"5\d{8}", digits):
+        return c + digits
+    return digits
+
+
+def parse_number_line(line: str, default_cc: str = "") -> ParsedNumberLine | None:
+    """Match Node ``parseNumberLine`` (per-line CC + trunk normalization)."""
+    t = (line or "").strip()
+    if not t or t.startswith("#"):
+        return None
+    cc: str | None = None
+    rest = t
+    m = re.match(r"^(\d{2,4})[:/](.+)$", t)
+    if m:
+        cc = re.sub(r"\D", "", m.group(1))
+        rest = m.group(2).strip()
+    file_digits = sanitize_number(rest)
+    if not file_digits:
+        return None
+    cc_use = cc or normalize_country_prefix(default_cc) or ""
+    query_digits = apply_trunk_country_code(file_digits, cc_use)
+    return ParsedNumberLine(line=line, file_digits=file_digits, query_digits=query_digits)
+
+
+def normalize_numbers_list(
+    lines: Iterable[str], default_cc: str = ""
+) -> list[ParsedNumberLine]:
+    out: list[ParsedNumberLine] = []
+    seen: set[str] = set()
+    for line in lines:
+        parsed = parse_number_line(line, default_cc)
+        if not parsed:
+            continue
+        if parsed.query_digits in seen:
+            continue
+        seen.add(parsed.query_digits)
+        out.append(parsed)
+    return out
+
+
+def split_numbers_by_verified_history(
+    lines: list[str], default_cc: str = ""
+) -> NumberSplitResult:
+    """Split input lines into numbers to check vs historically verified."""
+    from tools.models import WhatsAppVerifiedNumber
+
+    parsed_list = normalize_numbers_list(lines, default_cc)
+    if not parsed_list:
+        return NumberSplitResult([], [])
+
+    query_digits = [p.query_digits for p in parsed_list]
+    known = set(
+        WhatsAppVerifiedNumber.objects.filter(phone__in=query_digits).values_list(
+            "phone", flat=True
+        )
+    )
+
+    to_check: list[str] = []
+    already: list[str] = []
+    seen_check: set[str] = set()
+    seen_already: set[str] = set()
+    for parsed in parsed_list:
+        if parsed.query_digits in known:
+            if parsed.query_digits not in seen_already:
+                already.append(parsed.line)
+                seen_already.add(parsed.query_digits)
+        elif parsed.query_digits not in seen_check:
+            to_check.append(parsed.line)
+            seen_check.add(parsed.query_digits)
+    return NumberSplitResult(to_check=to_check, already_verified=already)
+
+
+def record_verified_from_job(job) -> int:
+    """Upsert live numbers from a completed job into verified history."""
+    from tools.models import WhatsAppVerifiedNumber
+
+    cc = job.local_trunk_country or ""
+    recorded = 0
+    for raw in read_live_numbers(job.id):
+        parsed = parse_number_line(raw, cc)
+        phone = parsed.query_digits if parsed else sanitize_number(raw)
+        if not phone:
+            continue
+        if not parsed:
+            phone = apply_trunk_country_code(phone, cc)
+        obj, created = WhatsAppVerifiedNumber.objects.get_or_create(
+            phone=phone,
+            defaults={"last_job": job},
+        )
+        if not created and obj.last_job_id != job.id:
+            obj.last_job = job
+            obj.save(update_fields=["last_job"])
+        recorded += 1
+    return recorded
+
+
+def backfill_verified_history_from_runs() -> int:
+    """Import ``verified_active_numbers.txt`` from all run directories."""
+    from tools.models import WhatsAppCheckJob, WhatsAppVerifiedNumber
+
+    recorded = 0
+    root = runs_dir()
+    if not root.is_dir():
+        return 0
+    for entry in sorted(root.iterdir()):
+        if not entry.is_dir() or not entry.name.isdigit():
+            continue
+        job_id = int(entry.name)
+        path = entry / "verified_active_numbers.txt"
+        if not path.is_file():
+            continue
+        try:
+            job = WhatsAppCheckJob.objects.get(pk=job_id)
+            cc = job.local_trunk_country or ""
+        except WhatsAppCheckJob.DoesNotExist:
+            job = None
+            cc = ""
+        for raw in _read_number_lines(path):
+            parsed = parse_number_line(raw, cc)
+            phone = parsed.query_digits if parsed else sanitize_number(raw)
+            if not phone:
+                continue
+            if not parsed:
+                phone = apply_trunk_country_code(phone, cc)
+            _, created = WhatsAppVerifiedNumber.objects.get_or_create(
+                phone=phone,
+                defaults={"last_job": job},
+            )
+            if created:
+                recorded += 1
+            elif job and WhatsAppVerifiedNumber.objects.filter(
+                phone=phone, last_job__isnull=True
+            ).exists():
+                WhatsAppVerifiedNumber.objects.filter(phone=phone).update(
+                    last_job=job
+                )
+    return recorded
+
+
 def start_check_job(
     *,
     job_id: int,
@@ -371,6 +576,7 @@ def start_check_job(
         "PROGRESS_FILE": str(run_path / "progress.json"),
         "INVALID_FILE": str(run_path / "not_registered_numbers.txt"),
         "ERROR_NUMBERS_FILE": str(run_path / "check_error_numbers.txt"),
+        "PENDING_NUMBERS_FILE": str(run_path / "pending_numbers.txt"),
         "SPEED": speed_key,
         "FETCH_PRESENCE": "1" if fetch_presence else "0",
     }
@@ -401,12 +607,38 @@ def _read_number_lines(path: Path) -> list[str]:
     return lines
 
 
+_ERROR_LINE_SEP = " --> "
+
+
+def parse_error_number_line(line: str) -> tuple[str, str]:
+    """Parse ``number --> reason`` (or legacy number-only lines)."""
+    text = (line or "").strip()
+    if _ERROR_LINE_SEP in text:
+        number, _, reason = text.partition(_ERROR_LINE_SEP)
+        return number.strip(), reason.strip()
+    return text, ""
+
+
+def format_error_number_line(number: str, reason: str) -> str:
+    number = (number or "").strip()
+    reason = (reason or "check failed").strip()
+    return f"{number}{_ERROR_LINE_SEP}{reason}"
+
+
 def read_live_numbers(job_id: int) -> list[str]:
     return _read_number_lines(job_run_dir(job_id) / "verified_active_numbers.txt")
 
 
 def read_error_numbers(job_id: int) -> list[str]:
-    return _read_number_lines(job_run_dir(job_id) / "check_error_numbers.txt")
+    """Display-ready error lines: ``number --> reason``."""
+    out: list[str] = []
+    for line in _read_number_lines(job_run_dir(job_id) / "check_error_numbers.txt"):
+        number, reason = parse_error_number_line(line)
+        if reason:
+            out.append(format_error_number_line(number, reason))
+        elif number:
+            out.append(number)
+    return out
 
 
 def is_progress_complete(progress: dict[str, Any] | None) -> bool:
@@ -431,6 +663,7 @@ def _progress_totals(progress: dict[str, Any] | None) -> dict[str, int]:
             "live": int(totals.get("live") or 0),
             "errors": int(totals.get("errors") or 0),
             "invalid": int(totals.get("invalid") or 0),
+            "pending": int(totals.get("pending") or 0),
         }
     results = progress.get("results")
     if not isinstance(results, list):
@@ -457,7 +690,10 @@ def build_job_snapshot(job) -> dict[str, Any]:
     progress = read_job_progress(job.id)
     totals = _progress_totals(progress)
 
-    total_count = totals.get("total") or len(parse_numbers_text(job.numbers_text))
+    input_total = len(parse_numbers_text(job.numbers_text))
+    total_count = totals.get("total") or input_total
+    if input_total:
+        total_count = max(int(total_count), input_total)
     valid_numbers = read_live_numbers(job.id)
     error_numbers = read_error_numbers(job.id)
     valid_count = totals.get("live") if totals else len(valid_numbers)
@@ -472,13 +708,18 @@ def build_job_snapshot(job) -> dict[str, Any]:
         error_count = max(error_count, job.error_count, len(error_numbers))
         invalid_count = max(0, job.checked_count - valid_count - error_count)
 
+    previously_checked = list(job.previously_checked_numbers or [])
+    skipped_count = len(previously_checked)
+
     return {
         "total_count": total_count,
         "valid_count": valid_count,
         "invalid_count": invalid_count,
         "error_count": error_count,
+        "skipped_count": skipped_count,
         "valid_numbers": valid_numbers,
         "error_numbers": error_numbers,
+        "previously_checked_numbers": previously_checked,
         "is_running": (
             job.status == job.STATUS_RUNNING and is_process_running(job.pid)
         ),
@@ -522,9 +763,12 @@ def sync_job_from_disk(job) -> None:
 
     now = datetime.now(timezone.utc)
     if complete or progress:
+        was_completed = job.status == WhatsAppCheckJob.STATUS_COMPLETED
         job.status = WhatsAppCheckJob.STATUS_COMPLETED
         job.finished_at = job.finished_at or now
         job.pid = None
+        if not was_completed:
+            record_verified_from_job(job)
     elif job.pid:
         job.status = WhatsAppCheckJob.STATUS_FAILED
         job.error_message = job.error_message or "Validator process exited unexpectedly."

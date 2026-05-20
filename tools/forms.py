@@ -68,4 +68,7 @@ class WhatsAppCheckForm(forms.Form):
     def __init__(self, *args, account_choices=None, **kwargs):
         super().__init__(*args, **kwargs)
         choices = account_choices or []
-        self.fields["accounts"].choices = [(n, n) for n in choices]
+        if choices and isinstance(choices[0], tuple):
+            self.fields["accounts"].choices = choices
+        else:
+            self.fields["accounts"].choices = [(n, n) for n in choices]

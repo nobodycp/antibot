@@ -48,6 +48,10 @@ const INVALID_FILE = process.env.INVALID_FILE
 const ERROR_NUMBERS_FILE = process.env.ERROR_NUMBERS_FILE
   ? path.resolve(process.env.ERROR_NUMBERS_FILE)
   : path.join(RUN_DIR, 'check_error_numbers.txt');
+const PENDING_NUMBERS_FILE = process.env.PENDING_NUMBERS_FILE
+  ? path.resolve(process.env.PENDING_NUMBERS_FILE)
+  : path.join(RUN_DIR, 'pending_numbers.txt');
+const ERROR_LINE_SEP = ' --> ';
 
 /** e.g. 972 (IL) or 966 (SA): turns 05XXXXXXXX / 5XXXXXXXX into CC + national without trunk 0 */
 const LOCAL_TRUNK_CC = (process.env.LOCAL_TRUNK_COUNTRY || '')
@@ -86,6 +90,12 @@ const MAX_DELAY_MS    = Math.max(MIN_DELAY_MS, toInt(process.env.MAX_DELAY_MS, p
 const BATCH_SIZE      = Math.max(1, toInt(process.env.BATCH_SIZE, profile.BATCH_SIZE));
 const BATCH_SLEEP_MS  = toInt(process.env.BATCH_SLEEP_MS,  profile.BATCH_SLEEP_MS);
 const MAX_PER_ACCOUNT = Math.max(1, toInt(process.env.MAX_PER_ACCOUNT, profile.MAX_PER_ACCOUNT));
+
+/** Retries per number for offline/connection errors before writing a final error line. */
+const OFFLINE_RETRY_MAX = Math.max(1, toInt(process.env.OFFLINE_RETRY_MAX, 3));
+/** Passes over pending_numbers.txt when accounts were offline mid-job. */
+const PENDING_PASS_MAX = Math.max(1, toInt(process.env.PENDING_PASS_MAX, 3));
+const ALL_OFFLINE_WAIT_MS = toInt(process.env.ALL_OFFLINE_WAIT_MS, 30 * 1000);
 
 const silentLogger = pino({ level: 'silent' });
 
@@ -205,15 +215,83 @@ async function appendInvalid(number) {
 }
 
 const errorNumbersMutex = { busy: false, queue: [] };
-async function appendErrorNumber(number) {
-  await withMutex(errorNumbersMutex, () => fs.appendFile(ERROR_NUMBERS_FILE, number + '\n'));
+function formatErrorLine(number, reason) {
+  const n = String(number || '').trim();
+  const r = String(reason || 'check failed').trim().replace(/\s+/g, ' ');
+  return `${n}${ERROR_LINE_SEP}${r}`;
+}
+
+async function appendErrorNumber(number, reason) {
+  const line = formatErrorLine(number, reason);
+  await withMutex(errorNumbersMutex, () => fs.appendFile(ERROR_NUMBERS_FILE, line + '\n'));
+}
+
+const pendingMutex = { busy: false, queue: [] };
+async function enqueuePendingNumbers(items) {
+  if (!items || items.length === 0) return;
+  const lines = items.map((p) => p.fileDigits || p.queryDigits).filter(Boolean);
+  if (lines.length === 0) return;
+  await withMutex(pendingMutex, () =>
+    fs.appendFile(PENDING_NUMBERS_FILE, lines.map((l) => l + '\n').join(''))
+  );
+}
+
+async function readPendingParsed() {
+  if (!(await fs.pathExists(PENDING_NUMBERS_FILE))) return [];
+  const raw = await fs.readFile(PENDING_NUMBERS_FILE, 'utf8');
+  const seen = new Set();
+  const out = [];
+  for (const line of raw.split(/\r?\n/)) {
+    const parsed = parseNumberLine(line, LOCAL_TRUNK_CC);
+    if (!parsed) continue;
+    if (seen.has(parsed.queryDigits)) continue;
+    seen.add(parsed.queryDigits);
+    out.push(parsed);
+  }
+  return out;
+}
+
+async function writePendingParsed(items) {
+  const lines = items.map((p) => p.fileDigits || p.queryDigits).filter(Boolean);
+  await fs.writeFile(PENDING_NUMBERS_FILE, lines.length ? lines.join('\n') + '\n' : '');
+}
+
+async function countPendingLines() {
+  const pending = await readPendingParsed();
+  return pending.length;
+}
+
+/** Classify validator errors: offline/connection → retry; others → final error with reason. */
+function classifyCheckError(err) {
+  const msg = (err?.message || String(err)).trim();
+  const lower = msg.toLowerCase();
+  if (
+    /connection closed|stream errored|timed out|econnreset|etimedout|socket hang up|not connected|offline account|connection lost|disconnect|reconnect failed|could not establish connection/i.test(
+      msg
+    ) ||
+    lower.includes('offline')
+  ) {
+    return { kind: 'offline', reason: 'offline account' };
+  }
+  if (/logged out|401|403|session .* logged out/i.test(msg)) {
+    return { kind: 'fatal', reason: 'logged out' };
+  }
+  if (/rate|limit|overlimit|429/i.test(msg)) {
+    return { kind: 'rate', reason: 'rate limited' };
+  }
+  const reason = msg.length > 160 ? msg.slice(0, 157) + '…' : msg || 'check failed';
+  return { kind: 'other', reason };
+}
+
+function isConnectionErrorMessage(msg) {
+  return classifyCheckError({ message: msg }).kind === 'offline';
 }
 
 const progressMutex = { busy: false, queue: [] };
 const progressByAccount = new Map();
 let progressTotalInput = 0;
 
-async function flushProgressFile() {
+async function flushProgressFile(extra = {}) {
   const results = [...progressByAccount.values()].sort((a, b) =>
     String(a.account).localeCompare(String(b.account))
   );
@@ -223,13 +301,22 @@ async function flushProgressFile() {
       acc.live += row.live;
       acc.errors += row.errors;
       acc.invalid += row.invalid;
+      acc.pending += row.pending || 0;
       return acc;
     },
-    { checked: 0, live: 0, errors: 0, invalid: 0, total: progressTotalInput }
+    { checked: 0, live: 0, errors: 0, invalid: 0, pending: 0, total: progressTotalInput }
   );
+  const pendingCount = await countPendingLines();
+  totals.pending = Math.max(totals.pending, pendingCount);
   await fs.writeJson(
     PROGRESS_FILE,
-    { timestamp: new Date().toISOString(), done: false, totals, results },
+    {
+      timestamp: new Date().toISOString(),
+      done: false,
+      totals,
+      results,
+      ...extra,
+    },
     { spaces: 2 }
   );
 }
@@ -242,11 +329,13 @@ async function bumpProgress(accountName, delta) {
       live: 0,
       errors: 0,
       invalid: 0,
+      pending: 0,
     };
     cur.checked += delta.checked || 0;
     cur.live += delta.live || 0;
     cur.errors += delta.errors || 0;
     cur.invalid += delta.invalid || 0;
+    cur.pending += delta.pending || 0;
     progressByAccount.set(accountName, cur);
     await flushProgressFile();
   });
@@ -784,23 +873,28 @@ async function runAccount({ accountName, label, numbers, whitelistSet }) {
   try {
     sock = await connectAccount(accountName, label);
   } catch (err) {
-    log(label, `Failed to connect: ${err.message}`);
-    return { account: accountName, checked: 0, live: 0, errors: 1 };
+    log(label, `Failed to connect (offline): ${err.message}`);
+    await enqueuePendingNumbers(numbers);
+    await bumpProgress(accountName, { pending: numbers.length });
+    return { account: accountName, checked: 0, live: 0, errors: 0, invalid: 0, pending: numbers.length };
   }
 
   let checked = 0;
   let liveCount = 0;
   let errors = 0;
+  const offlineRetries = new Map();
+  const workQueue = numbers.slice();
 
   log(label, `Assigned ${numbers.length} numbers.`);
 
-  for (let i = 0; i < numbers.length; i++) {
+  while (workQueue.length > 0) {
     if (shuttingDown) {
       log(label, 'Shutdown requested, stopping worker.');
+      await enqueuePendingNumbers(workQueue);
       break;
     }
 
-    const { fileDigits, queryDigits } = numbers[i];
+    const { fileDigits, queryDigits } = workQueue.shift();
     const q = queryDigits;
     const short = q.length > 6 ? q.slice(0, 3) + 'xxx' + q.slice(-2) : q;
 
@@ -825,6 +919,7 @@ async function runAccount({ accountName, label, numbers, whitelistSet }) {
       } else {
         info = await checkNumber(sock, q);
       }
+      offlineRetries.delete(q);
       checked++;
       if (info.live) {
         liveCount++;
@@ -864,44 +959,191 @@ async function runAccount({ accountName, label, numbers, whitelistSet }) {
         log(label, `Checking ${short}: not registered`);
       }
     } catch (err) {
-      errors++;
-      await appendErrorNumber(fileDigits || q);
-      await bumpProgress(accountName, { errors: 1 });
       const msg = err?.message || String(err);
+      const { kind, reason } = classifyCheckError(err);
       log(label, `Error checking ${short}: ${msg}`);
 
-      // Handle rate-limit / connection close gracefully: back off and continue.
-      if (/rate|limit|overlimit|429/i.test(msg)) {
-        log(label, 'Rate limit suspected, sleeping 60s...');
-        await sleep(60 * 1000);
-      } else if (/Connection Closed|connection closed|Stream Errored|Timed Out/i.test(msg)) {
-        log(label, 'Connection issue, attempting reconnect in 15s...');
-        await sleep(15 * 1000);
-        try {
-          try { sock.end?.(new Error('reconnect')); } catch (_) {}
-          sock = await connectAccount(accountName, label);
-        } catch (reErr) {
-          log(label, `Reconnect failed: ${reErr.message}. Halting this account.`);
-          break;
+      if (kind === 'offline') {
+        const attempt = (offlineRetries.get(q) || 0) + 1;
+        offlineRetries.set(q, attempt);
+        if (attempt < OFFLINE_RETRY_MAX) {
+          log(label, `Offline (${attempt}/${OFFLINE_RETRY_MAX}) for ${short}, re-queuing…`);
+          workQueue.push({ fileDigits, queryDigits });
+          log(label, 'Connection issue, attempting reconnect in 15s...');
+          await sleep(15 * 1000);
+          try {
+            try { sock.end?.(new Error('reconnect')); } catch (_) {}
+            sock = await connectAccount(accountName, label);
+          } catch (reErr) {
+            log(label, `Reconnect failed: ${reErr.message}. Pausing account; numbers re-queued globally.`);
+            await enqueuePendingNumbers([{ fileDigits, queryDigits }, ...workQueue]);
+            workQueue.length = 0;
+            break;
+          }
+        } else {
+          errors++;
+          await appendErrorNumber(fileDigits || q, reason);
+          await bumpProgress(accountName, { checked: 1, errors: 1 });
+          log(label, `Offline retries exhausted for ${short}; recorded error.`);
+        }
+      } else {
+        errors++;
+        await appendErrorNumber(fileDigits || q, reason);
+        await bumpProgress(accountName, { checked: 1, errors: 1 });
+        if (kind === 'rate') {
+          log(label, 'Rate limit suspected, sleeping 60s...');
+          await sleep(60 * 1000);
+        } else if (isConnectionErrorMessage(msg)) {
+          log(label, 'Connection issue, attempting reconnect in 15s...');
+          await sleep(15 * 1000);
+          try {
+            try { sock.end?.(new Error('reconnect')); } catch (_) {}
+            sock = await connectAccount(accountName, label);
+          } catch (reErr) {
+            log(label, `Reconnect failed: ${reErr.message}. Halting this account.`);
+            await enqueuePendingNumbers(workQueue);
+            workQueue.length = 0;
+            break;
+          }
         }
       }
     }
 
-    // Batch sleep every BATCH_SIZE checks
-    if (checked > 0 && checked % BATCH_SIZE === 0 && i < numbers.length - 1) {
-      log(label, `Batch of ${BATCH_SIZE} done. Sleeping ${BATCH_SLEEP_MS / 1000}s...`);
-      await sleep(BATCH_SLEEP_MS);
-    } else if (i < numbers.length - 1) {
-      const delay = randInt(MIN_DELAY_MS, MAX_DELAY_MS);
-      await sleep(delay);
+    if (workQueue.length > 0) {
+      if (checked > 0 && checked % BATCH_SIZE === 0) {
+        log(label, `Batch of ${BATCH_SIZE} done. Sleeping ${BATCH_SLEEP_MS / 1000}s...`);
+        await sleep(BATCH_SLEEP_MS);
+      } else {
+        const delay = randInt(MIN_DELAY_MS, MAX_DELAY_MS);
+        await sleep(delay);
+      }
     }
   }
 
   try { sock?.end?.(undefined); } catch (_) {}
   activeSockets.delete(sock);
 
-  log(label, `Done. Checked=${checked}, Live=${liveCount}, Errors=${errors}`);
-  return { account: accountName, checked, live: liveCount, errors };
+  const pendingLeft = workQueue.length;
+  log(label, `Done. Checked=${checked}, Live=${liveCount}, Errors=${errors}, Pending=${pendingLeft}`);
+  return {
+    account: accountName,
+    checked,
+    live: liveCount,
+    errors,
+    invalid: Math.max(0, checked - liveCount - errors),
+    pending: pendingLeft,
+  };
+}
+
+/** Process numbers left in pending_numbers.txt when accounts were offline mid-job. */
+async function processPendingQueue(accounts, whitelistSet) {
+  let pending = await readPendingParsed();
+  if (pending.length === 0) return { checked: 0, live: 0, errors: 0, invalid: 0 };
+
+  log('SYSTEM', `Pending queue: ${pending.length} number(s) to retry.`);
+
+  let pass = 0;
+  let totalChecked = 0;
+  let totalLive = 0;
+  let totalErrors = 0;
+
+  while (pending.length > 0 && pass < PENDING_PASS_MAX && !shuttingDown) {
+    pass++;
+    log('SYSTEM', `Pending pass ${pass}/${PENDING_PASS_MAX} (${pending.length} numbers)…`);
+
+    const connected = [];
+    for (const accountName of accounts) {
+      try {
+        const sock = await connectAccount(accountName, `Pending/${accountName}`);
+        connected.push({ accountName, sock });
+      } catch (err) {
+        log('SYSTEM', `${accountName} still offline: ${err.message}`);
+      }
+    }
+
+    if (connected.length === 0) {
+      log('SYSTEM', `All accounts offline; waiting ${ALL_OFFLINE_WAIT_MS / 1000}s before retry…`);
+      await sleep(ALL_OFFLINE_WAIT_MS);
+      pending = await readPendingParsed();
+      continue;
+    }
+
+    await writePendingParsed([]);
+    const chunks = splitNumbers(pending, connected.length);
+    const workerResults = await Promise.all(
+      connected.map(({ accountName, sock }, idx) =>
+        (async () => {
+          const chunk = chunks[idx] || [];
+          let checked = 0;
+          let live = 0;
+          let errors = 0;
+          const offlineRetries = new Map();
+          const workQueue = chunk.slice();
+
+          while (workQueue.length > 0 && !shuttingDown) {
+            const { fileDigits, queryDigits } = workQueue.shift();
+            const q = queryDigits;
+            try {
+              let info;
+              if (isWhitelisted(whitelistSet, fileDigits, queryDigits)) {
+                info = { live: true, canonicalDigits: queryDigits, name: '', presence: 'whitelist', lastSeen: '', isBusiness: false, hasPicture: false, about: '', bizName: '', bizCategory: '', bizAddress: '', bizWebsite: '', bizEmail: '' };
+              } else {
+                info = await checkNumber(sock, q);
+              }
+              offlineRetries.delete(q);
+              checked++;
+              if (info.live) {
+                live++;
+                const outNumber = CANONICAL_LIVE_OUTPUT && info.canonicalDigits ? info.canonicalDigits : q;
+                await appendLive(outNumber);
+                await bumpProgress(accountName, { checked: 1, live: 1 });
+              } else {
+                await appendInvalid(fileDigits || q);
+                await bumpProgress(accountName, { checked: 1, invalid: 1 });
+              }
+            } catch (err) {
+              const { kind, reason } = classifyCheckError(err);
+              if (kind === 'offline') {
+                const attempt = (offlineRetries.get(q) || 0) + 1;
+                offlineRetries.set(q, attempt);
+                if (attempt < OFFLINE_RETRY_MAX) {
+                  workQueue.push({ fileDigits, queryDigits });
+                  continue;
+                }
+              }
+              errors++;
+              await appendErrorNumber(fileDigits || q, reason);
+              await bumpProgress(accountName, { checked: 1, errors: 1 });
+            }
+          }
+
+          if (workQueue.length > 0) await enqueuePendingNumbers(workQueue);
+          try { sock?.end?.(undefined); } catch (_) {}
+          activeSockets.delete(sock);
+          return { checked, live, errors };
+        })()
+      )
+    );
+
+    for (const r of workerResults) {
+      totalChecked += r.checked;
+      totalLive += r.live;
+      totalErrors += r.errors;
+    }
+
+    pending = await readPendingParsed();
+  }
+
+  pending = await readPendingParsed();
+  if (pending.length > 0) {
+    log('SYSTEM', `${pending.length} number(s) still pending after retries; marking offline account errors.`);
+    for (const p of pending) {
+      await appendErrorNumber(p.fileDigits || p.queryDigits, 'offline account');
+    }
+    await writePendingParsed([]);
+  }
+
+  return { checked: totalChecked, live: totalLive, errors: totalErrors, invalid: 0 };
 }
 
 // ------------------------- Graceful Exit --------------------------
@@ -933,6 +1175,7 @@ async function start() {
   await fs.ensureFile(OUTPUT_FILE);
   await fs.ensureFile(INVALID_FILE);
   await fs.ensureFile(ERROR_NUMBERS_FILE);
+  await fs.ensureFile(PENDING_NUMBERS_FILE);
 
   const numbers = await readNumbers();
   progressTotalInput = numbers.length;
@@ -972,6 +1215,14 @@ async function start() {
 
   const results = await Promise.all(workers);
 
+  const pendingStats = await processPendingQueue(accounts, whitelistSet);
+  if (pendingStats.checked || pendingStats.errors) {
+    log(
+      'SYSTEM',
+      `Pending pass: checked=${pendingStats.checked}, live=${pendingStats.live}, errors=${pendingStats.errors}`
+    );
+  }
+
   // Summary
   log('SYSTEM', '================ SUMMARY ================');
   let totalChecked = 0;
@@ -995,21 +1246,28 @@ async function start() {
         invalid: Math.max(0, r.checked - r.live - r.errors),
       });
     }
+    const totals = results.reduce(
+      (t, row) => {
+        t.checked += row.checked;
+        t.live += row.live;
+        t.errors += row.errors;
+        t.invalid += row.invalid;
+        t.pending += row.pending || 0;
+        return t;
+      },
+      { checked: 0, live: 0, errors: 0, invalid: 0, pending: 0, total: progressTotalInput }
+    );
+    totals.checked += pendingStats.checked || 0;
+    totals.live += pendingStats.live || 0;
+    totals.errors += pendingStats.errors || 0;
+    totals.invalid += pendingStats.invalid || 0;
+    totals.pending = await countPendingLines();
     await fs.writeJson(
       PROGRESS_FILE,
       {
         timestamp: new Date().toISOString(),
         done: true,
-        totals: results.reduce(
-          (acc, row) => {
-            acc.checked += row.checked;
-            acc.live += row.live;
-            acc.errors += row.errors;
-            acc.invalid += row.invalid;
-            return acc;
-          },
-          { checked: 0, live: 0, errors: 0, invalid: 0, total: progressTotalInput }
-        ),
+        totals,
         results,
       },
       { spaces: 2 }
@@ -1092,6 +1350,40 @@ async function runPairOnly(accountName) {
 }
 
 // ------------------------ Connection status probe ----------------------
+function jidToPhone(jid) {
+  if (!jid || typeof jid !== 'string') return null;
+  const userPart = jid.split('@')[0];
+  const phone = userPart.split(':')[0];
+  return /^\d+$/.test(phone) ? phone : null;
+}
+
+async function readPhoneFromCreds(sessionPath) {
+  const credsPath = path.join(sessionPath, 'creds.json');
+  if (!(await fs.pathExists(credsPath))) return { phone: null, jid: null };
+  try {
+    const creds = await fs.readJson(credsPath);
+    const jid = creds?.me?.id || null;
+    return { phone: jidToPhone(jid), jid };
+  } catch (_) {
+    return { phone: null, jid: null };
+  }
+}
+
+async function phoneFieldsForAccount(accountName, sock = null) {
+  const sessionPath = path.join(SESSIONS_DIR, accountName);
+  let jid = sock?.user?.id || null;
+  let phone = jidToPhone(jid);
+  if (!phone) {
+    const fromCreds = await readPhoneFromCreds(sessionPath);
+    phone = fromCreds.phone;
+    jid = jid || fromCreds.jid;
+  }
+  const out = {};
+  if (phone) out.phone = phone;
+  if (jid) out.jid = jid;
+  return out;
+}
+
 async function writeConnectionStatus(accountName, payload) {
   const sessionPath = path.join(SESSIONS_DIR, accountName);
   await fs.ensureDir(sessionPath);
@@ -1114,6 +1406,8 @@ async function probeAccountConnection(accountName) {
     return 'offline';
   }
 
+  const cachedPhone = await phoneFieldsForAccount(safeName);
+
   let pairing = {};
   const pairingPath = path.join(sessionPath, 'pairing.json');
   if (await fs.pathExists(pairingPath)) {
@@ -1125,6 +1419,7 @@ async function probeAccountConnection(accountName) {
     await writeConnectionStatus(safeName, {
       status: 'pairing',
       message: pairing.message || 'Pairing in progress',
+      ...cachedPhone,
     });
     return 'pairing';
   }
@@ -1139,9 +1434,11 @@ async function probeAccountConnection(accountName) {
 
     if (result.outcome === 'open') {
       sock = result.sock;
+      const livePhone = await phoneFieldsForAccount(safeName, sock);
       await writeConnectionStatus(safeName, {
         status: 'online',
         message: 'Connected to WhatsApp.',
+        ...livePhone,
       });
       return 'online';
     }
@@ -1149,6 +1446,7 @@ async function probeAccountConnection(accountName) {
       await writeConnectionStatus(safeName, {
         status: 'offline',
         message: 'Connection timed out.',
+        ...cachedPhone,
       });
       return 'offline';
     }
@@ -1158,18 +1456,21 @@ async function probeAccountConnection(accountName) {
       await writeConnectionStatus(safeName, {
         status: 'offline',
         message: 'Session logged out. Re-pair this account.',
+        ...cachedPhone,
       });
       return 'offline';
     }
     await writeConnectionStatus(safeName, {
       status: 'offline',
       message: `Connection closed (code=${code ?? 'unknown'}).`,
+      ...cachedPhone,
     });
     return 'offline';
   } catch (err) {
     await writeConnectionStatus(safeName, {
       status: 'offline',
       message: err?.message || String(err),
+      ...cachedPhone,
     });
     return 'offline';
   } finally {

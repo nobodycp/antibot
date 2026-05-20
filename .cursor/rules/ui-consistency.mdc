@@ -1,0 +1,31 @@
+---
+description: UI list/table consistency across tracker, dashboard, and tools
+globs:
+  - "**/*.html"
+  - "**/design-system.css"
+---
+
+# UI consistency (lists & tables)
+
+Match tracker/dashboard list pages (allowed logs, allowed countries, block rules).
+
+## Tables
+- Wrap data in `table-container` + `dash-surface` + `dash-table-shell` + `table-container__scroll`.
+- Use `{% include "tracker/partials/includes/tracker_list_table_open.html" %}` / `_close.html` when the page is a simple list.
+- Table: `table ds-table` (or `tracker-list-table tracker-list-table--compact` via the include).
+- Cell padding: `px-2 py-1.5`; empty state: `ds-table-empty`.
+
+## Row delete
+- Per-row delete: `form.inline` + `button.ds-icon-btn.ds-icon-btn--danger` + trash SVG (same as `allowed_logs_table.html` / `allowed_country_table.html`).
+- Bulk delete in toolbar: `ds-icon-btn ds-icon-btn--danger` (not a text `ds-btn--danger`).
+
+## Add / toolbar forms
+- Inline above the table: `flex … gap-1.5`, `ds-input ds-input--compact`, `ds-btn ds-btn--primary ds-btn--sm ds-btn--px3 shrink-0`.
+- Multi-field toolbars: `ds-form-actions` where the DS provides it.
+
+## Tool panels
+- Avoid nesting `ds-card` around a list that already uses `table-container` (double borders/padding).
+- Section title: `h2.ds-kicker` or `ds_card_head` kicker — not both wrapping the same table.
+
+## Actions column
+- `th.table-actions` / `td.table-actions`; secondary actions may use `ds-btn--sm ds-btn--px3`.

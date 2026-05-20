@@ -15,6 +15,10 @@
     <span class="wa-check-counter__label">Errors</span>
     <span class="wa-check-counter__value">{{ snapshot.error_count|default:0 }}</span>
   </div>
+  <div class="wa-check-counter wa-check-counter--skipped">
+    <span class="wa-check-counter__label">Previously</span>
+    <span class="wa-check-counter__value">{{ snapshot.skipped_count|default:0 }}</span>
+  </div>
 </div>
 
 {% if job %}
@@ -37,24 +41,39 @@
 </div>
 {% endif %}
 
-<section class="wa-check-list-card wa-check-list-card--valid">
-  <header class="wa-check-list-card__head">
-    <h3 class="text-xs font-semibold">Valid numbers</h3>
-    <span class="text-xs table-cell--muted">{{ snapshot.valid_numbers|length }}</span>
-  </header>
-  <div class="wa-check-list-card__body">
-    <textarea readonly class="wa-check-list-textarea ds-input font-mono text-xs">{% for n in snapshot.valid_numbers %}{{ n }}{% if not forloop.last %}
+<div class="wa-check-results-lists">
+  <section class="wa-check-list-card wa-check-list-card--valid">
+    <header class="wa-check-list-card__head">
+      <h3 class="text-xs font-semibold">Valid numbers</h3>
+      <span class="text-xs ds-text-success">{{ snapshot.valid_numbers|length }}</span>
+    </header>
+    <div class="wa-check-list-card__body">
+      <textarea readonly class="wa-check-list-textarea ds-input font-mono text-xs">{% for n in snapshot.valid_numbers %}{{ n }}{% if not forloop.last %}
 {% endif %}{% endfor %}</textarea>
-  </div>
-</section>
+    </div>
+  </section>
 
-<section class="wa-check-list-card wa-check-list-card--error">
-  <header class="wa-check-list-card__head">
-    <h3 class="text-xs font-semibold">Error numbers</h3>
-    <span class="text-xs table-cell--muted">{{ snapshot.error_numbers|length }}</span>
-  </header>
-  <div class="wa-check-list-card__body">
-    <textarea readonly class="wa-check-list-textarea ds-input font-mono text-xs">{% for n in snapshot.error_numbers %}{{ n }}{% if not forloop.last %}
+  <div class="wa-check-results-lists__bottom">
+    <section class="wa-check-list-card wa-check-list-card--error">
+      <header class="wa-check-list-card__head">
+        <h3 class="text-xs font-semibold">Error numbers</h3>
+        <span class="text-xs ds-text-danger">{{ snapshot.error_numbers|length }}</span>
+      </header>
+      <div class="wa-check-list-card__body">
+        <textarea readonly class="wa-check-list-textarea ds-input font-mono text-xs">{% for n in snapshot.error_numbers %}{{ n }}{% if not forloop.last %}
 {% endif %}{% endfor %}</textarea>
+      </div>
+    </section>
+
+    <section class="wa-check-list-card wa-check-list-card--skipped">
+      <header class="wa-check-list-card__head">
+        <h3 class="text-xs font-semibold">Previously checked</h3>
+        <span class="text-xs ds-text-warning">{{ snapshot.previously_checked_numbers|length }}</span>
+      </header>
+      <div class="wa-check-list-card__body">
+        <textarea readonly class="wa-check-list-textarea ds-input font-mono text-xs">{% for n in snapshot.previously_checked_numbers %}{{ n }}{% if not forloop.last %}
+{% endif %}{% endfor %}</textarea>
+      </div>
+    </section>
   </div>
-</section>
+</div>

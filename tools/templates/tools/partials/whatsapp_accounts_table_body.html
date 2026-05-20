@@ -1,6 +1,14 @@
 {% for row in account_rows %}
 <tr>
+  <td class="px-2 py-1.5 table-cell--mono">
+    {% if row.account.phone %}{{ row.account.phone }}{% else %}<span class="table-cell--muted">—</span>{% endif %}
+  </td>
   <td class="px-2 py-1.5 table-cell--mono">{{ row.account.name }}</td>
+  {% if is_wa_admin %}
+  <td class="px-2 py-1.5 text-xs">
+    {% if row.owner_username %}{{ row.owner_username }}{% else %}<span class="table-cell--muted">—</span>{% endif %}
+  </td>
+  {% endif %}
   <td class="px-2 py-1.5">
     {% if row.status == "online" %}
     <span class="ds-text-success">Online</span>
@@ -36,6 +44,6 @@
 </tr>
 {% empty %}
 <tr>
-  <td colspan="3" class="px-2 py-3 ds-table-empty">No accounts yet. Click “Add account” to create one and scan a QR code.</td>
+  <td colspan="{% if is_wa_admin %}5{% else %}4{% endif %}" class="px-2 py-3 ds-table-empty">No accounts yet. Click “Add account” to create one and scan a QR code.</td>
 </tr>
 {% endfor %}
