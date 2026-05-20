@@ -5,7 +5,7 @@ from tracker.helpers.blocked_hostname_rules import (
     normalize_hostname_for_match,
     visitor_hostname_matches_blocked_list,
 )
-from tracker.models import AllowedCountry, BlockedHostname
+from tracker.models import BlockedHostname
 from tracker.services.visitor_decision_service import evaluate_visitor_decision
 from tracker.services.visitor_context_service import VisitorContext
 
@@ -67,9 +67,6 @@ _API_TEST_CACHES = {
 
 @override_settings(CACHES=_API_TEST_CACHES)
 class HostnameDecisionIntegrationTests(TestCase):
-    def setUp(self):
-        AllowedCountry.objects.create(code="US")
-
     def tearDown(self):
         from tracker.helpers.blocked_hostname_rules import invalidate_blocked_hostname_rules_cache
 
