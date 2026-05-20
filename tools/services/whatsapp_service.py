@@ -1008,12 +1008,14 @@ def job_is_resumable(job) -> bool:
     """True when a stopped job still has numbers to check and no live validator."""
     from tools.models import WhatsAppCheckJob
 
-    if job.status == WhatsAppCheckJob.STATUS_COMPLETED:
-        return False
     if resolve_validator_pid(job) is not None:
         return False
     if job.status == WhatsAppCheckJob.STATUS_PENDING:
         return False
+    if job.status == WhatsAppCheckJob.STATUS_COMPLETED:
+        progress = read_job_progress(job.id)
+        if is_progress_complete(progress) and not remaining_numbers_for_job(job):
+            return False
 
     if remaining_numbers_for_job(job):
         return True
@@ -1033,6 +1035,7 @@ def job_is_resumable(job) -> bool:
         return job.status in (
             WhatsAppCheckJob.STATUS_FAILED,
             WhatsAppCheckJob.STATUS_CANCELLED,
+            WhatsAppCheckJob.STATUS_COMPLETED,
         )
     return False
 
@@ -1147,14 +1150,18 @@ def read_error_numbers(job_id: int) -> list[str]:
 
 
 def is_progress_complete(progress: dict[str, Any] | None) -> bool:
+    """True only when every input number was processed (checked >= total, no pending)."""
     if not progress:
         return False
-    if progress.get("done") is True:
-        return True
     totals = _progress_totals(progress)
     total = int(totals.get("total") or 0)
     checked = int(totals.get("checked") or 0)
-    return total > 0 and checked >= total
+    pending = int(totals.get("pending") or 0)
+    if pending > 0:
+        return False
+    if total > 0:
+        return checked >= total
+    return progress.get("done") is True
 
 
 def _progress_terminal_status(progress: dict[str, Any] | None) -> str | None:
@@ -1249,8 +1256,15 @@ def build_job_snapshot(job) -> dict[str, Any]:
     previously_checked = list(job.previously_checked_numbers or [])
     skipped_count = len(previously_checked)
 
+    checked_count = int(checked or 0)
+    pending_count = int(totals.get("pending") or 0) if totals else 0
+    if not pending_count and total_count:
+        pending_count = max(0, total_count - checked_count - skipped_count)
+
     return {
         "total_count": total_count,
+        "checked_count": checked_count,
+        "pending_count": pending_count,
         "valid_count": valid_count,
         "invalid_count": invalid_count,
         "error_count": error_count,
@@ -1286,6 +1300,21 @@ def sync_job_from_disk(job) -> None:
 
     complete = is_progress_complete(progress)
     running = is_validator_running(job)
+
+    if (
+        job.status == WhatsAppCheckJob.STATUS_COMPLETED
+        and not running
+        and progress
+        and not complete
+    ):
+        job.status = WhatsAppCheckJob.STATUS_FAILED
+        job.error_message = (
+            job.error_message or _incomplete_progress_message(progress, job)
+        )
+        job.pid = None
+        clear_validator_pid(job.id)
+        job.finished_at = job.finished_at or datetime.now(timezone.utc)
+        return
 
     if running and not complete:
         pid = resolve_validator_pid(job)

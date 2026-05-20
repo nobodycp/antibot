@@ -3,6 +3,14 @@
     <span class="wa-check-counter__label">Total</span>
     <span class="wa-check-counter__value">{{ snapshot.total_count|default:0 }}</span>
   </div>
+  <div class="wa-check-counter">
+    <span class="wa-check-counter__label">Checked</span>
+    <span class="wa-check-counter__value">{{ snapshot.checked_count|default:0 }}</span>
+  </div>
+  <div class="wa-check-counter wa-check-counter--pending">
+    <span class="wa-check-counter__label">Pending</span>
+    <span class="wa-check-counter__value">{{ snapshot.pending_count|default:0 }}</span>
+  </div>
   <div class="wa-check-counter wa-check-counter--valid">
     <span class="wa-check-counter__label">Valid</span>
     <span class="wa-check-counter__value">{{ snapshot.valid_count|default:0 }}</span>

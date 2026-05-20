@@ -1359,13 +1359,18 @@ async function start() {
     totals.errors += pendingStats.errors || 0;
     totals.invalid += pendingStats.invalid || 0;
     totals.pending = await countPendingLines();
+    const fullyDone =
+      totals.pending === 0 &&
+      progressTotalInput > 0 &&
+      totals.checked >= progressTotalInput;
     await fs.writeJson(
       PROGRESS_FILE,
       {
         timestamp: new Date().toISOString(),
-        done: true,
+        done: fullyDone,
         totals,
         results,
+        ...(fullyDone ? {} : { status: 'incomplete' }),
       },
       { spaces: 2 }
     );

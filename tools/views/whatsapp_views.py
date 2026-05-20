@@ -340,6 +340,8 @@ def whatsapp_check_view(request):
     if job_snapshot is None:
         job_snapshot = {
             "total_count": 0,
+            "checked_count": 0,
+            "pending_count": 0,
             "valid_count": 0,
             "invalid_count": 0,
             "error_count": 0,

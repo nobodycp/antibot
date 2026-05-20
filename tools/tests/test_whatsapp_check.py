@@ -440,18 +440,101 @@ class WhatsAppServiceTests(TestCase):
         user = User.objects.create_superuser(
             username="done_u", password="x", email="done@e.com"
         )
+        with tempfile.TemporaryDirectory() as tmp:
+            with override_settings(WHATSAPP_ROOT=Path(tmp)):
+                job = WhatsAppCheckJob.objects.create(
+                    user=user,
+                    numbers_text="966501234567",
+                    status=WhatsAppCheckJob.STATUS_COMPLETED,
+                    account_names=["acc_1"],
+                )
+                run_path = wa.job_run_dir(job.id)
+                run_path.mkdir(parents=True, exist_ok=True)
+                (run_path / "verified_active_numbers.txt").write_text(
+                    "966501234567\n", encoding="utf-8"
+                )
+                (run_path / "progress.json").write_text(
+                    json.dumps(
+                        {
+                            "done": True,
+                            "totals": {
+                                "total": 1,
+                                "checked": 1,
+                                "live": 1,
+                                "invalid": 0,
+                                "pending": 0,
+                            },
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                self.assertFalse(wa.job_is_resumable(job))
+
+    def test_sync_job_downgrades_false_completed_to_failed(self):
+        user = User.objects.create_superuser(
+            username="false_done_u", password="x", email="falsedone@e.com"
+        )
         job = WhatsAppCheckJob.objects.create(
             user=user,
-            numbers_text="966501234567",
+            numbers_text="966501234567\n" + "\n".join(f"96650{i:07d}" for i in range(1999)),
+            status=WhatsAppCheckJob.STATUS_COMPLETED,
+            account_names=["acc_1"],
+            checked_count=1442,
+        )
+        run_path = wa.job_run_dir(job.id)
+        run_path.mkdir(parents=True, exist_ok=True)
+        (run_path / "progress.json").write_text(
+            json.dumps(
+                {
+                    "done": True,
+                    "totals": {
+                        "total": 2000,
+                        "checked": 1442,
+                        "live": 133,
+                        "invalid": 1309,
+                        "pending": 558,
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.object(wa, "is_validator_running", return_value=False):
+            wa.sync_job_from_disk(job)
+        self.assertEqual(job.status, WhatsAppCheckJob.STATUS_FAILED)
+        self.assertIn("stopped before finishing", job.error_message)
+        self.assertTrue(wa.job_is_resumable(job))
+
+    def test_job_resumable_when_completed_but_incomplete(self):
+        user = User.objects.create_superuser(
+            username="part_done_u", password="x", email="partdone@e.com"
+        )
+        job = WhatsAppCheckJob.objects.create(
+            user=user,
+            numbers_text="966501234567\n966509876543",
             status=WhatsAppCheckJob.STATUS_COMPLETED,
             account_names=["acc_1"],
         )
         run_path = wa.job_run_dir(job.id)
         run_path.mkdir(parents=True, exist_ok=True)
-        (run_path / "verified_active_numbers.txt").write_text(
-            "966501234567\n", encoding="utf-8"
+        (run_path / "progress.json").write_text(
+            json.dumps(
+                {
+                    "done": True,
+                    "totals": {
+                        "total": 2,
+                        "checked": 1,
+                        "live": 1,
+                        "invalid": 0,
+                        "pending": 1,
+                    },
+                }
+            ),
+            encoding="utf-8",
         )
-        self.assertFalse(wa.job_is_resumable(job))
+        (run_path / "pending_numbers.txt").write_text(
+            "966509876543\n", encoding="utf-8"
+        )
+        self.assertTrue(wa.job_is_resumable(job))
 
     def test_parse_error_number_line_with_reason(self):
         number, reason = wa.parse_error_number_line("972555544071 --> offline account")
@@ -522,9 +605,37 @@ class WhatsAppServiceTests(TestCase):
 
     def test_is_progress_complete(self):
         self.assertFalse(wa.is_progress_complete(None))
-        self.assertTrue(
+        self.assertFalse(
             wa.is_progress_complete(
                 {"done": True, "totals": {"total": 1, "checked": 0}}
+            )
+        )
+        self.assertFalse(
+            wa.is_progress_complete(
+                {
+                    "done": True,
+                    "totals": {
+                        "total": 2000,
+                        "checked": 1442,
+                        "live": 133,
+                        "invalid": 1309,
+                        "pending": 558,
+                    },
+                }
+            )
+        )
+        self.assertTrue(
+            wa.is_progress_complete(
+                {
+                    "done": True,
+                    "totals": {
+                        "total": 2,
+                        "checked": 2,
+                        "live": 1,
+                        "errors": 0,
+                        "pending": 0,
+                    },
+                }
             )
         )
         self.assertTrue(
@@ -537,6 +648,40 @@ class WhatsAppServiceTests(TestCase):
                 {"totals": {"total": 2, "checked": 1, "live": 0, "errors": 0}}
             )
         )
+
+    def test_sync_job_marks_failed_when_progress_done_but_incomplete(self):
+        user = User.objects.create_superuser(
+            username="sync_part_u", password="x", email="syncpart@e.com"
+        )
+        job = WhatsAppCheckJob.objects.create(
+            user=user,
+            numbers_text="966501234567\n966509876543",
+            status=WhatsAppCheckJob.STATUS_RUNNING,
+            pid=999999,
+        )
+        run_path = wa.job_run_dir(job.id)
+        run_path.mkdir(parents=True, exist_ok=True)
+        (run_path / "progress.json").write_text(
+            json.dumps(
+                {
+                    "done": True,
+                    "totals": {
+                        "total": 2,
+                        "checked": 1,
+                        "live": 1,
+                        "invalid": 0,
+                        "pending": 1,
+                    },
+                    "results": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.object(wa, "is_validator_running", return_value=False):
+            wa.sync_job_from_disk(job)
+        self.assertEqual(job.status, WhatsAppCheckJob.STATUS_FAILED)
+        self.assertIn("stopped before finishing", job.error_message)
+        self.assertTrue(wa.job_is_resumable(job))
 
     def test_sync_job_marks_completed_when_progress_done(self):
         user = User.objects.create_superuser(
@@ -640,9 +785,52 @@ class WhatsAppServiceTests(TestCase):
         )
         snap = wa.build_job_snapshot(job)
         self.assertEqual(snap["total_count"], 2)
+        self.assertEqual(snap["checked_count"], 2)
+        self.assertEqual(snap["pending_count"], 0)
         self.assertEqual(snap["valid_count"], 1)
         self.assertEqual(snap["invalid_count"], 1)
         self.assertEqual(snap["valid_numbers"], ["966501234567"])
+        self.assertEqual(
+            snap["valid_count"] + snap["invalid_count"] + snap["error_count"],
+            snap["checked_count"],
+        )
+
+    def test_build_job_snapshot_pending_when_incomplete(self):
+        job = WhatsAppCheckJob.objects.create(
+            user=User.objects.create_superuser(
+                username="snap_pend_u", password="x", email="sp@e.com"
+            ),
+            numbers_text="\n".join(f"9665{i:08d}" for i in range(10)),
+            status=WhatsAppCheckJob.STATUS_FAILED,
+        )
+        run_path = wa.job_run_dir(job.id)
+        run_path.mkdir(parents=True, exist_ok=True)
+        (run_path / "progress.json").write_text(
+            json.dumps(
+                {
+                    "totals": {
+                        "total": 10,
+                        "checked": 4,
+                        "live": 1,
+                        "errors": 0,
+                        "invalid": 3,
+                        "pending": 6,
+                    },
+                    "results": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        snap = wa.build_job_snapshot(job)
+        self.assertEqual(snap["total_count"], 10)
+        self.assertEqual(snap["checked_count"], 4)
+        self.assertEqual(snap["pending_count"], 6)
+        self.assertEqual(snap["valid_count"], 1)
+        self.assertEqual(snap["invalid_count"], 3)
+        self.assertEqual(
+            snap["valid_count"] + snap["invalid_count"] + snap["error_count"],
+            snap["checked_count"],
+        )
 
     @patch("tools.services.whatsapp_service._spawn_node")
     def test_start_check_job_sets_trunk_env(self, mock_spawn):
@@ -1030,6 +1218,42 @@ class WhatsAppCheckJobTests(TestCase):
         self.assertEqual(job.pid, 5151)
         self.assertEqual(job.error_message, "")
         mock_resume.assert_called_once()
+
+    def test_view_shows_continue_for_false_completed_job(self):
+        job = WhatsAppCheckJob.objects.create(
+            user=self.superuser,
+            numbers_text="966501234567\n966509876543",
+            status=WhatsAppCheckJob.STATUS_COMPLETED,
+            account_names=["acc_1"],
+        )
+        run_path = wa.job_run_dir(job.id)
+        run_path.mkdir(parents=True, exist_ok=True)
+        (run_path / "pending_numbers.txt").write_text(
+            "966509876543\n", encoding="utf-8"
+        )
+        (run_path / "progress.json").write_text(
+            json.dumps(
+                {
+                    "done": True,
+                    "totals": {
+                        "total": 2,
+                        "checked": 1,
+                        "live": 1,
+                        "invalid": 0,
+                        "pending": 1,
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        r = self.client.get(
+            reverse("tools:whatsapp_check"), {"tab": "check", "job": job.id}
+        )
+        self.assertEqual(r.status_code, 200)
+        job.refresh_from_db()
+        self.assertEqual(job.status, WhatsAppCheckJob.STATUS_FAILED)
+        self.assertContains(r, "Continue")
+        self.assertContains(r, "Failed")
 
     def test_view_shows_continue_for_failed_partial_job(self):
         job = WhatsAppCheckJob.objects.create(
