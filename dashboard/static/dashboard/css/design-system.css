@@ -828,6 +828,10 @@ aside.dash-app-sidebar > div:first-child:not(.dash-sidebar-brand) {
   color: var(--ds-color-info, #38bdf8);
 }
 
+.wa-check-counter--pending .wa-check-counter__value {
+  color: var(--ds-color-warning, #fbbf24);
+}
+
 .wa-check-list-card--valid {
   border-color: var(--ds-color-success);
 }
