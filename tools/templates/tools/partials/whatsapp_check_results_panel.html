@@ -35,6 +35,9 @@
   {% if job.status == 'running' or snapshot.is_running %}
   <span class="ml-1">· every 30s</span>
   {% endif %}
+  {% if snapshot.duplicate_lines_message %}
+  <span class="ds-text-warning ml-2">{{ snapshot.duplicate_lines_message }}</span>
+  {% endif %}
   {% if job.error_message %}
   <span class="ds-text-danger ml-2">{{ job.error_message }}</span>
   {% endif %}

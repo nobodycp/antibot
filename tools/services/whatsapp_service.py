@@ -738,6 +738,48 @@ def parse_numbers_text(text: str) -> list[str]:
     return lines
 
 
+def _raw_input_lines_from_text(numbers_text: str) -> list[str]:
+    lines: list[str] = []
+    for raw in (numbers_text or "").splitlines():
+        line = raw.strip()
+        if line and not line.startswith("#"):
+            lines.append(line)
+    return lines
+
+
+def _input_lines_from_job(job) -> list[str]:
+    return _raw_input_lines_from_text(job.numbers_text)
+
+
+def compute_job_line_counts(
+    numbers_text: str, default_cc: str = ""
+) -> tuple[int, int]:
+    """Return (input_line_count, unique_query_digit_count) for a paste."""
+    lines = _raw_input_lines_from_text(numbers_text)
+    unique_keys: set[str] = set()
+    for line in lines:
+        parsed = parse_number_line(line, default_cc)
+        if parsed:
+            unique_keys.add(parsed.query_digits)
+    return len(lines), len(unique_keys)
+
+
+def job_input_line_count(job) -> int:
+    stored = int(getattr(job, "input_line_count", 0) or 0)
+    if stored:
+        return stored
+    return len(_input_lines_from_job(job))
+
+
+def job_unique_number_count(job) -> int:
+    stored = int(getattr(job, "unique_number_count", 0) or 0)
+    if stored:
+        return stored
+    cc = job.local_trunk_country or ""
+    _, unique = compute_job_line_counts(job.numbers_text, cc)
+    return unique
+
+
 def sanitize_number(raw: str) -> str | None:
     """Match Node ``sanitizeNumber`` — digits only, min length 6."""
     if not raw:
@@ -805,11 +847,17 @@ def split_numbers_by_verified_history(
     """Split input lines into numbers to check vs historically verified."""
     from tools.models import WhatsAppVerifiedNumber
 
-    parsed_list = normalize_numbers_list(lines, default_cc)
-    if not parsed_list:
+    parsed_by_line: list[ParsedNumberLine] = []
+    query_digits: list[str] = []
+    for line in lines:
+        parsed = parse_number_line(line, default_cc)
+        if not parsed:
+            continue
+        parsed_by_line.append(parsed)
+        query_digits.append(parsed.query_digits)
+    if not parsed_by_line:
         return NumberSplitResult([], [])
 
-    query_digits = [p.query_digits for p in parsed_list]
     known = set(
         WhatsAppVerifiedNumber.objects.filter(phone__in=query_digits).values_list(
             "phone", flat=True
@@ -818,16 +866,14 @@ def split_numbers_by_verified_history(
 
     to_check: list[str] = []
     already: list[str] = []
-    seen_check: set[str] = set()
     seen_already: set[str] = set()
-    for parsed in parsed_list:
+    for parsed in parsed_by_line:
         if parsed.query_digits in known:
             if parsed.query_digits not in seen_already:
                 already.append(parsed.line)
                 seen_already.add(parsed.query_digits)
-        elif parsed.query_digits not in seen_check:
+        else:
             to_check.append(parsed.line)
-            seen_check.add(parsed.query_digits)
     return NumberSplitResult(to_check=to_check, already_verified=already)
 
 
@@ -898,6 +944,43 @@ def backfill_verified_history_from_runs() -> int:
     return recorded
 
 
+def _validator_env_base(
+    *,
+    job_id: int,
+    run_path: Path,
+    account_names: list[str],
+    speed: str,
+    fetch_presence: bool,
+    local_trunk_country: str = "",
+    input_line_count: int = 0,
+    resume: bool = False,
+) -> dict[str, str]:
+    speed_key = speed if speed in ("safe", "normal", "fast") else "normal"
+    env: dict[str, str] = {
+        "NON_INTERACTIVE": "1",
+        "ACCOUNTS": ",".join(account_names),
+        "RUN_DIR": str(run_path),
+        "NUMBERS_FILE": str(run_path / "numbers.txt"),
+        "OUTPUT_FILE": str(run_path / "verified_active_numbers.txt"),
+        "DETAILS_FILE": str(run_path / "verified_details.csv"),
+        "PROGRESS_FILE": str(run_path / "progress.json"),
+        "INVALID_FILE": str(run_path / "not_registered_numbers.txt"),
+        "ERROR_NUMBERS_FILE": str(run_path / "check_error_numbers.txt"),
+        "PENDING_NUMBERS_FILE": str(run_path / "pending_numbers.txt"),
+        "SPEED": speed_key,
+        "FETCH_PRESENCE": "1" if fetch_presence else "0",
+        "WHATSAPP_CHECK_EVERY_LINE": "1",
+    }
+    if resume:
+        env["RESUME_JOB"] = "1"
+    if input_line_count > 0:
+        env["JOB_INPUT_LINE_COUNT"] = str(input_line_count)
+    cc = normalize_country_prefix(local_trunk_country)
+    if cc:
+        env["LOCAL_TRUNK_COUNTRY"] = cc
+    return env
+
+
 def start_check_job(
     *,
     job_id: int,
@@ -917,45 +1000,23 @@ def start_check_job(
     numbers_file = run_path / "numbers.txt"
     numbers_file.write_text("\n".join(numbers) + "\n", encoding="utf-8")
 
-    speed_key = speed if speed in ("safe", "normal", "fast") else "normal"
-    env = {
-        "NON_INTERACTIVE": "1",
-        "ACCOUNTS": ",".join(account_names),
-        "RUN_DIR": str(run_path),
-        "NUMBERS_FILE": str(numbers_file),
-        "OUTPUT_FILE": str(run_path / "verified_active_numbers.txt"),
-        "DETAILS_FILE": str(run_path / "verified_details.csv"),
-        "PROGRESS_FILE": str(run_path / "progress.json"),
-        "INVALID_FILE": str(run_path / "not_registered_numbers.txt"),
-        "ERROR_NUMBERS_FILE": str(run_path / "check_error_numbers.txt"),
-        "PENDING_NUMBERS_FILE": str(run_path / "pending_numbers.txt"),
-        "SPEED": speed_key,
-        "FETCH_PRESENCE": "1" if fetch_presence else "0",
-    }
-    cc = normalize_country_prefix(local_trunk_country)
-    if cc:
-        env["LOCAL_TRUNK_COUNTRY"] = cc
+    node_total = len(numbers)
+    env = _validator_env_base(
+        job_id=job_id,
+        run_path=run_path,
+        account_names=account_names,
+        speed=speed,
+        fetch_presence=fetch_presence,
+        local_trunk_country=local_trunk_country,
+        input_line_count=node_total,
+        resume=False,
+    )
     return _spawn_node([], env)
 
 
 def _processed_query_digits(job_id: int, default_cc: str = "") -> set[str]:
     """Query-digit keys for numbers already checked in this job's run dir."""
-    done: set[str] = set()
-    run_path = job_run_dir(job_id)
-    for filename in (
-        "verified_active_numbers.txt",
-        "not_registered_numbers.txt",
-    ):
-        for line in _read_number_lines(run_path / filename):
-            parsed = parse_number_line(line, default_cc)
-            if parsed:
-                done.add(parsed.query_digits)
-    for line in _read_number_lines(run_path / "check_error_numbers.txt"):
-        number, _ = parse_error_number_line(line)
-        parsed = parse_number_line(number, default_cc)
-        if parsed:
-            done.add(parsed.query_digits)
-    return done
+    return set(_processed_query_digit_counts(job_id, default_cc).keys())
 
 
 def _previously_skipped_query_digits(job) -> set[str]:
@@ -968,40 +1029,92 @@ def _previously_skipped_query_digits(job) -> set[str]:
     return skipped
 
 
+def _processed_query_digit_counts(job_id: int, default_cc: str = "") -> dict[str, int]:
+    """How many result rows exist per query_digits (valid + invalid + error)."""
+    from collections import Counter
+
+    counts: Counter[str] = Counter()
+    run_path = job_run_dir(job_id)
+    for filename in (
+        "verified_active_numbers.txt",
+        "not_registered_numbers.txt",
+    ):
+        for line in _read_number_lines(run_path / filename):
+            parsed = parse_number_line(line, default_cc)
+            if parsed:
+                counts[parsed.query_digits] += 1
+    for line in _read_number_lines(run_path / "check_error_numbers.txt"):
+        number, _ = parse_error_number_line(line)
+        parsed = parse_number_line(number, default_cc)
+        if parsed:
+            counts[parsed.query_digits] += 1
+    return dict(counts)
+
+
+def _remaining_lines_by_line_coverage(job) -> list[str]:
+    """
+    When progress says incomplete (checked < total) but unique-digit logic finds
+    nothing left, return input lines that do not yet have a matching result row.
+    Handles duplicate numbers in the paste (same digit appears twice → two checks).
+    """
+    cc = job.local_trunk_country or ""
+    available = _processed_query_digit_counts(job.id, cc)
+    remaining: list[str] = []
+    for line in _input_lines_from_job(job):
+        parsed = parse_number_line(line, cc)
+        if not parsed:
+            remaining.append(line)
+            continue
+        key = parsed.query_digits
+        if available.get(key, 0) > 0:
+            available[key] = available[key] - 1
+            continue
+        remaining.append(line)
+    return remaining
+
+
 def remaining_numbers_for_job(job) -> list[str]:
     """Original input lines still to check (pending file first, else recompute)."""
     run_path = job_run_dir(job.id)
     cc = job.local_trunk_country or ""
+    progress = read_job_progress(job.id)
+    totals = _progress_totals(progress)
+    total = int(totals.get("total") or 0) or job_input_line_count(job)
+    checked = int(totals.get("checked") or job.checked_count or 0)
+    incomplete = total > 0 and checked < total
+
     pending_path = run_path / "pending_numbers.txt"
     if pending_path.is_file():
         pending_lines = _read_number_lines(pending_path)
         if pending_lines:
-            out: list[str] = []
-            seen: set[str] = set()
-            for line in pending_lines:
-                parsed = parse_number_line(line, cc)
-                key = parsed.query_digits if parsed else sanitize_number(line) or line
-                if key in seen:
-                    continue
-                seen.add(key)
-                out.append(line)
-            return out
+            return pending_lines
+
+    if incomplete:
+        line_remaining = _remaining_lines_by_line_coverage(job)
+        if line_remaining:
+            return line_remaining
 
     skipped = _previously_skipped_query_digits(job)
-    done = _processed_query_digits(job.id, cc)
+    done_counts = _processed_query_digit_counts(job.id, cc)
     remaining: list[str] = []
-    seen: set[str] = set()
-    for line in parse_numbers_text(job.numbers_text):
+    for line in _input_lines_from_job(job):
         parsed = parse_number_line(line, cc)
         if not parsed:
             continue
-        if parsed.query_digits in skipped or parsed.query_digits in done:
+        if parsed.query_digits in skipped:
             continue
-        if parsed.query_digits in seen:
+        q = parsed.query_digits
+        if done_counts.get(q, 0) > 0:
+            done_counts[q] -= 1
             continue
-        seen.add(parsed.query_digits)
         remaining.append(line)
-    return remaining
+
+    if remaining:
+        return remaining
+
+    if incomplete:
+        return _remaining_lines_by_line_coverage(job)
+    return []
 
 
 def job_is_resumable(job) -> bool:
@@ -1014,7 +1127,7 @@ def job_is_resumable(job) -> bool:
         return False
     if job.status == WhatsAppCheckJob.STATUS_COMPLETED:
         progress = read_job_progress(job.id)
-        if is_progress_complete(progress) and not remaining_numbers_for_job(job):
+        if is_progress_complete(progress, job=job) and not remaining_numbers_for_job(job):
             return False
 
     if remaining_numbers_for_job(job):
@@ -1024,14 +1137,12 @@ def job_is_resumable(job) -> bool:
     totals = _progress_totals(progress)
     total = int(totals.get("total") or 0)
     if not total:
-        total = len(parse_numbers_text(job.numbers_text)) - len(
-            job.previously_checked_numbers or []
-        )
+        total = job_input_line_count(job) - len(job.previously_checked_numbers or [])
     checked = int(totals.get("checked") or job.checked_count or 0)
     pending = int(totals.get("pending") or 0)
     if pending > 0:
         return True
-    if total > 0 and checked < total:
+    if progress and not is_progress_complete(progress, job=job):
         return job.status in (
             WhatsAppCheckJob.STATUS_FAILED,
             WhatsAppCheckJob.STATUS_CANCELLED,
@@ -1072,25 +1183,22 @@ def resume_check_job(job) -> int:
     )
     _mark_progress_not_done(job.id)
 
-    speed_key = job.speed if job.speed in ("safe", "normal", "fast") else "normal"
-    env = {
-        "NON_INTERACTIVE": "1",
-        "RESUME_JOB": "1",
-        "ACCOUNTS": ",".join(account_names),
-        "RUN_DIR": str(run_path),
-        "NUMBERS_FILE": str(numbers_file),
-        "OUTPUT_FILE": str(run_path / "verified_active_numbers.txt"),
-        "DETAILS_FILE": str(run_path / "verified_details.csv"),
-        "PROGRESS_FILE": str(run_path / "progress.json"),
-        "INVALID_FILE": str(run_path / "not_registered_numbers.txt"),
-        "ERROR_NUMBERS_FILE": str(run_path / "check_error_numbers.txt"),
-        "PENDING_NUMBERS_FILE": str(run_path / "pending_numbers.txt"),
-        "SPEED": speed_key,
-        "FETCH_PRESENCE": "1" if job.fetch_presence else "0",
-    }
-    cc = normalize_country_prefix(job.local_trunk_country or "")
-    if cc:
-        env["LOCAL_TRUNK_COUNTRY"] = cc
+    progress = read_job_progress(job.id)
+    totals = _progress_totals(progress)
+    node_total = len(remaining)
+    progress_total = int(totals.get("total") or 0)
+    if progress_total > node_total:
+        node_total = progress_total
+    env = _validator_env_base(
+        job_id=job.id,
+        run_path=run_path,
+        account_names=account_names,
+        speed=job.speed,
+        fetch_presence=job.fetch_presence,
+        local_trunk_country=job.local_trunk_country or "",
+        input_line_count=node_total,
+        resume=True,
+    )
     return _spawn_node([], env)
 
 
@@ -1149,18 +1257,25 @@ def read_error_numbers(job_id: int) -> list[str]:
     return out
 
 
-def is_progress_complete(progress: dict[str, Any] | None) -> bool:
-    """True only when every input number was processed (checked >= total, no pending)."""
+def is_progress_complete(
+    progress: dict[str, Any] | None, *, job=None
+) -> bool:
+    """True when every input line is accounted for (checked + skipped >= job total)."""
     if not progress:
         return False
     totals = _progress_totals(progress)
-    total = int(totals.get("total") or 0)
     checked = int(totals.get("checked") or 0)
     pending = int(totals.get("pending") or 0)
     if pending > 0:
         return False
+    total = int(totals.get("total") or 0)
+    if job is not None:
+        job_total = job_input_line_count(job)
+        if job_total:
+            total = max(total, job_total)
     if total > 0:
-        return checked >= total
+        skipped = len(job.previously_checked_numbers or []) if job else 0
+        return checked + skipped >= total
     return progress.get("done") is True
 
 
@@ -1185,7 +1300,7 @@ def _progress_message(progress: dict[str, Any] | None) -> str:
 
 def _incomplete_progress_message(progress: dict[str, Any] | None, job) -> str:
     totals = _progress_totals(progress)
-    total = int(totals.get("total") or 0) or len(parse_numbers_text(job.numbers_text))
+    total = int(totals.get("total") or 0) or job_input_line_count(job)
     checked = int(totals.get("checked") or 0)
     cc = job.local_trunk_country or ""
     checked = max(checked, len(_processed_query_digits(job.id, cc)))
@@ -1235,10 +1350,11 @@ def build_job_snapshot(job) -> dict[str, Any]:
     progress = read_job_progress(job.id)
     totals = _progress_totals(progress)
 
-    input_total = len(parse_numbers_text(job.numbers_text))
-    total_count = totals.get("total") or input_total
+    input_total = job_input_line_count(job)
+    unique_total = job_unique_number_count(job)
+    total_count = int(totals.get("total") or 0) or input_total
     if input_total:
-        total_count = max(int(total_count), input_total)
+        total_count = max(total_count, input_total)
     valid_numbers = read_live_numbers(job.id)
     error_numbers = read_error_numbers(job.id)
     valid_count = totals.get("live") if totals else len(valid_numbers)
@@ -1261,8 +1377,20 @@ def build_job_snapshot(job) -> dict[str, Any]:
     if not pending_count and total_count:
         pending_count = max(0, total_count - checked_count - skipped_count)
 
+    has_duplicate_lines = unique_total > 0 and unique_total < input_total
+    duplicate_lines_message = ""
+    if has_duplicate_lines:
+        duplicate_lines_message = (
+            f"{unique_total:,} unique numbers from {input_total:,} input lines "
+            f"({input_total - unique_total:,} duplicate line(s) will each be checked)."
+        )
+
     return {
         "total_count": total_count,
+        "input_line_count": input_total,
+        "unique_number_count": unique_total,
+        "has_duplicate_lines": has_duplicate_lines,
+        "duplicate_lines_message": duplicate_lines_message,
         "checked_count": checked_count,
         "pending_count": pending_count,
         "valid_count": valid_count,
@@ -1298,7 +1426,7 @@ def sync_job_from_disk(job) -> None:
             job.error_count = errors
         job.result_summary = progress
 
-    complete = is_progress_complete(progress)
+    complete = is_progress_complete(progress, job=job)
     running = is_validator_running(job)
 
     if (

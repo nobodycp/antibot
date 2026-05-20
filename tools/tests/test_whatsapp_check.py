@@ -50,6 +50,17 @@ class WhatsAppServiceTests(TestCase):
         lines = wa.parse_numbers_text(text)
         self.assertEqual(len(lines), 2)
 
+    def test_compute_job_line_counts_duplicate_digits(self):
+        text = "966501234567\n966501234567\n966509876543"
+        input_count, unique_count = wa.compute_job_line_counts(text)
+        self.assertEqual(input_count, 3)
+        self.assertEqual(unique_count, 2)
+
+    def test_split_numbers_keeps_every_input_line_to_check(self):
+        text = "966501234567\n966501234567\n966509876543"
+        split = wa.split_numbers_by_verified_history(wa.parse_numbers_text(text))
+        self.assertEqual(split.to_check, ["966501234567", "966509876543"])
+
     def test_validate_account_name_rejects_invalid(self):
         with self.assertRaises(ValueError):
             wa.validate_account_name("../evil")
@@ -414,6 +425,44 @@ class WhatsAppServiceTests(TestCase):
             wa.remaining_numbers_for_job(job), ["966509876543"]
         )
 
+    def test_remaining_lines_when_checked_lt_total_duplicate_digits(self):
+        user = User.objects.create_superuser(
+            username="dup_u", password="x", email="dup@e.com"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            with override_settings(WHATSAPP_ROOT=Path(tmp)):
+                job = WhatsAppCheckJob.objects.create(
+                    user=user,
+                    numbers_text="966501234567\n966501234567\n966509876543",
+                    status=WhatsAppCheckJob.STATUS_FAILED,
+                    checked_count=2,
+                    account_names=["acc_1"],
+                )
+                run_path = wa.job_run_dir(job.id)
+                run_path.mkdir(parents=True, exist_ok=True)
+                (run_path / "verified_active_numbers.txt").write_text(
+                    "966501234567\n", encoding="utf-8"
+                )
+                (run_path / "progress.json").write_text(
+                    json.dumps(
+                        {
+                            "done": False,
+                            "totals": {
+                                "total": 3,
+                                "checked": 2,
+                                "live": 1,
+                                "invalid": 1,
+                                "errors": 0,
+                                "pending": 0,
+                            },
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                remaining = wa.remaining_numbers_for_job(job)
+        self.assertEqual(len(remaining), 2)
+        self.assertTrue(wa.job_is_resumable(job))
+
     def test_remaining_numbers_recomputed_from_outputs(self):
         user = User.objects.create_superuser(
             username="recomp_u", password="x", email="recomp@e.com"
@@ -477,6 +526,8 @@ class WhatsAppServiceTests(TestCase):
         job = WhatsAppCheckJob.objects.create(
             user=user,
             numbers_text="966501234567\n" + "\n".join(f"96650{i:07d}" for i in range(1999)),
+            input_line_count=2000,
+            unique_number_count=1442,
             status=WhatsAppCheckJob.STATUS_COMPLETED,
             account_names=["acc_1"],
             checked_count=1442,
@@ -648,6 +699,50 @@ class WhatsAppServiceTests(TestCase):
                 {"totals": {"total": 2, "checked": 1, "live": 0, "errors": 0}}
             )
         )
+
+    def test_is_progress_complete_counts_skipped_toward_paste_total(self):
+        user = User.objects.create_superuser(
+            username="skip_prog_u", password="x", email="skipprog@e.com"
+        )
+        job = WhatsAppCheckJob.objects.create(
+            user=user,
+            numbers_text="966501234567\n966509876543\n966501111111",
+            input_line_count=3,
+            unique_number_count=3,
+            previously_checked_numbers=["966501234567"],
+        )
+        progress = {
+            "totals": {
+                "total": 2,
+                "checked": 2,
+                "live": 1,
+                "errors": 0,
+                "pending": 0,
+            }
+        }
+        self.assertTrue(wa.is_progress_complete(progress, job=job))
+
+    def test_build_job_snapshot_warns_when_unique_below_input(self):
+        text = "966501234567\n966:501234567"
+        input_count, unique_count = wa.compute_job_line_counts(text)
+        self.assertEqual(input_count, 2)
+        self.assertEqual(unique_count, 1)
+        user = User.objects.create_superuser(
+            username="dup_snap_u", password="x", email="dupsnap@e.com"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            with override_settings(WHATSAPP_ROOT=Path(tmp)):
+                job = WhatsAppCheckJob.objects.create(
+                    user=user,
+                    numbers_text=text,
+                    input_line_count=input_count,
+                    unique_number_count=unique_count,
+                    status=WhatsAppCheckJob.STATUS_RUNNING,
+                )
+                snap = wa.build_job_snapshot(job)
+        self.assertEqual(snap["total_count"], input_count)
+        self.assertTrue(snap["has_duplicate_lines"])
+        self.assertIn("unique numbers from", snap["duplicate_lines_message"])
 
     def test_sync_job_marks_failed_when_progress_done_but_incomplete(self):
         user = User.objects.create_superuser(
@@ -845,6 +940,8 @@ class WhatsAppServiceTests(TestCase):
         )
         env = mock_spawn.call_args[0][1]
         self.assertEqual(env["LOCAL_TRUNK_COUNTRY"], "972")
+        self.assertEqual(env["WHATSAPP_CHECK_EVERY_LINE"], "1")
+        self.assertEqual(env["JOB_INPUT_LINE_COUNT"], "1")
 
     @patch("tools.services.whatsapp_service._spawn_node")
     def test_start_check_job_omits_trunk_env_when_empty(self, mock_spawn):

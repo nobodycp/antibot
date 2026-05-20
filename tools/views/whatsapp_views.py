@@ -175,9 +175,14 @@ def whatsapp_check_view(request):
                 messages.warning(request, "A check is already running. Wait or cancel it.")
                 return redirect(_wa_url(tab="check"))
 
+            input_line_count, unique_number_count = wa.compute_job_line_counts(
+                form.cleaned_data["numbers"], trunk_cc
+            )
             job = WhatsAppCheckJob.objects.create(
                 user=user,
                 numbers_text=form.cleaned_data["numbers"],
+                input_line_count=input_line_count,
+                unique_number_count=unique_number_count,
                 local_trunk_country=trunk_cc,
                 account_names=selected,
                 speed=form.cleaned_data["speed"],

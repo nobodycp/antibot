@@ -85,6 +85,11 @@ const toInt = (v, def) => {
   return Number.isFinite(n) && n >= 0 ? n : def;
 };
 
+/** Total input lines from Django (paste line count); progress completes against this. */
+const JOB_INPUT_LINE_COUNT = toInt(process.env.JOB_INPUT_LINE_COUNT, 0);
+/** When 1, check every physical line in numbers.txt (no queryDigits dedupe). */
+const CHECK_EVERY_LINE = process.env.WHATSAPP_CHECK_EVERY_LINE === '1';
+
 const MIN_DELAY_MS    = toInt(process.env.MIN_DELAY_MS,    profile.MIN_DELAY_MS);
 const MAX_DELAY_MS    = Math.max(MIN_DELAY_MS, toInt(process.env.MAX_DELAY_MS, profile.MAX_DELAY_MS));
 const BATCH_SIZE      = Math.max(1, toInt(process.env.BATCH_SIZE, profile.BATCH_SIZE));
@@ -223,8 +228,8 @@ async function readNumbers() {
   for (const line of raw.split(/\r?\n/)) {
     const parsed = parseNumberLine(line, LOCAL_TRUNK_CC);
     if (!parsed) continue;
-    if (seen.has(parsed.queryDigits)) continue;
-    seen.add(parsed.queryDigits);
+    if (!CHECK_EVERY_LINE && seen.has(parsed.queryDigits)) continue;
+    if (!CHECK_EVERY_LINE) seen.add(parsed.queryDigits);
     out.push(parsed);
   }
   return out;
@@ -301,8 +306,8 @@ async function readPendingParsed() {
   for (const line of raw.split(/\r?\n/)) {
     const parsed = parseNumberLine(line, LOCAL_TRUNK_CC);
     if (!parsed) continue;
-    if (seen.has(parsed.queryDigits)) continue;
-    seen.add(parsed.queryDigits);
+    if (!CHECK_EVERY_LINE && seen.has(parsed.queryDigits)) continue;
+    if (!CHECK_EVERY_LINE) seen.add(parsed.queryDigits);
     out.push(parsed);
   }
   return out;
@@ -1267,6 +1272,9 @@ async function start() {
   await fs.ensureFile(PENDING_NUMBERS_FILE);
 
   await loadResumeProgress();
+  if (!progressTotalInput && JOB_INPUT_LINE_COUNT > 0) {
+    progressTotalInput = JOB_INPUT_LINE_COUNT;
+  }
   const numbers = await readNumbersForJob();
   if (!progressTotalInput) {
     progressTotalInput = numbers.length;
@@ -1275,7 +1283,9 @@ async function start() {
     'SYSTEM',
     RESUME_JOB
       ? `Resume: processing ${numbers.length} remaining number(s) (job total ${progressTotalInput})`
-      : `Loaded ${numbers.length} unique numbers from numbers.txt`
+      : CHECK_EVERY_LINE
+        ? `Loaded ${numbers.length} number line(s) from numbers.txt (every-line mode, total ${progressTotalInput})`
+        : `Loaded ${numbers.length} unique numbers from numbers.txt`
   );
   if (LOCAL_TRUNK_CC) {
     log('SYSTEM', `LOCAL_TRUNK_COUNTRY=${LOCAL_TRUNK_CC} (05XXXXXXXX → ${LOCAL_TRUNK_CC}5XXXXXXXX)`);

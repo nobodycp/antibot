@@ -84,6 +84,8 @@ class WhatsAppCheckJob(models.Model):
         default=STATUS_PENDING,
     )
     numbers_text = models.TextField()
+    input_line_count = models.PositiveIntegerField(default=0)
+    unique_number_count = models.PositiveIntegerField(default=0)
     local_trunk_country = models.CharField(max_length=8, blank=True)
     account_names = models.JSONField(default=list, blank=True)
     speed = models.CharField(max_length=16, default="normal")
