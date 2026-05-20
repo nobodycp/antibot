@@ -97,6 +97,11 @@ const OFFLINE_RETRY_MAX = Math.max(1, toInt(process.env.OFFLINE_RETRY_MAX, 3));
 const PENDING_PASS_MAX = Math.max(1, toInt(process.env.PENDING_PASS_MAX, 3));
 const ALL_OFFLINE_WAIT_MS = toInt(process.env.ALL_OFFLINE_WAIT_MS, 30 * 1000);
 
+/** Per-number check timeouts (onWhatsApp / presence / connect). */
+const CHECK_NUMBER_TIMEOUT_MS = toInt(process.env.CHECK_NUMBER_TIMEOUT_MS, 45000);
+const PRESENCE_TIMEOUT_MS = toInt(process.env.PRESENCE_TIMEOUT_MS, CHECK_NUMBER_TIMEOUT_MS);
+const CONNECT_TIMEOUT_MS = toInt(process.env.CONNECT_TIMEOUT_MS, 45000);
+
 const silentLogger = pino({ level: 'silent' });
 
 // -------------------------- Shared State --------------------------
@@ -107,6 +112,16 @@ let shuttingDown = false;
 // --------------------------- Utilities ----------------------------
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${ms}ms`));
+    }, ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
 
 function log(label, msg) {
   const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
@@ -667,7 +682,21 @@ async function connectAccount(accountName, label) {
   // Handle pairing restart (code 515) and transient close-before-open.
   const MAX_RETRIES = 5;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const result = await openSocketOnce(accountName, label);
+    const result = await Promise.race([
+      openSocketOnce(accountName, label),
+      sleep(CONNECT_TIMEOUT_MS).then(() => ({ outcome: 'timeout', sock: null, code: null })),
+    ]);
+
+    if (result.outcome === 'timeout') {
+      log(label, `Connection timed out after ${CONNECT_TIMEOUT_MS}ms (attempt ${attempt}/${MAX_RETRIES}).`);
+      if (attempt === MAX_RETRIES) {
+        throw new Error(
+          `Could not establish connection for ${accountName}: connection timed out after ${CONNECT_TIMEOUT_MS}ms`
+        );
+      }
+      await sleep(3000 * attempt);
+      continue;
+    }
 
     if (result.outcome === 'open') {
       activeSockets.add(result.sock);
@@ -851,7 +880,11 @@ async function fetchPresence(sock, jid, waitMs, lid) {
 
 async function checkNumber(sock, number) {
   const jid = number.includes('@') ? number : `${number}@s.whatsapp.net`;
-  const res = await sock.onWhatsApp(jid);
+  const res = await withTimeout(
+    sock.onWhatsApp(jid),
+    CHECK_NUMBER_TIMEOUT_MS,
+    'onWhatsApp'
+  );
   if (DEBUG_PRESENCE) console.log('[DEBUG onWhatsApp]', JSON.stringify(res, null, 2));
   if (!Array.isArray(res) || res.length === 0 || !res[0]?.exists) {
     return { live: false };
@@ -891,7 +924,12 @@ async function checkNumber(sock, number) {
   };
 
   if (FETCH_PRESENCE) {
-    const p = await fetchPresence(sock, result.jid, PRESENCE_WAIT_MS, lid);
+    const presenceWaitMs = Math.min(PRESENCE_WAIT_MS, PRESENCE_TIMEOUT_MS, CHECK_NUMBER_TIMEOUT_MS);
+    const p = await withTimeout(
+      fetchPresence(sock, result.jid, presenceWaitMs, lid),
+      presenceWaitMs,
+      'fetchPresence'
+    );
     result.presence = p.presence;
     result.lastSeen = p.lastSeen;
     result.about = p.about;
@@ -1004,7 +1042,11 @@ async function runAccount({ accountName, label, numbers, whitelistSet }) {
     } catch (err) {
       const msg = err?.message || String(err);
       const { kind, reason } = classifyCheckError(err);
-      log(label, `Error checking ${short}: ${msg}`);
+      if (/timed out after \d+ms/i.test(msg)) {
+        log(label, `Timeout checking ${short}: ${msg}`);
+      } else {
+        log(label, `Error checking ${short}: ${msg}`);
+      }
 
       if (kind === 'offline') {
         const attempt = (offlineRetries.get(q) || 0) + 1;
@@ -1213,6 +1255,10 @@ async function start() {
   log('SYSTEM', 'Starting Multi-Account WhatsApp Number Validator...');
   log('SYSTEM', `Speed profile: ${speedKey.toUpperCase()} | delay=${MIN_DELAY_MS}-${MAX_DELAY_MS}ms | batch=${BATCH_SIZE} → ${BATCH_SLEEP_MS / 1000}s sleep | cap=${MAX_PER_ACCOUNT}/account`);
   log('SYSTEM', `Presence probe: ${FETCH_PRESENCE ? `ON (wait ${PRESENCE_WAIT_MS}ms/live)` : 'OFF'}`);
+  log(
+    'SYSTEM',
+    `Timeouts: check=${CHECK_NUMBER_TIMEOUT_MS}ms | presence=${PRESENCE_TIMEOUT_MS}ms | connect=${CONNECT_TIMEOUT_MS}ms`
+  );
 
   await fs.ensureDir(SESSIONS_DIR);
   await fs.ensureFile(OUTPUT_FILE);
