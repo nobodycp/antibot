@@ -75,7 +75,7 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "WhatsApp Check")
         self.assertContains(r, 'href="/tools/whatsapp-check/"')
-        self.assertContains(r, 'hx-get="/tools/whatsapp-check/"')
+        self.assertContains(r, "navHtmx('/tools/whatsapp-check/'")
         self.assertContains(r, "Cloudflare Domains")
         self.assertContains(r, 'hx-get="/tools/cloudflare-domains/"')
         self.assertNotContains(r, 'hx-get="/tools/google-safe-check/"')
@@ -112,20 +112,17 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertNotIn("@click=\"navigateToSection('tools')\"", html[wa : wa + 400])
         self.assertNotIn("@click=\"navigateToSection('tools')\"", html[cf : cf + 400])
 
-    def test_whatsapp_nav_uses_htmx_partial_like_cloudflare(self):
-        """WhatsApp must use hx-get partial navigation (same pattern as Cloudflare Domains)."""
+    def test_whatsapp_nav_uses_navHtmx_one_click_partial(self):
+        """WhatsApp uses navHtmx (no hx-get) to avoid double-binding with Alpine x-show."""
         self.client.force_login(self.regular)
         r = self.client.get(reverse("dashboard:home"))
         html = r.content.decode()
         wa = html.find('href="/tools/whatsapp-check/"')
         self.assertGreater(wa, 0)
         snippet = html[wa : wa + 400]
-        self.assertIn('hx-get="/tools/whatsapp-check/"', snippet)
-        self.assertIn('hx-target="#main-content"', snippet)
-        self.assertIn('hx-swap="innerHTML"', snippet)
-        self.assertIn('hx-push-url="true"', snippet)
-        self.assertNotIn("navHtmx('/tools/whatsapp-check/'", snippet)
-        self.assertNotIn("@click", snippet)
+        self.assertIn("navHtmx('/tools/whatsapp-check/'", snippet)
+        self.assertIn("@click.prevent.stop", snippet)
+        self.assertNotIn('hx-get="/tools/whatsapp-check/"', snippet)
         cf = html.find('hx-get="/tools/cloudflare-domains/"')
         self.assertIn('hx-get="/tools/cloudflare-domains/"', html[cf : cf + 400])
         self.assertNotIn("navHtmx('/tools/cloudflare-domains/'", html[cf : cf + 400])
@@ -157,14 +154,14 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertIn("setTimeout(() => this.processNestedNav(id), 0)", html)
 
     def test_navHtmx_pushes_url_and_stops_propagation(self):
-        """navHtmx must update URL immediately and stop event bubbling."""
+        """navHtmx must stop bubbling and defer HTMX until Alpine x-show settles."""
         self.client.force_login(self.regular)
         r = self.client.get(reverse("dashboard:home"))
         html = r.content.decode()
         self.assertIn("event.stopPropagation()", html)
         self.assertIn("history.pushState({}, '', url)", html)
-        self.assertIn("source: null", html)
-        self.assertIn("dash-nav-loading", html)
+        self.assertIn("requestAnimationFrame(navigate)", html)
+        self.assertIn("htmx.ajax('GET', url", html)
 
 
 class WhatsAppServiceTests(TestCase):

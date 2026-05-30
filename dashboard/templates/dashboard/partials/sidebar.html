@@ -46,15 +46,19 @@
             event.preventDefault();
             event.stopPropagation();
           }
-          if (window.history?.pushState) {
-            history.pushState({}, '', url);
-          }
-          if (!window.htmx) {
-            window.location.assign(url);
-            return;
-          }
-          document.body.classList.add('dash-nav-loading');
-          htmx.ajax('GET', url, { target: '#main-content', swap: 'innerHTML', pushUrl: url, source: null });
+          const navigate = () => {
+            if (!window.htmx) {
+              window.location.assign(url);
+              return;
+            }
+            if (window.history?.pushState) history.pushState({}, '', url);
+            htmx.ajax('GET', url, {
+              target: '#main-content',
+              swap: 'innerHTML',
+              pushUrl: url,
+            });
+          };
+          requestAnimationFrame(navigate);
         },
       }"
       x-init="initNav()"

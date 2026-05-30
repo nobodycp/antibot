@@ -6,7 +6,7 @@
   Cloudflare Domains
 </a>
 
-<a href="/tools/whatsapp-check/" data-nav-tier="sub" hx-get="/tools/whatsapp-check/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" class="group dash-nav-sub {% if request.path == '/tools/whatsapp-check/' %}is-active{% endif %}">
+<a href="/tools/whatsapp-check/" data-nav-tier="sub" @click.prevent.stop="navHtmx('/tools/whatsapp-check/', $event)" class="group dash-nav-sub {% if request.path == '/tools/whatsapp-check/' %}is-active{% endif %}">
   <span class="dash-nav-ico shrink-0">
     {% include "dashboard/partials/includes/dashboard_icon.html" with icon_key="tool_safe" icon_size_class="h-3.5 w-3.5 sm:h-4 sm:w-4" %}
   </span>
