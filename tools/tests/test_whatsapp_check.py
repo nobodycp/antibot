@@ -74,7 +74,8 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         r = self.client.get(reverse("dashboard:home"))
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "WhatsApp Check")
-        self.assertContains(r, 'hx-get="/tools/whatsapp-check/"')
+        self.assertContains(r, 'href="/tools/whatsapp-check/"')
+        self.assertContains(r, "navHtmx('/tools/whatsapp-check/'")
         self.assertContains(r, "Cloudflare Domains")
         self.assertContains(r, 'hx-get="/tools/cloudflare-domains/"')
         self.assertNotContains(r, 'hx-get="/tools/google-safe-check/"')
@@ -84,7 +85,7 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         r = self.client.get(reverse("tools:cloudflare_domains"))
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "WhatsApp Check")
-        self.assertContains(r, 'hx-get="/tools/whatsapp-check/"')
+        self.assertContains(r, "navHtmx('/tools/whatsapp-check/'")
 
     def test_user_tools_nav_inside_collapsible_tools_panel(self):
         """Cloudflare/WhatsApp must nest under Tools x-show like other tool links."""
@@ -93,7 +94,7 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         html = r.content.decode()
         self.assertIn("'tools': false", html)
         tools_panel = html.find('x-show="openSections[\'tools\']"')
-        wa = html.find('hx-get="/tools/whatsapp-check/"')
+        wa = html.find('href="/tools/whatsapp-check/"')
         cf = html.find('hx-get="/tools/cloudflare-domains/"')
         self.assertGreater(tools_panel, 0)
         self.assertGreater(wa, tools_panel)
@@ -104,12 +105,25 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.client.force_login(self.regular)
         r = self.client.get(reverse("dashboard:home"))
         html = r.content.decode()
-        wa = html.find('hx-get="/tools/whatsapp-check/"')
+        wa = html.find('href="/tools/whatsapp-check/"')
         cf = html.find('hx-get="/tools/cloudflare-domains/"')
         self.assertGreater(wa, 0)
         self.assertGreater(cf, 0)
         self.assertNotIn("@click=\"navigateToSection('tools')\"", html[wa : wa + 400])
         self.assertNotIn("@click=\"navigateToSection('tools')\"", html[cf : cf + 400])
+
+    def test_whatsapp_nav_uses_explicit_navHtmx_click(self):
+        """WhatsApp sidebar link uses navHtmx() — hx-get alone misses first click in x-show panel."""
+        self.client.force_login(self.regular)
+        r = self.client.get(reverse("dashboard:home"))
+        html = r.content.decode()
+        wa = html.find('href="/tools/whatsapp-check/"')
+        self.assertGreater(wa, 0)
+        snippet = html[wa : wa + 400]
+        self.assertIn("navHtmx('/tools/whatsapp-check/'", snippet)
+        self.assertNotIn('hx-get="/tools/whatsapp-check/"', snippet)
+        cf = html.find('hx-get="/tools/cloudflare-domains/"')
+        self.assertNotIn("navHtmx('/tools/cloudflare-domains/'", html[cf : cf + 400])
 
     def test_navigate_to_section_avoids_all_false_intermediate_state(self):
         """navigateToSection must set sections in one pass (no hide-before-HTMX race)."""

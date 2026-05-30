@@ -39,6 +39,11 @@
             this.openSections[key] = (key === id);
           }
         },
+        navHtmx(url, event) {
+          if (event) event.preventDefault();
+          if (!window.htmx) return;
+          htmx.ajax('GET', url, { target: '#main-content', swap: 'innerHTML', pushUrl: url });
+        },
       }"
       x-init="initNav()"
     >

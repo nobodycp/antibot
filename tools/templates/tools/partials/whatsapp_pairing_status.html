@@ -1,6 +1,6 @@
 <section class="ds-card dash-surface wa-check-accounts-pairing mb-4" id="wa-pairing-panel"
          hx-get="{% url 'tools:whatsapp_pairing_status' account_name %}"
-         hx-trigger="load, every 3s"
+         hx-trigger="every 3s"
          hx-swap="outerHTML">
   <div class="ds-card__head wa-check-accounts-pairing__head">
     <h2 class="ds-kicker">Pair account: <span class="font-mono normal-case">{{ account_name }}</span></h2>

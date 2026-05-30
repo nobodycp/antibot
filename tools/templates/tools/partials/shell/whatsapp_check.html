@@ -47,12 +47,15 @@
 </div>
 
 <script>
-document.body.addEventListener('htmx:configRequest', function (event) {
-  const tokenInput = document.querySelector('input[name=csrfmiddlewaretoken]');
-  if (tokenInput) {
-    event.detail.headers['X-CSRFToken'] = tokenInput.value;
-  }
-});
+if (!window.waCheckCsrfHookInstalled) {
+  window.waCheckCsrfHookInstalled = true;
+  document.body.addEventListener('htmx:configRequest', function (event) {
+    const tokenInput = document.querySelector('input[name=csrfmiddlewaretoken]');
+    if (tokenInput) {
+      event.detail.headers['X-CSRFToken'] = tokenInput.value;
+    }
+  });
+}
 
 window.waCheckShowCopyToast = function () {
   const panel = document.getElementById('wa-check-results-panel');
@@ -93,19 +96,25 @@ function waCheckShell(initialTab, defaultSeconds) {
       if (this.tab === "accounts") {
         this.startAccountsPoll();
         this.pauseCheckResultsPoll();
+        this.$nextTick(() => this.resumePairingPoll());
       } else {
         this.pausePairingPoll();
       }
+    },
+    destroy() {
+      this.stopAccountsPoll();
+      this.pauseCheckResultsPoll();
+      this.pausePairingPoll();
     },
     onTabChange(value) {
       if (value === "accounts") {
         this.startAccountsPoll();
         this.pauseCheckResultsPoll();
-        this.pausePairingPoll();
+        this.$nextTick(() => this.resumePairingPoll());
       } else {
         this.stopAccountsPoll();
         this.resumeCheckResultsPoll();
-        this.resumePairingPoll();
+        this.pausePairingPoll();
       }
     },
     pauseCheckResultsPoll() {
