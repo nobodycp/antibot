@@ -243,6 +243,44 @@ class TrackerOwnershipAndPermissionsTestCase(TestCase):
         )
         self.assertTrue(AllowedCountry.objects.filter(pk=row.pk).exists())
 
+    def test_superuser_does_not_see_other_users_allowed_countries(self):
+        AllowedCountry.objects.create(owner=self.user_a, code="SA")
+        AllowedCountry.objects.create(owner=self.superuser, code="US")
+        self.client.force_login(self.superuser)
+        r = self.client.get(reverse("tracker:allowed_country_partial"))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "US")
+        self.assertNotContains(r, "SA")
+
+    def test_user_country_not_duplicated_in_superuser_list(self):
+        AllowedCountry.objects.create(owner=self.user_a, code="SA")
+        AllowedCountry.objects.create(owner=self.superuser, code="SA")
+        self.client.force_login(self.superuser)
+        r = self.client.get(reverse("tracker:allowed_country_partial"))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.content.decode().count('name="delete_id"'), 1)
+
+    def test_superuser_delete_all_does_not_remove_other_users_countries(self):
+        AllowedCountry.objects.create(owner=self.user_a, code="JO")
+        AllowedCountry.objects.create(owner=self.superuser, code="US")
+        self.client.force_login(self.superuser)
+        self.client.post(reverse("tracker:allowed_country"), {"delete_all": "1"})
+        self.assertFalse(
+            AllowedCountry.objects.filter(owner=self.superuser).exists()
+        )
+        self.assertTrue(
+            AllowedCountry.objects.filter(owner=self.user_a, code="JO").exists()
+        )
+
+    def test_duplicate_country_code_rejected_for_same_owner(self):
+        AllowedCountry.objects.create(owner=self.user_a, code="SA")
+        self.client.force_login(self.user_a)
+        self.client.post(reverse("tracker:allowed_country"), {"country": "SA"})
+        self.assertEqual(
+            AllowedCountry.objects.filter(owner=self.user_a, code="SA").count(),
+            1,
+        )
+
     # --- Group 3.9: block rules superuser-only ---
 
     def test_non_superuser_cannot_access_blocked_ips_page(self):

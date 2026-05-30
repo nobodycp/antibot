@@ -36,7 +36,4 @@ def ip_log_queryset(user: AbstractUser):
 
 
 def allowed_countries_queryset(user: AbstractUser):
-    qs = AllowedCountry.objects.all()
-    if not user.is_superuser:
-        qs = qs.filter(owner=user)
-    return qs
+    return AllowedCountry.objects.filter(owner=user)
