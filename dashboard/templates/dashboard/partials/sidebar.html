@@ -32,7 +32,9 @@
         toggleSection(id) {
           const opening = !this.openSections[id];
           this.openSections[id] = opening;
-          if (opening) this.processNestedNav(id);
+          if (opening) {
+            setTimeout(() => this.processNestedNav(id), 0);
+          }
         },
         navigateToSection(id) {
           for (const key in this.openSections) {
@@ -40,9 +42,19 @@
           }
         },
         navHtmx(url, event) {
-          if (event) event.preventDefault();
-          if (!window.htmx) return;
-          htmx.ajax('GET', url, { target: '#main-content', swap: 'innerHTML', pushUrl: url });
+          if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          if (window.history?.pushState) {
+            history.pushState({}, '', url);
+          }
+          if (!window.htmx) {
+            window.location.assign(url);
+            return;
+          }
+          document.body.classList.add('dash-nav-loading');
+          htmx.ajax('GET', url, { target: '#main-content', swap: 'innerHTML', pushUrl: url, source: null });
         },
       }"
       x-init="initNav()"

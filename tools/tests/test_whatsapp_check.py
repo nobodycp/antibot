@@ -75,7 +75,6 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "WhatsApp Check")
         self.assertContains(r, 'href="/tools/whatsapp-check/"')
-        self.assertContains(r, "navHtmx('/tools/whatsapp-check/'")
         self.assertContains(r, "Cloudflare Domains")
         self.assertContains(r, 'hx-get="/tools/cloudflare-domains/"')
         self.assertNotContains(r, 'hx-get="/tools/google-safe-check/"')
@@ -85,7 +84,7 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         r = self.client.get(reverse("tools:cloudflare_domains"))
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "WhatsApp Check")
-        self.assertContains(r, "navHtmx('/tools/whatsapp-check/'")
+        self.assertContains(r, 'href="/tools/whatsapp-check/"')
 
     def test_user_tools_nav_inside_collapsible_tools_panel(self):
         """Cloudflare/WhatsApp must nest under Tools x-show like other tool links."""
@@ -112,17 +111,19 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertNotIn("@click=\"navigateToSection('tools')\"", html[wa : wa + 400])
         self.assertNotIn("@click=\"navigateToSection('tools')\"", html[cf : cf + 400])
 
-    def test_whatsapp_nav_uses_explicit_navHtmx_click(self):
-        """WhatsApp sidebar link uses navHtmx() — hx-get alone misses first click in x-show panel."""
+    def test_whatsapp_nav_uses_plain_href_full_page(self):
+        """WhatsApp uses plain href (no HTMX/Alpine) for reliable one-click navigation."""
         self.client.force_login(self.regular)
         r = self.client.get(reverse("dashboard:home"))
         html = r.content.decode()
         wa = html.find('href="/tools/whatsapp-check/"')
         self.assertGreater(wa, 0)
         snippet = html[wa : wa + 400]
-        self.assertIn("navHtmx('/tools/whatsapp-check/'", snippet)
+        self.assertNotIn("navHtmx('/tools/whatsapp-check/'", snippet)
         self.assertNotIn('hx-get="/tools/whatsapp-check/"', snippet)
+        self.assertNotIn("@click", snippet)
         cf = html.find('hx-get="/tools/cloudflare-domains/"')
+        self.assertIn('hx-get="/tools/cloudflare-domains/"', html[cf : cf + 400])
         self.assertNotIn("navHtmx('/tools/cloudflare-domains/'", html[cf : cf + 400])
 
     def test_navigate_to_section_avoids_all_false_intermediate_state(self):
@@ -149,7 +150,17 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertIn('x-init="initNav()"', html)
         self.assertIn("htmx.process(this.$el)", html)
         self.assertIn('x-ref="nested-tools"', html)
-        self.assertIn("if (opening) this.processNestedNav(id)", html)
+        self.assertIn("setTimeout(() => this.processNestedNav(id), 0)", html)
+
+    def test_navHtmx_pushes_url_and_stops_propagation(self):
+        """navHtmx must update URL immediately and stop event bubbling."""
+        self.client.force_login(self.regular)
+        r = self.client.get(reverse("dashboard:home"))
+        html = r.content.decode()
+        self.assertIn("event.stopPropagation()", html)
+        self.assertIn("history.pushState({}, '', url)", html)
+        self.assertIn("source: null", html)
+        self.assertIn("dash-nav-loading", html)
 
 
 class WhatsAppServiceTests(TestCase):
