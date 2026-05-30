@@ -86,22 +86,20 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertContains(r, "WhatsApp Check")
         self.assertContains(r, 'hx-get="/tools/whatsapp-check/"')
 
-    def test_user_tools_nav_before_collapsible_tools_panel(self):
-        """Cloudflare/WhatsApp must stay outside x-show so one click navigates from dashboard."""
+    def test_user_tools_nav_inside_collapsible_tools_panel(self):
+        """Cloudflare/WhatsApp must nest under Tools x-show like other tool links."""
         self.client.force_login(self.regular)
         r = self.client.get(reverse("dashboard:home"))
         html = r.content.decode()
         self.assertIn("'tools': false", html)
+        tools_panel = html.find('x-show="openSections[\'tools\']"')
         wa = html.find('hx-get="/tools/whatsapp-check/"')
         cf = html.find('hx-get="/tools/cloudflare-domains/"')
-        extra = html.find('x-show="openSections[\'tools\']"')
-        self.assertGreater(wa, 0)
-        self.assertGreater(cf, 0)
-        self.assertGreater(extra, 0)
-        self.assertLess(wa, extra)
-        self.assertLess(cf, extra)
-        self.assertNotIn("@click=\"navigateToSection('tools')\"", html[wa : wa + 400])
-        self.assertNotIn("@click=\"navigateToSection('tools')\"", html[cf : cf + 400])
+        self.assertGreater(tools_panel, 0)
+        self.assertGreater(wa, tools_panel)
+        self.assertGreater(cf, tools_panel)
+        self.assertIn("@click=\"navigateToSection('tools')\"", html[wa : wa + 400])
+        self.assertIn("@click=\"navigateToSection('tools')\"", html[cf : cf + 400])
 
     def test_navigate_to_section_avoids_all_false_intermediate_state(self):
         """navigateToSection must set sections in one pass (no hide-before-HTMX race)."""

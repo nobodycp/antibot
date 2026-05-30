@@ -168,12 +168,9 @@
           </svg>
         </button>
 
-        {# Cloudflare + WhatsApp: always visible so one click navigates (not hidden behind collapsed Tools). #}
-        <div class="dash-nav-nested space-y-px">
-          {% include "dashboard/partials/includes/tools_nav_user_tools.html" %}
-        </div>
-
         <div x-show="openSections['tools']" x-cloak class="dash-nav-nested space-y-px">
+          {% include "dashboard/partials/includes/tools_nav_user_tools.html" %}
+
           {% if request.user.is_superuser %}
           <a href="/tools/upload-files/" data-nav-tier="sub" hx-get="/tools/upload-files/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" @click="navigateToSection('tools')" class="group dash-nav-sub {% if request.path == '/tools/upload-files/' %}is-active{% endif %}">
             <span class="dash-nav-ico shrink-0">
