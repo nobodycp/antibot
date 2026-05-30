@@ -98,8 +98,18 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertGreater(tools_panel, 0)
         self.assertGreater(wa, tools_panel)
         self.assertGreater(cf, tools_panel)
-        self.assertIn("@click=\"navigateToSection('tools')\"", html[wa : wa + 400])
-        self.assertIn("@click=\"navigateToSection('tools')\"", html[cf : cf + 400])
+
+    def test_user_tools_nav_omits_navigate_to_section_click_handler(self):
+        """User tool links must not call navigateToSection (Alpine x-show race cancels HTMX)."""
+        self.client.force_login(self.regular)
+        r = self.client.get(reverse("dashboard:home"))
+        html = r.content.decode()
+        wa = html.find('hx-get="/tools/whatsapp-check/"')
+        cf = html.find('hx-get="/tools/cloudflare-domains/"')
+        self.assertGreater(wa, 0)
+        self.assertGreater(cf, 0)
+        self.assertNotIn("@click=\"navigateToSection('tools')\"", html[wa : wa + 400])
+        self.assertNotIn("@click=\"navigateToSection('tools')\"", html[cf : cf + 400])
 
     def test_navigate_to_section_avoids_all_false_intermediate_state(self):
         """navigateToSection must set sections in one pass (no hide-before-HTMX race)."""
