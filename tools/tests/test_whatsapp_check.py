@@ -75,7 +75,7 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "WhatsApp Check")
         self.assertContains(r, 'href="/tools/whatsapp-check/"')
-        self.assertContains(r, "navHtmx('/tools/whatsapp-check/'")
+        self.assertContains(r, 'hx-get="/tools/whatsapp-check/"')
         self.assertContains(r, "Cloudflare Domains")
         self.assertContains(r, 'hx-get="/tools/cloudflare-domains/"')
         self.assertNotContains(r, 'hx-get="/tools/google-safe-check/"')
@@ -112,20 +112,19 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertNotIn("@click=\"navigateToSection('tools')\"", html[wa : wa + 400])
         self.assertNotIn("@click=\"navigateToSection('tools')\"", html[cf : cf + 400])
 
-    def test_whatsapp_nav_uses_navHtmx_one_click_partial(self):
-        """WhatsApp uses navHtmx (no hx-get) to avoid double-binding with Alpine x-show."""
+    def test_whatsapp_nav_uses_hx_get_like_cloudflare(self):
+        """WhatsApp uses declarative hx-get like Cloudflare (same nested Tools panel)."""
         self.client.force_login(self.regular)
         r = self.client.get(reverse("dashboard:home"))
         html = r.content.decode()
         wa = html.find('href="/tools/whatsapp-check/"')
         self.assertGreater(wa, 0)
         snippet = html[wa : wa + 400]
-        self.assertIn("navHtmx('/tools/whatsapp-check/'", snippet)
-        self.assertIn("@click.prevent.stop", snippet)
-        self.assertNotIn('hx-get="/tools/whatsapp-check/"', snippet)
+        self.assertIn('hx-get="/tools/whatsapp-check/"', snippet)
+        self.assertIn('hx-push-url="true"', snippet)
+        self.assertNotIn("navHtmx('/tools/whatsapp-check/'", snippet)
         cf = html.find('hx-get="/tools/cloudflare-domains/"')
         self.assertIn('hx-get="/tools/cloudflare-domains/"', html[cf : cf + 400])
-        self.assertNotIn("navHtmx('/tools/cloudflare-domains/'", html[cf : cf + 400])
 
     def test_navigate_to_section_avoids_all_false_intermediate_state(self):
         """navigateToSection must set sections in one pass (no hide-before-HTMX race)."""
@@ -153,19 +152,27 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertIn('x-ref="nested-tools"', html)
         self.assertIn("setTimeout(() => this.processNestedNav(id), 0)", html)
 
-    def test_navHtmx_shows_loading_and_prevents_double_click(self):
-        """navHtmx must stop bubbling, show loading on #main-content, and block re-entry."""
+    def test_base_template_inits_alpine_after_main_content_swap(self):
+        """HTMX swaps must re-run Alpine.initTree so x-data shells (WhatsApp) bind correctly."""
         self.client.force_login(self.regular)
         r = self.client.get(reverse("dashboard:home"))
         html = r.content.decode()
-        self.assertIn("event.stopPropagation()", html)
-        self.assertIn("navPending", html)
-        self.assertIn("classList.add('htmx-request')", html)
         self.assertIn("htmx:afterSettle", html)
-        self.assertNotIn("history.pushState({}, '', url)", html)
-        self.assertIn("requestAnimationFrame(navigate)", html)
-        self.assertIn("htmx.ajax('GET', url", html)
-        self.assertIn("pushUrl: url", html)
+        self.assertIn("Alpine.initTree(t)", html)
+        self.assertIn("Alpine.destroyTree(t)", html)
+
+    def test_whatsapp_shell_defines_waCheckShell_before_x_data(self):
+        """waCheckShell must exist before x-data runs when the shell is swapped via HTMX."""
+        self.client.force_login(self.regular)
+        r = self.client.get(
+            reverse("tools:whatsapp_check"),
+            HTTP_HX_REQUEST="true",
+        )
+        html = r.content.decode()
+        fn_pos = html.find("function waCheckShell")
+        data_pos = html.find('x-data="waCheckShell')
+        self.assertGreater(fn_pos, 0)
+        self.assertGreater(data_pos, fn_pos)
 
 
 class WhatsAppServiceTests(TestCase):

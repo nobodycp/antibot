@@ -106,7 +106,17 @@
         }
       });
       document.body.addEventListener("htmx:afterSettle", function (e) {
-        dashAnimateSwapTarget(e.detail.target);
+        var t = e.detail.target;
+        dashAnimateSwapTarget(t);
+        /* HTMX runs inline scripts after swap; Alpine must init on afterSettle. */
+        if (t && t.id === "main-content" && window.Alpine) {
+          if (typeof Alpine.destroyTree === "function") {
+            Alpine.destroyTree(t);
+          }
+          if (typeof Alpine.initTree === "function") {
+            Alpine.initTree(t);
+          }
+        }
       });
       window.addEventListener("popstate", function () {
         syncSidebarActive();

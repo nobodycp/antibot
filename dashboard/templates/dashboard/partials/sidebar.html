@@ -7,7 +7,6 @@
     <nav
       class="flex flex-1 flex-col gap-0.5 pb-2"
       x-data="{
-        navPending: false,
         openSections: {
           'block-rules': {% if '/tracker/blocked-ips/' in request.path or '/tracker/blocked-subnets/' in request.path or '/tracker/blocked-isps/' in request.path or '/tracker/blocked-browsers/' in request.path or '/tracker/blocked-os/' in request.path or '/tracker/blocked-hostnames/' in request.path or '/tracker/dinger-ip/' in request.path or '/tracker/allowed-countries/' in request.path %}true{% else %}false{% endif %},
           'logs': {% if '/tracker/allowed-logs/' in request.path or '/tracker/denied-logs/' in request.path or '/tracker/ip-info/' in request.path %}true{% else %}false{% endif %},
@@ -41,41 +40,6 @@
           for (const key in this.openSections) {
             this.openSections[key] = (key === id);
           }
-        },
-        navHtmx(url, event) {
-          if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-          }
-          if (this.navPending) return;
-          this.navPending = true;
-          const main = document.getElementById('main-content');
-          const clearNavPending = () => {
-            this.navPending = false;
-            main?.classList.remove('htmx-request');
-          };
-          if (main) {
-            main.classList.add('htmx-request');
-            const onMainSwap = (ev) => {
-              if (ev.detail?.target?.id !== 'main-content') return;
-              clearNavPending();
-            };
-            main.addEventListener('htmx:afterSwap', onMainSwap, { once: true });
-            main.addEventListener('htmx:afterSettle', onMainSwap, { once: true });
-          }
-          const navigate = () => {
-            if (!window.htmx) {
-              clearNavPending();
-              window.location.assign(url);
-              return;
-            }
-            htmx.ajax('GET', url, {
-              target: '#main-content',
-              swap: 'innerHTML',
-              pushUrl: url,
-            });
-          };
-          requestAnimationFrame(navigate);
         },
       }"
       x-init="initNav()"
