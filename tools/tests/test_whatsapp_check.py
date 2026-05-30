@@ -75,6 +75,7 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "WhatsApp Check")
         self.assertContains(r, 'href="/tools/whatsapp-check/"')
+        self.assertContains(r, 'hx-get="/tools/whatsapp-check/"')
         self.assertContains(r, "Cloudflare Domains")
         self.assertContains(r, 'hx-get="/tools/cloudflare-domains/"')
         self.assertNotContains(r, 'hx-get="/tools/google-safe-check/"')
@@ -111,16 +112,19 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertNotIn("@click=\"navigateToSection('tools')\"", html[wa : wa + 400])
         self.assertNotIn("@click=\"navigateToSection('tools')\"", html[cf : cf + 400])
 
-    def test_whatsapp_nav_uses_plain_href_full_page(self):
-        """WhatsApp uses plain href (no HTMX/Alpine) for reliable one-click navigation."""
+    def test_whatsapp_nav_uses_htmx_partial_like_cloudflare(self):
+        """WhatsApp must use hx-get partial navigation (same pattern as Cloudflare Domains)."""
         self.client.force_login(self.regular)
         r = self.client.get(reverse("dashboard:home"))
         html = r.content.decode()
         wa = html.find('href="/tools/whatsapp-check/"')
         self.assertGreater(wa, 0)
         snippet = html[wa : wa + 400]
+        self.assertIn('hx-get="/tools/whatsapp-check/"', snippet)
+        self.assertIn('hx-target="#main-content"', snippet)
+        self.assertIn('hx-swap="innerHTML"', snippet)
+        self.assertIn('hx-push-url="true"', snippet)
         self.assertNotIn("navHtmx('/tools/whatsapp-check/'", snippet)
-        self.assertNotIn('hx-get="/tools/whatsapp-check/"', snippet)
         self.assertNotIn("@click", snippet)
         cf = html.find('hx-get="/tools/cloudflare-domains/"')
         self.assertIn('hx-get="/tools/cloudflare-domains/"', html[cf : cf + 400])
