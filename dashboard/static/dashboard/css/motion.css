@@ -223,3 +223,9 @@ main tbody tr {
   transition: background-color var(--dash-duration) var(--dash-ease-out),
     box-shadow var(--dash-duration) var(--dash-ease-out);
 }
+
+/* ----- HTMX nav loading (navHtmx → #main-content) ----- */
+#main-content.htmx-request {
+  opacity: 0.6;
+  pointer-events: none;
+}

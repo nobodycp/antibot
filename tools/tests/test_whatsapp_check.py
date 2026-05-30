@@ -153,15 +153,19 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
         self.assertIn('x-ref="nested-tools"', html)
         self.assertIn("setTimeout(() => this.processNestedNav(id), 0)", html)
 
-    def test_navHtmx_pushes_url_and_stops_propagation(self):
-        """navHtmx must stop bubbling and defer HTMX until Alpine x-show settles."""
+    def test_navHtmx_shows_loading_and_prevents_double_click(self):
+        """navHtmx must stop bubbling, show loading on #main-content, and block re-entry."""
         self.client.force_login(self.regular)
         r = self.client.get(reverse("dashboard:home"))
         html = r.content.decode()
         self.assertIn("event.stopPropagation()", html)
-        self.assertIn("history.pushState({}, '', url)", html)
+        self.assertIn("navPending", html)
+        self.assertIn("classList.add('htmx-request')", html)
+        self.assertIn("htmx:afterSettle", html)
+        self.assertNotIn("history.pushState({}, '', url)", html)
         self.assertIn("requestAnimationFrame(navigate)", html)
         self.assertIn("htmx.ajax('GET', url", html)
+        self.assertIn("pushUrl: url", html)
 
 
 class WhatsAppServiceTests(TestCase):

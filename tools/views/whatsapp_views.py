@@ -75,19 +75,27 @@ def _build_check_form(user, data=None) -> WhatsAppCheckForm:
     return WhatsAppCheckForm(data, account_choices=choices)
 
 
-def _recent_jobs_for_user(user):
+def _recent_jobs_for_user(
+    user,
+    *,
+    sync_from_disk: bool = True,
+    sync_pending_failed: bool = False,
+):
     if not _jobs_schema_ready():
         return [], None
     jobs_qs = wa_accounts.jobs_queryset_for_user(user)
     jobs = list(jobs_qs[:20])
-    for job in jobs:
-        if job.status in (
-            WhatsAppCheckJob.STATUS_RUNNING,
-            WhatsAppCheckJob.STATUS_PENDING,
-            WhatsAppCheckJob.STATUS_FAILED,
-        ):
-            wa.sync_job_from_disk(job)
-            job.save()
+    if sync_from_disk:
+        for job in jobs:
+            if job.status == WhatsAppCheckJob.STATUS_RUNNING:
+                wa.sync_job_from_disk(job)
+                job.save()
+            elif sync_pending_failed and job.status in (
+                WhatsAppCheckJob.STATUS_PENDING,
+                WhatsAppCheckJob.STATUS_FAILED,
+            ):
+                wa.sync_job_from_disk(job)
+                job.save()
     # Re-query after disk sync — stale in-memory status may block the UI.
     active = jobs_qs.filter(status=WhatsAppCheckJob.STATUS_RUNNING).first()
     return jobs, active
@@ -138,7 +146,11 @@ def whatsapp_check_view(request):
             pairing_account = ""
 
     accounts = wa_accounts.disk_accounts_for_user(user)
-    jobs, active_job = _recent_jobs_for_user(user)
+    skip_job_disk_sync = is_htmx_get(request) and not request.GET.get("job")
+    jobs, active_job = _recent_jobs_for_user(
+        user,
+        sync_from_disk=not skip_job_disk_sync,
+    )
 
     if request.method == "POST":
         action = request.POST.get("action", "")
@@ -504,7 +516,10 @@ def whatsapp_check_status_partial(request, job_id: int):
 def whatsapp_check_recent_jobs_partial(request):
     if not _jobs_schema_ready():
         return HttpResponse("")
-    jobs, active_job = _recent_jobs_for_user(request.user)
+    jobs, active_job = _recent_jobs_for_user(
+        request.user,
+        sync_pending_failed=True,
+    )
     html = render_to_string(
         "tools/partials/whatsapp_check_recent_jobs.html",
         {
