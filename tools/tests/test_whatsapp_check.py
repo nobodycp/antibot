@@ -125,6 +125,18 @@ class ToolsSidebarWhatsAppNavTests(TestCase):
             html,
         )
 
+    def test_sidebar_reprocesses_htmx_on_alpine_mount_and_accordion_open(self):
+        """Alpine x-if sidebar mounts after HTMX; re-process nested panels on init/toggle."""
+        self.client.force_login(self.regular)
+        r = self.client.get(reverse("dashboard:home"))
+        html = r.content.decode()
+        self.assertIn("processNestedNav(id)", html)
+        self.assertIn("initNav()", html)
+        self.assertIn('x-init="initNav()"', html)
+        self.assertIn("htmx.process(this.$el)", html)
+        self.assertIn('x-ref="nested-tools"', html)
+        self.assertIn("if (opening) this.processNestedNav(id)", html)
+
 
 class WhatsAppServiceTests(TestCase):
     def test_parse_numbers_dedupes(self):
